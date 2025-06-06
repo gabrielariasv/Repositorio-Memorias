@@ -1,0 +1,8 @@
+Herramientas para desarrollo web:
+
+1. Express.js - Framework para aplicaciones web en Node.js.
+2. React - Biblioteca para construir interfaces de usuario.
+3. Vite - Herramienta de desarrollo y build para proyectos frontend modernos.
+4. MongoDB - Base de datos NoSQL orientada a documentos.
+5. Mosquitto - Broker MQTT de código abierto compatible con Node.js, React y otros entornos.
+6. Se probará utilizar la plataforma Render como Cloud con posible cambio de no funcionar como lo planeado.
