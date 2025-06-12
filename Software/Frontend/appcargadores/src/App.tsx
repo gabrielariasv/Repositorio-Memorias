@@ -1,35 +1,51 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// src/App.tsx
+import { useState } from 'react';
+import ChargerList from './components/ChargerList'; // Ruta corregida
+import ChargerForm from './components/ChargerForm'; // Ruta corregida
+import { Charger, ChargerType } from './models/Charger';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [chargers, setChargers] = useState<Charger[]>([
+  {
+    _id: "1",
+    name: "Cargador Principal",
+    type: ChargerType.CCS, // Usa el enum en lugar del string
+    power: 150,
+    location: { lat: 40.416775, lng: -3.703790 },
+    status: "available",
+    createdAt: new Date()
+  }
+]);
+  
+  const [showForm, setShowForm] = useState(false);
+
+  const addCharger = (charger: Omit<Charger, '_id' | 'createdAt'>) => {
+    const newCharger: Charger = {
+      ...charger,
+      _id: Math.random().toString(36).substr(2, 9), // ID temporal
+      createdAt: new Date()
+    };
+    setChargers([...chargers, newCharger]);
+    setShowForm(false);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="min-h-screen bg-gray-100">
+      {showForm ? (
+        <div className="max-w-3xl mx-auto py-8">
+          <ChargerForm 
+            onSubmit={addCharger} 
+            onCancel={() => setShowForm(false)} 
+          />
+        </div>
+      ) : (
+        <ChargerList 
+          chargers={chargers} 
+          onAddNew={() => setShowForm(true)} 
+        />
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
