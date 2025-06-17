@@ -1,8 +1,10 @@
 // src/App.tsx
 import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ChargerList from './components/ChargerList'; // Ruta corregida
 import ChargerForm from './components/ChargerForm'; // Ruta corregida
 import { Charger, ChargerType } from './models/Charger';
+import TeamSpeakChartPage from './components/TeamSpeakChartPage';
 
 function App() {
   const [chargers, setChargers] = useState<Charger[]>([
@@ -30,21 +32,32 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {showForm ? (
-        <div className="max-w-3xl mx-auto py-8">
-          <ChargerForm 
-            onSubmit={addCharger} 
-            onCancel={() => setShowForm(false)} 
-          />
-        </div>
-      ) : (
-        <ChargerList 
-          chargers={chargers} 
-          onAddNew={() => setShowForm(true)} 
-        />
-      )}
-    </div>
+    <Router>
+      <nav className="bg-white shadow p-4 flex gap-4">
+        <Link to="/" className="font-bold text-blue-600 hover:underline">Cargadores</Link>
+        <Link to="/thingspeak" className="font-bold text-blue-600 hover:underline">ThingSpeak Chart</Link>
+      </nav>
+      <Routes>
+        <Route path="/" element={
+          <div className="min-h-screen bg-gray-100">
+            {showForm ? (
+              <div className="max-w-3xl mx-auto py-8">
+                <ChargerForm 
+                  onSubmit={addCharger} 
+                  onCancel={() => setShowForm(false)} 
+                />
+              </div>
+            ) : (
+              <ChargerList 
+                chargers={chargers} 
+                onAddNew={() => setShowForm(true)} 
+              />
+            )}
+          </div>
+        } />
+        <Route path="/thingspeak" element={<TeamSpeakChartPage />} />
+      </Routes>
+    </Router>
   );
 }
 
