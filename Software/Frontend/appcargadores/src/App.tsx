@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ChargerList from './components/ChargerList'; // Ruta corregida
 import ChargerForm from './components/ChargerForm'; // Ruta corregida
@@ -30,6 +30,28 @@ function App() {
     setChargers([...chargers, newCharger]);
     setShowForm(false);
   };
+
+  // Detectar preferencia de color del navegador y aplicar modo oscuro automáticamente
+  useEffect(() => {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (prefersDark) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+    // Escuchar cambios en la preferencia del usuario
+    const listener = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        document.body.classList.add('dark-mode');
+      } else {
+        document.body.classList.remove('dark-mode');
+      }
+    };
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', listener);
+    return () => {
+      window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', listener);
+    };
+  }, []);
 
   return (
     <Router>

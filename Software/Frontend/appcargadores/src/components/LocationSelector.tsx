@@ -184,7 +184,6 @@ export default function LocationSelector({
               className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               onKeyPress={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
             />
-            
             {/* Indicador de búsqueda */}
             {isSearching && (
               <div className="absolute right-3 top-3">
@@ -194,7 +193,7 @@ export default function LocationSelector({
           </div>
         </div>
         
-        {/* Resultados de búsqueda en dropdown */}
+        {/* Resultados de búsqueda en dropdown tipo Google/autocompletar */}
         {(showResults && searchResults.length > 0) && (
           <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
             {searchResults.map((result, index) => (
