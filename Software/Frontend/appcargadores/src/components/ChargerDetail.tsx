@@ -1,5 +1,6 @@
 // src/components/ChargerDetail.tsx
 import { Charger } from '../models/Charger';
+import { useNavigate } from 'react-router-dom';
 
 interface ChargerDetailProps {
   charger: Charger;
@@ -7,6 +8,7 @@ interface ChargerDetailProps {
 }
 
 export default function ChargerDetail({ charger, onClose }: ChargerDetailProps) {
+  const navigate = useNavigate();
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
       <div className="bg-white p-6 rounded-lg max-w-md w-full">
@@ -38,9 +40,24 @@ export default function ChargerDetail({ charger, onClose }: ChargerDetailProps) 
           </span>
         </div>
         
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={() => navigate('/thingspeak')}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Gráfica de Corriente
+          </button>
+          <button
+            onClick={() => navigate('/thingspeak-disp')}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+          >
+            Gráfica de Ocupación
+          </button>
+        </div>
+        
         <button 
           onClick={onClose}
-          className="mt-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+          className="mt-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 w-full"
         >
           Cerrar
         </button>

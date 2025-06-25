@@ -37,51 +37,53 @@ interface ThingSpeakFeed {
   field8?: string;
 }
 
-const ThingSpeakChart = () => {
+interface ThingSpeakChartProps {
+  channelId: string;
+  fieldNumber: number;
+  apiKey: string;
+  results?: number;
+  title?: string;
+}
+
+const ThingSpeakChart: React.FC<ThingSpeakChartProps> = ({
+  channelId,
+  fieldNumber,
+  apiKey,
+  results = 60,
+  title = 'Datos de ThingSpeak'
+}) => {
   const [chartData, setChartData] = useState<ChartData<'line'> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Configuración (reemplazar con tus credenciales)
-  const CHANNEL_ID = '2989160';
-  const API_KEY = 'QGCK40I7LSEH0Y5S';
-  const FIELD_NUMBER = 1; // Campo a mostrar (1-8)
-  const RESULTS = 60; // Número de puntos a mostrar
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await fetch(
-          `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?api_key=${API_KEY}&results=${RESULTS}`
+          `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${apiKey}&results=${results}`
         );
-        
         if (!response.ok) {
           throw new Error(`Error HTTP: ${response.status}`);
         }
-        
         const data = await response.json();
         const feeds: ThingSpeakFeed[] = data.feeds;
-        
         if (!feeds || feeds.length === 0) {
           throw new Error('No se encontraron datos');
         }
-        
         // Procesar datos para el gráfico
         const labels = feeds.map(feed => 
           new Date(feed.created_at).toLocaleTimeString()
         );
-        
-        const fieldKey = `field${FIELD_NUMBER}` as keyof ThingSpeakFeed;
+        const fieldKey = `field${fieldNumber}` as keyof ThingSpeakFeed;
         const values = feeds.map(feed => {
           const value = feed[fieldKey];
           return value !== undefined && value !== null ? parseFloat(String(value)) : null;
         });
-        
         const newChartData: ChartData<'line'> = {
           labels,
           datasets: [
             {
-              label: `Campo ${FIELD_NUMBER}`,
+              label: `Campo ${fieldNumber}`,
               data: values,
               borderColor: '#3e95cd',
               backgroundColor: 'rgba(62, 149, 205, 0.3)',
@@ -92,25 +94,19 @@ const ThingSpeakChart = () => {
             }
           ]
         };
-        
         setChartData(newChartData);
         setError(null);
       } catch (err) {
         setError((err as Error).message);
-        console.error('Error fetching data:', err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
-    
-    // Opcional: Actualizar datos periódicamente
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, [CHANNEL_ID, API_KEY, FIELD_NUMBER, RESULTS]);
+  }, [channelId, fieldNumber, apiKey, results]);
 
-  // Configuración del gráfico
   const chartOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -120,7 +116,7 @@ const ThingSpeakChart = () => {
       },
       title: {
         display: true,
-        text: `Datos de ThingSpeak - Campo ${FIELD_NUMBER}`,
+        text: title,
         font: {
           size: 16
         }
@@ -170,9 +166,8 @@ const ThingSpeakChart = () => {
           <Line data={chartData} options={chartOptions} />
         )}
       </div>
-      
       <div className="info">
-        <p>Datos del canal: {CHANNEL_ID} | Actualización cada 30 segundos</p>
+        <p>Datos del canal: {channelId} | Actualización cada 30 segundos</p>
       </div>
     </div>
   );

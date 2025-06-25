@@ -5,6 +5,7 @@ import ChargerList from './components/ChargerList'; // Ruta corregida
 import ChargerForm from './components/ChargerForm'; // Ruta corregida
 import { Charger, ChargerType } from './models/Charger';
 import TeamSpeakChartPage from './components/TeamSpeakChartPage';
+import TeamSpeakChartDisp from './components/TeamSpeakChartDisp';
 
 function App() {
   const [chargers, setChargers] = useState<Charger[]>([
@@ -57,7 +58,8 @@ function App() {
     <Router>
       <nav className="bg-white shadow p-4 flex gap-4">
         <Link to="/" className="font-bold text-blue-600 hover:underline">Cargadores</Link>
-        <Link to="/thingspeak" className="font-bold text-blue-600 hover:underline">ThingSpeak Chart</Link>
+        <Link to="/thingspeak" className="font-bold text-blue-600 hover:underline">Corriente</Link>
+        <Link to="/thingspeak-disp" className="font-bold text-blue-600 hover:underline">Ocupación</Link>
       </nav>
       <Routes>
         <Route path="/" element={
@@ -78,6 +80,7 @@ function App() {
           </div>
         } />
         <Route path="/thingspeak" element={<TeamSpeakChartPage />} />
+        <Route path="/thingspeak-disp" element={<TeamSpeakChartDisp />} />
       </Routes>
     </Router>
   );
