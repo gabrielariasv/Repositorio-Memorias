@@ -14,7 +14,7 @@ function App() {
     name: "Cargador Principal",
     type: ChargerType.CCS, // Usa el enum en lugar del string
     power: 150,
-    location: { lat: 40.416775, lng: -3.703790 },
+    location: { lat: -33.0223262, lng: -71.5514982 },
     status: "available",
     createdAt: new Date()
   }
@@ -64,7 +64,7 @@ function App() {
             <i className="fas fa-charging-station mr-2"></i>Cargadores
           </Link>
           <Link to="/thingspeak" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
-            <i className="fas fa-bolt mr-2"></i>Corriente
+            <i className="fas fa-bolt mr-2"></i>Potencia
           </Link>
           <Link to="/thingspeak-disp" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
             <i className="fas fa-car mr-2"></i>Ocupación

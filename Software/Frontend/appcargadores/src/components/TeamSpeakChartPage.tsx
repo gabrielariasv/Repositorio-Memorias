@@ -14,7 +14,7 @@ const ThingSpeakChartPage = () => {
           Monitoreo de Cargadores IoT
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Datos en tiempo real de corriente eléctrica
+          Datos en tiempo real de Potencia eléctrica
         </p>
       </header>
       
@@ -37,7 +37,7 @@ const ThingSpeakChartPage = () => {
           channelId={DEFAULT_CHANNEL_ID}
           fieldNumber={DEFAULT_FIELD_NUMBER}
           apiKey={DEFAULT_API_KEY}
-          title="Corriente Eléctrica"
+          title="Potencia Eléctrica"
           onStatusChange={setCurrentValue} // Pasamos el setter como prop
         />
       </div>
