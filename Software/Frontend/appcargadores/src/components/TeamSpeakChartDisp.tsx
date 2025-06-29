@@ -1,145 +1,65 @@
-import React, { useEffect, useState } from 'react';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ChartData,
-  ChartOptions
-} from 'chart.js';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import React, { useState } from 'react';
+import ThingSpeakChart from '../models/ThingSpeakChart';
 
 const CHANNEL_ID = '2989160';
+const FIELD_NUMBER = 1;
 const API_KEY = 'QGCK40I7LSEH0Y5S';
-const FIELD_NUMBER = 1; // Campo 1 para ocupación
-const RESULTS = 60;
-
-interface ThingSpeakFeed {
-  created_at: string;
-  entry_id: number;
-  field1?: string;
-  field2?: string;
-  field3?: string;
-  field4?: string;
-  field5?: string;
-  field6?: string;
-  field7?: string;
-  field8?: string;
-}
 
 const TeamSpeakChartDisp: React.FC = () => {
-  const [chartData, setChartData] = useState<ChartData<'line'> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastStatus, setLastStatus] = useState<number | null>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?api_key=${API_KEY}&results=${RESULTS}`
-        );
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-        const data = await response.json();
-        const feeds: ThingSpeakFeed[] = data.feeds;
-        if (!feeds || feeds.length === 0) throw new Error('No se encontraron datos');
-        const labels = feeds.map(feed => new Date(feed.created_at).toLocaleTimeString());
-        const fieldKey = `field${FIELD_NUMBER}` as keyof ThingSpeakFeed;
-        const values = feeds.map(feed => {
-          const value = feed[fieldKey];
-          return value !== undefined && value !== null ? parseInt(String(value)) : null;
-        });
-        setLastStatus(values[values.length - 1] ?? null);
-        const newChartData: ChartData<'line'> = {
-          labels,
-          datasets: [
-            {
-              label: 'Ocupación (0=Desocupado, 1=Ocupado)',
-              data: values,
-              borderColor: '#ef4444',
-              backgroundColor: 'rgba(239,68,68,0.2)',
-              stepped: true,
-              tension: 0,
-              pointRadius: 3,
-              pointBackgroundColor: '#ef4444',
-              fill: true,
-            }
-          ]
-        };
-        setChartData(newChartData);
-        setError(null);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const chartOptions: ChartOptions<'line'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'top' as const },
-      title: {
-        display: true,
-        text: 'Historial de Ocupación del Cargador',
-        font: { size: 16 }
-      },
-      tooltip: { mode: 'index', intersect: false }
-    },
-    scales: {
-      x: { title: { display: true, text: 'Hora' }, ticks: { maxTicksLimit: 10 } },
-      y: {
-        title: { display: true, text: 'Estado' },
-        min: -0.1,
-        max: 1.1,
-        ticks: {
-          stepSize: 1,
-          callback: (value) => value === 1 ? 'Ocupado' : 'Desocupado'
-        }
-      }
-    },
-    interaction: { intersect: false, mode: 'nearest' },
-  };
+  const [currentStatus, setCurrentStatus] = useState<string>('Desconocido');
+  
+  // Reutilizamos el mismo componente de indicador de estado
+  const StatusIndicator = () => (
+    <span className={`font-bold px-3 py-1 rounded-lg ${
+      currentStatus === 'Ocupado' 
+        ? 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/20' 
+        : currentStatus === 'Desocupado' 
+          ? 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/20'
+          : 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700'
+    }`}>
+      {currentStatus}
+    </span>
+  );
 
   return (
-    <div className="thingspeak-page">
-      <header>
-        <h1>Ocupación del Cargador</h1>
+    <div className="thingspeak-page p-4 max-w-6xl mx-auto">
+      <header className="mb-8 text-center">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">
+          <i className="fas fa-car mr-3 text-blue-500"></i>
+          Ocupación del Cargador
+        </h1>
       </header>
-      <div style={{ margin: '1rem 0', textAlign: 'center' }}>
-        Estado actual: {lastStatus === 1 ? (
-          <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Ocupado</span>
-        ) : lastStatus === 0 ? (
-          <span style={{ color: '#16a34a', fontWeight: 'bold' }}>Desocupado</span>
-        ) : (
-          <span style={{ color: '#888' }}>Desconocido</span>
-        )}
+      
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
+        <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+            Canal #{CHANNEL_ID} - Campo {FIELD_NUMBER}
+          </h2>
+          <div className="flex gap-2">
+            <button className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm">
+              <i className="fas fa-download mr-2"></i> Exportar
+            </button>
+          </div>
+        </div>
+        
+        {/* Estado actual unificado usando el mismo componente */}
+        <div className="text-center mb-4">
+          <span className="font-semibold mr-2">Estado actual:</span>
+          <StatusIndicator />
+        </div>
+        
+        <ThingSpeakChart
+          channelId={CHANNEL_ID}
+          fieldNumber={FIELD_NUMBER}
+          apiKey={API_KEY}
+          title="Historial de Ocupación"
+          isBinary={true}
+          showStatusIndicator={false}
+          onStatusChange={setCurrentStatus}
+        />
       </div>
-      <div className="chart-container" style={{ height: 400 }}>
-        {loading && <div>Cargando datos...</div>}
-        {error && <div style={{ color: 'red' }}>Error: {error}</div>}
-        {chartData && <Line data={chartData} options={chartOptions} />}
-      </div>
-      <footer>
+      
+      <footer className="mt-8 text-center text-gray-500 dark:text-gray-400 text-sm">
         <p>Powered by ThingSpeak API | React Chart.js</p>
       </footer>
     </div>

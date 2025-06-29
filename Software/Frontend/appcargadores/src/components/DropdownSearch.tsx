@@ -42,7 +42,7 @@ const DropdownSearch: React.FC<DropdownSearchProps> = ({ onSelect }) => {
           );
           const results = await response.json();
           setOptions(
-            results.map((r: any) => ({
+            results.map((r: { display_name: string; lat: string; lon: string }) => ({
               label: r.display_name,
               lat: parseFloat(r.lat),
               lon: parseFloat(r.lon),

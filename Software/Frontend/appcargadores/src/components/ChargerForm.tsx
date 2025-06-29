@@ -26,67 +26,86 @@ export default function ChargerForm({ onSubmit, onCancel }: ChargerFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Agregar Nuevo Cargador</h2>
+    <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+      <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+        <i className="fas fa-plus-circle mr-3 text-blue-500"></i> 
+        Agregar Nuevo Cargador
+      </h2>
       
-      <div className="mb-4">
-        <label className="block mb-2 font-medium">Nombre</label>
-        <input 
-          type="text" 
-          value={name} 
-          onChange={(e) => setName(e.target.value)} 
-          className="w-full p-2 border rounded"
-          required 
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div>
+          <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
+            <i className="fas fa-tag mr-2"></i> Nombre
+          </label>
+          <input 
+            type="text" 
+            value={name} 
+            onChange={(e) => setName(e.target.value)} 
+            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Ej: Cargador Principal"
+            required 
+          />
+        </div>
+        
+        <div>
+          <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
+            <i className="fas fa-plug mr-2"></i> Tipo de Cargador
+          </label>
+          <select 
+            value={type} 
+            onChange={(e) => setType(e.target.value as ChargerType)}
+            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            {Object.values(ChargerType).map(t => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div>
+          <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
+            <i className="fas fa-bolt mr-2"></i> Potencia (kW)
+          </label>
+          <div className="relative">
+            <input 
+              type="number" 
+              value={power} 
+              onChange={(e) => setPower(Number(e.target.value))}
+              min="3"
+              max="350"
+              className="w-full p-3 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required 
+            />
+            <span className="absolute left-3 top-3 text-gray-500">kW</span>
+          </div>
+        </div>
       </div>
       
-      <div className="mb-4">
-        <label className="block mb-2 font-medium">Tipo de Cargador</label>
-        <select 
-          value={type} 
-          onChange={(e) => setType(e.target.value as ChargerType)}
-          className="w-full p-2 border rounded"
-        >
-          {Object.values(ChargerType).map(t => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
+      <div className="mb-6">
+        <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
+          <i className="fas fa-map-marker-alt mr-2"></i> Ubicación
+        </label>
+        <div className="rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+          <MapPicker 
+            initialPosition={position} 
+            onLocationSelect={setPosition} 
+          />
+        </div>
       </div>
       
-      <div className="mb-4">
-        <label className="block mb-2 font-medium">Potencia (kW)</label>
-        <input 
-          type="number" 
-          value={power} 
-          onChange={(e) => setPower(Number(e.target.value))}
-          min="3"
-          max="350"
-          className="w-full p-2 border rounded"
-          required 
-        />
-      </div>
-      
-      <div className="mb-4">
-        <label className="block mb-2 font-medium">Ubicación</label>
-        <MapPicker 
-          initialPosition={position} 
-          onLocationSelect={setPosition} 
-        />
-      </div>
-      
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-col sm:flex-row justify-end gap-3">
         <button 
           type="button" 
           onClick={onCancel}
-          className="px-4 py-2 border rounded"
+          className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center"
         >
-          Cancelar
+          <i className="fas fa-times mr-2"></i> Cancelar
         </button>
         <button 
           type="submit" 
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-lg hover:from-blue-700 hover:to-indigo-800 shadow-md transition-all flex items-center justify-center"
         >
-          Guardar Cargador
+          <i className="fas fa-save mr-2"></i> Guardar Cargador
         </button>
       </div>
     </form>

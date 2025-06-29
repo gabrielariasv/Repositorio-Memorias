@@ -34,54 +34,65 @@ function App() {
 
   // Detectar preferencia de color del navegador y aplicar modo oscuro automáticamente
   useEffect(() => {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (prefersDark) {
+  const applyDarkMode = (isDark: boolean) => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
       document.body.classList.add('dark-mode');
     } else {
+      document.documentElement.classList.remove('dark');
       document.body.classList.remove('dark-mode');
     }
-    // Escuchar cambios en la preferencia del usuario
-    const listener = (e: MediaQueryListEvent) => {
-      if (e.matches) {
-        document.body.classList.add('dark-mode');
-      } else {
-        document.body.classList.remove('dark-mode');
-      }
-    };
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', listener);
-    return () => {
-      window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', listener);
-    };
-  }, []);
+  };
+
+  // Detectar preferencia inicial
+  const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  applyDarkMode(darkQuery.matches);
+
+  // Escuchar cambios
+  const listener = (e: MediaQueryListEvent) => applyDarkMode(e.matches);
+  darkQuery.addEventListener('change', listener);
+
+  return () => darkQuery.removeEventListener('change', listener);
+}, []);
 
   return (
     <Router>
-      <nav className="bg-white shadow p-4 flex gap-4">
-        <Link to="/" className="font-bold text-blue-600 hover:underline">Cargadores</Link>
-        <Link to="/thingspeak" className="font-bold text-blue-600 hover:underline">Corriente</Link>
-        <Link to="/thingspeak-disp" className="font-bold text-blue-600 hover:underline">Ocupación</Link>
-      </nav>
-      <Routes>
-        <Route path="/" element={
-          <div className="min-h-screen bg-gray-100">
-            {showForm ? (
-              <div className="max-w-3xl mx-auto py-8">
-                <ChargerForm 
-                  onSubmit={addCharger} 
-                  onCancel={() => setShowForm(false)} 
+      <div className="min-h-screen flex flex-col">
+        {/* Navbar mejorado */}
+        <nav className="bg-white dark:bg-gray-800 shadow-md py-4 px-4 flex flex-wrap gap-3 justify-center sm:justify-start">
+          <Link to="/" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
+            <i className="fas fa-charging-station mr-2"></i>Cargadores
+          </Link>
+          <Link to="/thingspeak" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
+            <i className="fas fa-bolt mr-2"></i>Corriente
+          </Link>
+          <Link to="/thingspeak-disp" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
+            <i className="fas fa-car mr-2"></i>Ocupación
+          </Link>
+        </nav>
+
+        <Routes>
+          <Route path="/" element={
+            <main className="flex-grow p-4">
+              {showForm ? (
+                <div className="max-w-3xl mx-auto py-4 sm:py-8">
+                  <ChargerForm 
+                    onSubmit={addCharger} 
+                    onCancel={() => setShowForm(false)} 
+                  />
+                </div>
+              ) : (
+                <ChargerList 
+                  chargers={chargers} 
+                  onAddNew={() => setShowForm(true)} 
                 />
-              </div>
-            ) : (
-              <ChargerList 
-                chargers={chargers} 
-                onAddNew={() => setShowForm(true)} 
-              />
-            )}
-          </div>
-        } />
-        <Route path="/thingspeak" element={<TeamSpeakChartPage />} />
-        <Route path="/thingspeak-disp" element={<TeamSpeakChartDisp />} />
-      </Routes>
+              )}
+            </main>
+          } />
+          <Route path="/thingspeak" element={<TeamSpeakChartPage />} />
+          <Route path="/thingspeak-disp" element={<TeamSpeakChartDisp />} />
+        </Routes>
+      </div>
     </Router>
   );
 }
