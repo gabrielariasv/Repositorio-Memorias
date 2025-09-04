@@ -1,48 +1,28 @@
-// src/App.tsx
-import { useState } from 'react';
-import ChargerList from './components/ChargerList'; // Ruta corregida
-import ChargerForm from './components/ChargerForm'; // Ruta corregida
-import { Charger, ChargerType } from './models/Charger';
+import React from 'react';
+import { useAuth } from './contexts/useAuth';
+import ProtectedRoute from './components/ProtectedRoute';
+import Dashboard from './components/Dashboard';
+import Login from './components/Login';
 
 function App() {
-  const [chargers, setChargers] = useState<Charger[]>([
-  {
-    _id: "1",
-    name: "Cargador Principal",
-    type: ChargerType.CCS, // Usa el enum en lugar del string
-    power: 150,
-    location: { lat: 40.416775, lng: -3.703790 },
-    status: "available",
-    createdAt: new Date()
-  }
-]);
-  
-  const [showForm, setShowForm] = useState(false);
+  const { user, isLoading } = useAuth();
 
-  const addCharger = (charger: Omit<Charger, '_id' | 'createdAt'>) => {
-    const newCharger: Charger = {
-      ...charger,
-      _id: Math.random().toString(36).substr(2, 9), // ID temporal
-      createdAt: new Date()
-    };
-    setChargers([...chargers, newCharger]);
-    setShowForm(false);
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {showForm ? (
-        <div className="max-w-3xl mx-auto py-8">
-          <ChargerForm 
-            onSubmit={addCharger} 
-            onCancel={() => setShowForm(false)} 
-          />
-        </div>
+      {user ? (
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
       ) : (
-        <ChargerList 
-          chargers={chargers} 
-          onAddNew={() => setShowForm(true)} 
-        />
+        <Login />
       )}
     </div>
   );
