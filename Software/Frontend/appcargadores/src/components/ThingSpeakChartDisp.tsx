@@ -5,7 +5,7 @@ const CHANNEL_ID = '2989160';
 const FIELD_NUMBER = 1;
 const API_KEY = 'QGCK40I7LSEH0Y5S';
 
-const TeamSpeakChartDisp: React.FC = () => {
+const ThingSpeakChartDisp: React.FC = () => {
   const [currentStatus, setCurrentStatus] = useState<string>('Desconocido');
   
   // Reutilizamos el mismo componente de indicador de estado
@@ -66,4 +66,4 @@ const TeamSpeakChartDisp: React.FC = () => {
   );
 };
 
-export default TeamSpeakChartDisp;
+export default ThingSpeakChartDisp;

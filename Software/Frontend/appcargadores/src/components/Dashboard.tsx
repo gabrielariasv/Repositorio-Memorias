@@ -1,8 +1,13 @@
 import React from 'react';
+import { useState} from 'react';
 import { useAuth } from '../contexts/useAuth';
 import ChargerList from './ChargerList';
 import ChargerForm from './ChargerForm';
 import VehicleDashboard from './VehicleDashboard';
+import { Charger, ChargerType } from '../models/Charger';
+import ThingSpeakChartPage from './ThingSpeakChartPage';
+import ThingSpeakChartDisp from './ThingSpeakChartDisp';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 //import AdminDashboard from './AdminDashboard';
 
 const Dashboard: React.FC = () => {
@@ -31,64 +36,73 @@ const Dashboard: React.FC = () => {
 
 // Dashboard para administradores de estaciones
 const StationAdminDashboard: React.FC = () => {
-  const [showForm, setShowForm] = React.useState(false);
-  const { user } = useAuth();
+  const [chargers, setChargers] = useState<Charger[]>([
+  {
+    _id: "1",
+    name: "Cargador Principal",
+    type: ChargerType.CCS, // Usa el enum en lugar del string
+    power: 150,
+    location: { lat: -33.0223262, lng: -71.5514982 },
+    status: "available",
+    createdAt: new Date()
+  }
+]);
+  
+  const [showForm, setShowForm] = useState(false);
 
-  // En una implementación real, obtendrías estos datos de la API
-  const [chargers, setChargers] = React.useState<any[]>([]);
-
-  React.useEffect(() => {
-    if (user?.ownedStations && user.ownedStations.length > 0) {
-      // Cargar los cargadores del usuario
-      fetchUserChargers();
-    }
-  }, [user]);
-
-  const fetchUserChargers = async () => {
-    try {
-      // Aquí harías una llamada a la API para obtener los cargadores del usuario
-      // Por ahora usamos datos de ejemplo
-      const response = await fetch('/api/chargers/user');
-      const data = await response.json();
-      setChargers(data);
-    } catch (error) {
-      console.error('Error fetching chargers:', error);
-    }
-  };
-
-  const addCharger = (charger: any) => {
-    // En una implementación real, enviarías esto a la API
-    const newCharger = {
+  const addCharger = (charger: Omit<Charger, '_id' | 'createdAt'>) => {
+    const newCharger: Charger = {
       ...charger,
-      _id: Math.random().toString(36).substr(2, 9),
+      _id: Math.random().toString(36).substr(2, 9), // ID temporal
       createdAt: new Date()
     };
     setChargers([...chargers, newCharger]);
     setShowForm(false);
   };
 
+  
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="p-4 bg-white shadow">
-        <h1 className="text-2xl font-bold">Panel de Administración de Estaciones</h1>
-        <p className="text-gray-600">Bienvenido, {user?.name}</p>
+    <Router>
+      <div className="min-h-screen flex flex-col">
+        {/* Navbar mejorado */}
+        <nav className="bg-white dark:bg-gray-800 shadow-md py-4 px-4 flex flex-wrap gap-3 justify-center sm:justify-start">
+          <Link to="/" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
+            <i className="fas fa-charging-station mr-2"></i>Cargadores
+          </Link>
+          <Link to="/thingspeak" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
+            <i className="fas fa-bolt mr-2"></i>Potencia
+          </Link>
+          <Link to="/thingspeak-disp" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
+            <i className="fas fa-car mr-2"></i>Ocupación
+          </Link>
+        </nav>
+
+        <Routes>
+          <Route path="/" element={
+            <main className="flex-grow p-4">
+              {showForm ? (
+                <div className="max-w-3xl mx-auto py-4 sm:py-8">
+                  <ChargerForm 
+                    onSubmit={addCharger} 
+                    onCancel={() => setShowForm(false)} 
+                  />
+                </div>
+              ) : (
+                <ChargerList 
+                  chargers={chargers} 
+                  onAddNew={() => setShowForm(true)} 
+                />
+              )}
+            </main>
+          } />
+          <Route path="/thingspeak" element={<ThingSpeakChartPage />} />
+          <Route path="/thingspeak-disp" element={<ThingSpeakChartDisp />} />
+        </Routes>
       </div>
-      
-      {showForm ? (
-        <div className="max-w-3xl mx-auto py-8">
-          <ChargerForm 
-            onSubmit={addCharger} 
-            onCancel={() => setShowForm(false)} 
-          />
-        </div>
-      ) : (
-        <ChargerList 
-          chargers={chargers} 
-          onAddNew={() => setShowForm(true)} 
-        />
-      )}
-    </div>
+    </Router>
   );
-};
+}
+
 
 export default Dashboard;
