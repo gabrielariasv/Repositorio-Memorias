@@ -39,7 +39,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="flex-grow p-4">
       {user ? (
         <ProtectedRoute>
           <Dashboard />
