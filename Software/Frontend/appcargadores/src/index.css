@@ -1,57 +1,88 @@
+/* src/index.css — compatible con Tailwind 4.1 y sin @apply */
 @import "tailwindcss";
 
+/* variables de fondo (gradientes) */
 :root {
-  --color-bg-light: linear-gradient(135deg, #e0f2fe 0%, #fff 50%, #d1fae5 100%);
+  --color-bg-light: linear-gradient(135deg, #e0f2fe 0%, #ffffff 50%, #d1fae5 100%);
   --color-bg-dark: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
 }
 
+/* cuerpo — valores concretos (no @apply) */
 body {
   background: var(--color-bg-light);
-  @apply min-h-screen font-sans text-gray-900 transition-colors duration-300;
+  min-height: 100vh;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  margin: 0;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 300ms ease, color 300ms ease;
 }
 
-body.dark-mode {
+/* Si el sistema prefiere modo oscuro */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: var(--color-bg-dark);
+    color: #e6eef8;
+  }
+}
+
+/* Soporte para modo oscuro por clase (html o body con la clase 'dark') */
+.dark body,
+body.dark {
   background: var(--color-bg-dark);
-  @apply text-gray-100;
+  color: #e6eef8;
 }
 
-@layer components {
-  .iot-card {
-    @apply bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6 border border-gray-200 dark:border-gray-700 transition-all duration-300;
-  }
-  
-  .iot-card:hover {
-    @apply shadow-lg;
-  }
+/* ===========================
+   Component styles (sin @apply)
+   =========================== */
 
-  .iot-header {
-    @apply text-2xl md:text-3xl font-bold text-blue-600 dark:text-blue-400 mb-4 transition-colors;
-  }
+/* Tarjeta genérica .iot-card (equivalente a rounded-xl, shadow, p-6, border) */
+.iot-card {
+  background-color: #ffffff;
+  border-radius: 1rem; /* rounded-xl */
+  box-shadow: 0 4px 10px rgba(2,6,23,0.06);
+  padding: 1.5rem; /* 24px */
+  margin-bottom: 1.5rem;
+  border: 1px solid #e5e7eb; /* gray-200 */
+  transition: box-shadow 200ms ease, transform 150ms ease;
+  color: inherit;
 }
 
-.dark .iot-card {
-  @apply bg-gray-800 border-gray-700;
-}
-/* Estilos para popups en modo oscuro */
-.dark-popup .leaflet-popup-content-wrapper {
-  background-color: #1e293b;
-  color: #f1f5f9;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+/* hover de la tarjeta */
+.iot-card:hover {
+  box-shadow: 0 8px 20px rgba(2,6,23,0.08);
 }
 
-.dark-popup .leaflet-popup-tip {
-  background-color: #1e293b;
-  border: 1px solid #334155;
+/* header de tarjeta */
+.iot-header {
+  font-size: 1.5rem; /* text-2xl */
+  line-height: 1.2;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #2563eb; /* text-blue-600 */
 }
 
-.dark-popup .leaflet-popup-content {
-  margin: 10px;
-  line-height: 1.5;
+/* modo oscuro para .iot-card */
+.dark .iot-card,
+body.dark .iot-card {
+  background-color: #1f2937; /* gray-800 */
+  border-color: #374151; /* gray-700 */
+  color: #e6eef8;
 }
 
-/* Estilos para popups en modo claro */
+/* encabezado en modo oscuro */
+.dark .iot-header,
+body.dark .iot-header {
+  color: #60a5fa; /* azul claro para dark */
+}
+
+/* ===========================
+   Leaflet popup styles (light / dark)
+   =========================== */
+
+/* Light popup */
 .light-popup .leaflet-popup-content-wrapper {
   background-color: #ffffff;
   color: #1e293b;
@@ -59,13 +90,84 @@ body.dark-mode {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-
 .light-popup .leaflet-popup-tip {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
 }
-
 .light-popup .leaflet-popup-content {
   margin: 10px;
   line-height: 1.5;
+}
+
+/* Dark popup */
+.dark-popup .leaflet-popup-content-wrapper {
+  background-color: #0f172a; /* nearly black / gray-900 */
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.dark-popup .leaflet-popup-tip {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+}
+.dark-popup .leaflet-popup-content {
+  margin: 10px;
+  line-height: 1.5;
+}
+
+/* ===========================
+   Wheel helpers (scroll hide + gradients)
+   =========================== */
+
+/* ocultar scrollbar (webkit + firefox) */
+.wheel::-webkit-scrollbar { display: none; }
+.wheel { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* pseudo elementos para efecto degradado en columnas del wheel */
+.wheel-column::before,
+.wheel-column::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 40%;
+  pointer-events: none;
+  z-index: 1;
+}
+.wheel-column::before {
+  top: 0;
+  background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0.85));
+}
+.wheel-column::after {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0.85));
+}
+
+/* ajustes para modo oscuro: degradado más oscuro */
+.dark .wheel-column::before,
+body.dark .wheel-column::before {
+  background: linear-gradient(to bottom, rgba(17,24,39,0.95), rgba(17,24,39,0.85));
+}
+.dark .wheel-column::after,
+body.dark .wheel-column::after {
+  background: linear-gradient(to top, rgba(17,24,39,0.95), rgba(17,24,39,0.85));
+}
+
+/* ===========================
+   Utilidades pequeñas
+   =========================== */
+
+.left-2px { left: 2px; position: relative; }
+.right-2px { right: 2px; position: relative; }
+
+/* ===========================
+   Compatibilidad responsive mínima
+   =========================== */
+
+/* Si quieres forzar estilos mobile/desktop con CSS tradicional,
+   aquí tienes algunos ajustes que había en tu versión original */
+
+@media (max-width: 768px) {
+  .iot-header { font-size: 1.125rem; } /* md -> smaller on mobile */
 }
