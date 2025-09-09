@@ -2,6 +2,17 @@ const express = require('express');
 const router = express.Router();
 const Vehicle = require('../models/Vehicle');
 const ChargingSession = require('../models/ChargingSession');
+// Obtener vehículos por id de usuario
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const vehicles = await Vehicle.find({ userId: req.params.userId })
+      .populate('userId', 'name email')
+      .populate('chargingHistory.chargerId', 'name location');
+    res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Obtener todos los vehículos
 router.get('/', async (req, res) => {
