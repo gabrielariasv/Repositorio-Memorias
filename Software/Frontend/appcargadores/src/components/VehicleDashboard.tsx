@@ -255,6 +255,7 @@ const VehicleDashboard: React.FC = () => {
                     {reservations.slice(0, 2).map(res => {
                       const start = new Date(res.startTime);
                       const end = new Date(res.endTime);
+                      const now = new Date();
                       const day = start.toLocaleDateString('en-US', { weekday: 'short' });
                       const date = start.getDate();
                       const month = start.toLocaleString('en-US', { month: 'short' });
@@ -263,6 +264,7 @@ const VehicleDashboard: React.FC = () => {
                       const durationH = Math.floor(durationMs / (1000 * 60 * 60));
                       const durationM = Math.floor((durationMs / (1000 * 60)) % 60);
                       const durationStr = durationH > 0 ? `${durationH}h${durationM > 0 ? ' ' + durationM + 'm' : ''}` : `${durationM}m`;
+                      const enCurso = start <= now && now < end;
                       return (
                         <div key={res._id} className="flex items-center bg-indigo-50 dark:bg-indigo-900 rounded-lg p-4 shadow-sm">
                           <div className="flex flex-col items-center justify-center w-14 mr-4">
@@ -273,6 +275,9 @@ const VehicleDashboard: React.FC = () => {
                           <div className="flex-1">
                             <div className="font-semibold text-gray-800 dark:text-gray-100">{res.chargerId?.name || '-'}</div>
                             <div className="text-sm text-gray-500 dark:text-gray-300">Carga de Vehículo Tipo {selectedVehicle?.chargerType || '-'}</div>
+                            {enCurso && (
+                              <div className="inline-block bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 text-xs font-semibold px-2 py-1 rounded mt-2">En curso</div>
+                            )}
                           </div>
                           <div className="text-right min-w-[150px]">
                             <div className="font-semibold text-gray-800 dark:text-gray-100">

@@ -11,18 +11,23 @@ interface ChargerOptionsModalProps {
 
 
 const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user, selectedVehicle, fetchReservations, onReserveCharger }) => {
-  const [loading, setLoading] = useState(false);
+  const [loadingFind, setLoadingFind] = useState(false);
+  const [loadingReserve, setLoadingReserve] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [proposal, setProposal] = useState<any>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showChargerList, setShowChargerList] = useState(false);
+  const [chargersList, setChargersList] = useState<any[]>([]);
+  const [selectedCharger, setSelectedCharger] = useState<any>(null);
 
   // Aquí irá la nueva lógica de búsqueda y confirmación de reserva
 
   const handleFind = async () => {
-    setLoading(true);
+    setLoadingFind(true);
     setFeedback(null);
     setProposal(null);
     setShowConfirm(false);
+    setShowChargerList(false); // Cierra la lista de cargadores si estaba abierta
     try {
       if (!selectedVehicle || !user) throw new Error('Selecciona un vehículo primero.');
       const batteryCapacity = selectedVehicle.batteryCapacity;
@@ -34,32 +39,40 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       for (let tries = 0; tries < 20 && !found; tries++) {
         const chargersRes = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/nearby?latitude=0&longitude=0&maxDistance=${maxDistance}`);
         const chargers = await chargersRes.json();
-        console.log(`Intento ${tries + 1}: Encontrados ${chargers.length} cargadores dentro de ${maxDistance} metros`);
         if (!chargers.length) {
           maxDistance *= 2;
-          console.log('No se encontró cargador, aumentando distancia a', maxDistance);
           continue;
         }
-        for (const charger of chargers) {
-          const power = charger.powerOutput;
-          if (!power || power <= 0) continue;
-          const chargeTimeHours = energyNeeded / power;
-          const chargeTimeMs = chargeTimeHours * 60 * 60 * 1000;
-          console.log(`Probando cargador ${charger.name} con potencia ${power} kW, tiempo estimado de carga ${chargeTimeHours.toFixed(2)} horas`);
-          const now = new Date();
-          for (let offset = 0; offset < 24 * 60; offset += 10) {
-            const startTime = new Date(now.getTime() + offset * 60 * 1000);
+        const now = new Date();
+        // Buscar primero por tiempo: para cada offset, probar todas las estaciones
+        for (let offset = 0; offset < 24 * 60; offset += 10) {
+          const startTime = new Date(now.getTime() + offset * 60 * 1000);
+          // Probar todas las estaciones para este tiempo
+          for (const charger of chargers) {
+            const power = charger.powerOutput;
+            if (!power || power <= 0) continue;
+            const chargeTimeHours = energyNeeded / power;
+            const chargeTimeMs = chargeTimeHours * 60 * 60 * 1000;
             const endTime = new Date(startTime.getTime() + chargeTimeMs);
-            setProposal({
-              charger,
-              startTime,
-              endTime,
-              power,
-              chargeTimeHours
+            const params = new URLSearchParams({
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString()
             });
-            setShowConfirm(true);
-            found = true;
-            break;
+            const availRes = await fetch(`${import.meta.env.VITE_API_URL}/api/calendar/charger/${charger._id}/availability?${params}`);
+            if (!availRes.ok) continue;
+            const availData = await availRes.json();
+            if (availData.available) {
+              setProposal({
+                charger,
+                startTime,
+                endTime,
+                power,
+                chargeTimeHours
+              });
+              setShowConfirm(true);
+              found = true;
+              break;
+            }
           }
           if (found) break;
         }
@@ -70,13 +83,13 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       setFeedback(e.message || 'No se pudo realizar la reserva.');
       setTimeout(() => setFeedback(null), 2500);
     } finally {
-      setLoading(false);
+      setLoadingFind(false);
     }
   };
 
   const confirmReservation = async () => {
     if (!proposal) return;
-    setLoading(true);
+  setLoadingReserve(true);
     setFeedback(null);
     try {
       const { charger, startTime, endTime, chargeTimeHours } = proposal;
@@ -110,7 +123,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     } catch (e) {
       setFeedback('No se pudo realizar la reserva.');
     } finally {
-      setLoading(false);
+    setLoadingReserve(false);
     }
   };
 
@@ -125,13 +138,98 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
         <button
           className="w-full mb-4 py-3 px-6 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow transition-colors duration-200 disabled:opacity-60"
           onClick={handleFind}
-          disabled={loading}
-        >{loading ? 'Buscando...' : 'Encuéntrame un cargador'}</button>
+          disabled={loadingFind}
+        >{loadingFind ? 'Buscando...' : 'Encuéntrame un cargador'}</button>
         <button
           className="w-full py-3 px-6 rounded bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold shadow transition-colors duration-200"
-          onClick={() => { onReserveCharger(); onClose(); }}
-          disabled={loading}
-        >Reservar un cargador</button>
+          onClick={async () => {
+            setShowChargerList(true);
+            setProposal(null);
+            setShowConfirm(false);
+            setLoadingReserve(true);
+            setFeedback(null);
+            setLoadingFind(false); // Cierra el loading de encontrar si estaba activo
+            try {
+              let maxDistance = 10000;
+              let chargers: any[] = [];
+              for (let tries = 0; tries < 20; tries++) {
+                const chargersRes = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/nearby?latitude=0&longitude=0&maxDistance=${maxDistance}`);
+                chargers = await chargersRes.json();
+                if (chargers.length) break;
+                maxDistance *= 2;
+              }
+              setChargersList(chargers);
+              if (!chargers.length) setFeedback('No se encontraron cargadores cercanos.');
+            } catch (e) {
+              setFeedback('No se pudieron cargar los cargadores.');
+            } finally {
+              setLoadingReserve(false);
+            }
+          }}
+          disabled={loadingReserve}
+        >{loadingReserve ? 'Buscando...' : 'Reservar un cargador'}</button>
+  {showChargerList && (
+          <div className="mt-6 w-full bg-indigo-50 dark:bg-indigo-800 rounded p-4 text-gray-800 dark:text-gray-100">
+            <div className="mb-2 font-semibold">Selecciona una estación de carga:</div>
+            <select
+              className="w-full mb-4 p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100"
+              value={selectedCharger?._id || ''}
+              onChange={e => {
+                const charger = chargersList.find(c => c._id === e.target.value);
+                setSelectedCharger(charger);
+              }}
+            >
+              <option value="">Selecciona una estación...</option>
+              {chargersList.map(charger => (
+                <option key={charger._id} value={charger._id}>
+                  {charger.name} ({charger.powerOutput || charger.power} kW)
+                </option>
+              ))}
+            </select>
+            <div className="flex gap-2 mt-2">
+              <button
+                className="flex-1 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold"
+                disabled={!selectedCharger || loadingReserve}
+                onClick={async () => {
+                  if (!selectedCharger || !selectedVehicle) return;
+                  setLoadingReserve(true);
+                  setFeedback(null);
+                  try {
+                    // Calcular energía faltante y tiempo de carga
+                    const batteryCapacity = selectedVehicle.batteryCapacity;
+                    const currentChargeLevel = selectedVehicle.currentChargeLevel;
+                    const energyNeeded = batteryCapacity * (1 - currentChargeLevel / 100);
+                    const power = selectedCharger.powerOutput || selectedCharger.power;
+                    const chargeTimeHours = energyNeeded / power;
+                    const chargeTimeMs = chargeTimeHours * 60 * 60 * 1000;
+                    const now = new Date();
+                    const startTime = now;
+                    const endTime = new Date(now.getTime() + chargeTimeMs);
+                    // Proponer reserva inmediata
+                    setProposal({
+                      charger: selectedCharger,
+                      startTime,
+                      endTime,
+                      power,
+                      chargeTimeHours
+                    });
+                    setShowConfirm(true);
+                    setShowChargerList(false);
+                  } catch (e) {
+                    setFeedback('No se pudo calcular la reserva.');
+                  } finally {
+                    setLoadingReserve(false);
+                  }
+                }}
+              >Proponer reserva</button>
+              <button
+                className="flex-1 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold"
+                onClick={() => { setShowChargerList(false); setSelectedCharger(null); }}
+                disabled={loadingReserve}
+              >Cancelar</button>
+            </div>
+          </div>
+        )}
         {proposal && showConfirm && (
           <div className="mt-6 w-full bg-indigo-50 dark:bg-indigo-800 rounded p-4 text-gray-800 dark:text-gray-100">
             <div className="mb-2 font-semibold">Propuesta de reserva:</div>
@@ -141,7 +239,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
             <div><b>Fin:</b> {proposal.endTime.toLocaleString()}</div>
             <div><b>Tiempo estimado de carga:</b> {Math.round(proposal.chargeTimeHours * 60)} minutos</div>
             <div className="flex gap-2 mt-4">
-              <button className="flex-1 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold" onClick={confirmReservation} disabled={loading}>Aceptar</button>
+              <button className="flex-1 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold" onClick={confirmReservation} disabled={loadingReserve}>Aceptar</button>
               <button className="flex-1 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold" onClick={() => { setProposal(null); setShowConfirm(false); }}>Cancelar</button>
             </div>
           </div>
