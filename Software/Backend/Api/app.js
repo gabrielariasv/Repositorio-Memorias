@@ -10,6 +10,7 @@ const realtimeRoutes = require('./routes/realtime');
 const vehiclesRoutes = require('./routes/vehicles');
 const chargersRoutes = require('./routes/chargers');
 const calendarRoutes = require('./routes/calendar');
+const reservationsRoutes = require('./routes/reservations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,6 +34,7 @@ app.use('/api/realtime', realtimeRoutes);
 app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/chargers', chargersRoutes);
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/reservations', reservationsRoutes);
 
 // Ruta de bienvenida
 app.get('/', (req, res) => {
