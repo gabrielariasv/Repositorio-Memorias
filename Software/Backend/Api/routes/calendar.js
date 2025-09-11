@@ -203,77 +203,100 @@ router.get('/charger/:chargerId', async (req, res) => {
 // Disponibilidad de un cargador para reservación
 router.get('/charger/:chargerId/availability', async (req, res) => {
   try {
-    const { date } = req.query;
+    const { startTime, endTime } = req.query;
     const chargerId = req.params.chargerId;
-    
-    if (!date) {
-      return res.status(400).json({ error: 'Se requiere parámetro de fecha' });
+
+    if (!startTime || !endTime) {
+      return res.status(400).json({ error: 'Se requieren los parámetros startTime y endTime' });
     }
-    
-    const targetDate = new Date(date);
-    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
-    
-    // Obtener eventos para ese día
-    const sessions = await ChargingSession.find({
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    // Buscar reservas existentes que se solapen
+    const overlappingReservations = await Reservation.findOne({
       chargerId,
       $or: [
-        {
-          startTime: { $gte: startOfDay, $lte: endOfDay }
-        },
-        {
-          endTime: { $gte: startOfDay, $lte: endOfDay }
-        }
-      ]
+        { startTime: { $lt: end }, calculatedEndTime: { $gt: start } },
+        { startTime: { $lt: end }, endTime: { $gt: start } }
+      ],
+      status: { $in: ['upcoming', 'active'] }
     });
-    
-    const reservations = await Reservation.find({
+
+    // Buscar sesiones de carga existentes que se solapen
+    const overlappingSessions = await ChargingSession.findOne({
+      chargerId,
+      startTime: { $lt: end },
+      endTime: { $gt: start }
+    });
+
+    const available = !overlappingReservations && !overlappingSessions;
+
+    res.json({ available });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Crear una nueva reserva
+router.post('/reservation', async (req, res) => {
+  try {
+    const {
+      vehicleId,
+      chargerId,
+      userId,
+      startTime,
+      endTime,
+      calculatedEndTime,
+      status,
+      estimatedChargeTime,
+      bufferTime
+    } = req.body;
+
+    // Validar campos requeridos
+    if (!vehicleId || !chargerId || !userId || !startTime || !endTime || !calculatedEndTime) {
+      return res.status(400).json({ error: 'Faltan campos requeridos' });
+    }
+
+    // Validar solapamiento de reservas y sesiones de carga
+    const start = new Date(startTime);
+    const end = new Date(calculatedEndTime);
+
+    // Buscar reservas existentes que se solapen
+    const overlappingReservations = await Reservation.findOne({
       chargerId,
       $or: [
-        {
-          startTime: { $gte: startOfDay, $lte: endOfDay }
-        },
-        {
-          calculatedEndTime: { $gte: startOfDay, $lte: endOfDay }
-        }
-      ]
+        { startTime: { $lt: end }, calculatedEndTime: { $gt: start } },
+        { startTime: { $lt: end }, endTime: { $gt: start } }
+      ],
+      status: { $in: ['upcoming', 'active'] }
     });
-    
-    // Combinar eventos
-    const events = [
-      ...sessions.map(s => ({ start: s.startTime, end: s.endTime })),
-      ...reservations.map(r => ({ start: r.startTime, end: r.calculatedEndTime }))
-    ];
-    
-    // Generar slots de disponibilidad (cada 30 minutos)
-    const timeSlots = [];
-    for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const slotStart = new Date(startOfDay);
-        slotStart.setHours(hour, minute, 0, 0);
-        
-        const slotEnd = new Date(slotStart);
-        slotEnd.setMinutes(slotStart.getMinutes() + 30);
-        
-        // Verificar si el slot está disponible
-        const isAvailable = !events.some(event => 
-          (slotStart >= event.start && slotStart < event.end) ||
-          (slotEnd > event.start && slotEnd <= event.end) ||
-          (slotStart <= event.start && slotEnd >= event.end)
-        );
-        
-        timeSlots.push({
-          start: slotStart,
-          end: slotEnd,
-          available: isAvailable
-        });
-      }
+
+    // Buscar sesiones de carga existentes que se solapen
+    const overlappingSessions = await ChargingSession.findOne({
+      chargerId,
+      startTime: { $lt: end },
+      endTime: { $gt: start }
+    });
+
+    if (overlappingReservations || overlappingSessions) {
+      return res.status(409).json({ error: 'El cargador ya está reservado u ocupado en ese horario.' });
     }
-    
-    res.json({
-      date: startOfDay.toISOString().split('T')[0],
-      timeSlots
+
+    // Crear la reserva
+    const reservation = new Reservation({
+      vehicleId,
+      chargerId,
+      userId,
+      startTime,
+      endTime,
+      calculatedEndTime,
+      status: status || 'upcoming',
+      estimatedChargeTime,
+      bufferTime
     });
+    await reservation.save();
+    res.status(201).json(reservation);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
