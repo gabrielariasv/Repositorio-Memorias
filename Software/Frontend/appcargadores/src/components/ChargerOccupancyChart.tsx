@@ -1,3 +1,4 @@
+// components/ChargerOccupancyChart.tsx
 import React, { useEffect, useState } from 'react';
 import {
   Chart as ChartJS,
@@ -48,21 +49,27 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
     const fetchOccupancyData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/chargers/${chargerId}/usage-history`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/${chargerId}/usage-history`);
         
         if (!response.ok) {
-          throw new Error('Error al cargar datos de ocupación');
+          const text = await response.text();
+          throw new Error('Error al cargar datos de ocupación: ' + text);
         }
         
         const sessions = await response.json();
         
-        // Transformar datos de sesiones a datos de ocupación
-        const occupancy: OccupancyData[] = sessions.map((session: any) => ({
-          start: new Date(session.startTime),
-          end: new Date(session.endTime),
-          occupied: true
-        }));
-        
+        // Transformar sesiones a occupancyData (ocupado = true)
+        const occupancy: OccupancyData[] = sessions
+          .map((s: any) => ({
+            start: s.startTime ? new Date(s.startTime) : null,
+            end: s.endTime ? new Date(s.endTime) : null,
+            occupied: true
+          }))
+          // Filtrar intervalos inválidos
+          .filter((it: any) => it.start && it.end)
+          // Ordenar asc por start
+          .sort((a: OccupancyData, b: OccupancyData) => a.start.getTime() - b.start.getTime());
+
         setOccupancyData(occupancy);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -82,20 +89,67 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
     return <div className="text-center py-4 text-red-500">Error: {error}</div>;
   }
 
-  // Preparar datos para el gráfico con tipos correctos
+  // Construir puntos escalonados incluyendo gaps marcados como 0 (desocupado)
+  const buildSteppedPoints = (intervals: OccupancyData[]) => {
+    const points: { x: Date; y: number }[] = [];
+    let prevEnd: Date | null = null;
+
+    for (const iv of intervals) {
+      if (!iv.start || !iv.end) continue;
+
+      if (!prevEnd) {
+        // antes del primer segmento, marcar 0 en el inicio del primer segmento
+        points.push({ x: iv.start, y: 0 });
+        // subir a 1 en el inicio del segmento
+        points.push({ x: iv.start, y: iv.occupied ? 1 : 0 });
+        // mantener 1 hasta el end
+        points.push({ x: iv.end, y: iv.occupied ? 1 : 0 });
+        prevEnd = iv.end;
+        continue;
+      }
+
+      // si hay gap entre prevEnd y nuevo start -> marcar 0 en prevEnd y en nuevo start
+      if (iv.start.getTime() > prevEnd.getTime()) {
+        points.push({ x: prevEnd, y: 0 });         // bajar al final del anterior
+        points.push({ x: iv.start, y: 0 });        // mantener 0 hasta el nuevo inicio
+        points.push({ x: iv.start, y: iv.occupied ? 1 : 0 }); // subir en el inicio
+        points.push({ x: iv.end, y: iv.occupied ? 1 : 0 });   // mantener hasta fin
+        prevEnd = iv.end;
+      } else {
+        // superposición o continuidad: ajustar para no retroceder en el tiempo
+        const startPoint = new Date(Math.max(iv.start.getTime(), prevEnd.getTime()));
+        points.push({ x: startPoint, y: iv.occupied ? 1 : 0 });
+        // extender al end si end es mayor
+        if (iv.end.getTime() > prevEnd.getTime()) {
+          points.push({ x: iv.end, y: iv.occupied ? 1 : 0 });
+          prevEnd = iv.end;
+        }
+      }
+    }
+
+    // después del último segmento, bajar a 0 en prevEnd para cerrar la línea
+    if (prevEnd) {
+      points.push({ x: prevEnd, y: 0 });
+    }
+
+    // Asegurarse que los puntos están ordenados cronológicamente
+    points.sort((a, b) => a.x.getTime() - b.x.getTime());
+    return points;
+  };
+
+  const steppedPoints = buildSteppedPoints(occupancyData);
+
   const chartData = {
     datasets: [
       {
-        label: 'Ocupación',
-        data: occupancyData.flatMap(record => [
-          { x: record.start.getTime(), y: record.occupied ? 1 : 0 },
-          { x: record.end.getTime(), y: record.occupied ? 1 : 0 },
-        ]),
+        label: 'Ocupación (1=Ocupado, 0=Disponible)',
+        data: steppedPoints,
         borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
-        stepped: 'before' as const, // Usar 'as const' para el tipo literal
+        backgroundColor: 'rgba(75, 192, 192, 0.25)',
+        stepped: 'before' as const,
         fill: true,
-      },
+        pointRadius: 0,
+      } as ChartDataset<'line', { x: Date; y: number }[]>,
     ],
   };
 
@@ -105,11 +159,12 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
       x: {
         type: 'time' as const,
         time: {
-          unit: 'day' as const,
+          // adapta la unidad según el rango de datos
+          tooltipFormat: 'P p'
         },
         title: {
           display: true,
-          text: 'Fecha',
+          text: 'Fecha / Hora',
         },
       },
       y: {

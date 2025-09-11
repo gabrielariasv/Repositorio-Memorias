@@ -52,9 +52,9 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
         let url = '';
         
         if (chargerId) {
-          url = `/api/chargers/${chargerId}/usage-history`;
+          url = `${import.meta.env.VITE_API_URL}/api/chargers/${chargerId}/usage-history`;
         } else if (vehicleId) {
-          url = `/api/vehicles/${vehicleId}/charging-history`;
+          url = `${import.meta.env.VITE_API_URL}/api/vehicles/${vehicleId}/charging-history`;
         } else {
           throw new Error('Se requiere chargerId o vehicleId');
         }
@@ -62,15 +62,21 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
         const response = await fetch(url);
         
         if (!response.ok) {
-          throw new Error('Error al cargar datos de sesiones');
+          const text = await response.text();
+          throw new Error(`Error al cargar datos de sesiones: ${response.status} ${text}`);
         }
         
         const sessionsData = await response.json();
-        setSessions(sessionsData.map((session: any) => ({
-          ...session,
-          startTime: new Date(session.startTime),
-          endTime: new Date(session.endTime)
-        })));
+        // Asegurarnos que tenemos objetos Date y ordenar ascendente por startTime
+        const normalized: ChargingSession[] = sessionsData
+          .map((session: any) => ({
+            ...session,
+            startTime: new Date(session.startTime),
+            endTime: new Date(session.endTime)
+          }))
+          .sort((a: ChargingSession, b: ChargingSession) => a.startTime.getTime() - b.startTime.getTime());
+
+        setSessions(normalized);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
       } finally {
@@ -89,23 +95,25 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
     return <div className="text-center py-4 text-red-500">Error: {error}</div>;
   }
 
-  // Agrupar por día para el gráfico de barras
+  // Agrupar por día usando YYYY-MM-DD (ordenable lexicográficamente)
   const energyByDay: { [key: string]: number } = {};
-  
   sessions.forEach(session => {
-    const date = new Date(session.startTime).toLocaleDateString();
-    if (!energyByDay[date]) {
-      energyByDay[date] = 0;
-    }
-    energyByDay[date] += session.energyDelivered;
+    const key = session.startTime.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+    energyByDay[key] = (energyByDay[key] || 0) + (session.energyDelivered || 0);
   });
 
+  // ordenar fechas ascendentemente
+  const sortedDates = Object.keys(energyByDay).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
   const chartData = {
-    labels: Object.keys(energyByDay),
+    labels: sortedDates.map(d => {
+      // Mostrar formato local amigable en labels
+      return new Date(d).toLocaleDateString();
+    }),
     datasets: [
       {
         label: 'Energía (kWh)',
-        data: Object.values(energyByDay),
+        data: sortedDates.map(d => energyByDay[d]),
         backgroundColor: 'rgba(53, 162, 235, 0.5)',
       },
     ],
@@ -156,7 +164,7 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
           </div>
           <h3 className="font-semibold text-lg mb-1">Energía Total</h3>
           <p className="text-xl font-bold">
-            {sessions.reduce((sum, session) => sum + session.energyDelivered, 0).toFixed(2)} kWh
+            {sessions.reduce((sum, session) => sum + (session.energyDelivered || 0), 0).toFixed(2)} kWh
           </p>
         </div>
         
@@ -174,7 +182,7 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
           </div>
           <h3 className="font-semibold text-lg mb-1">Tiempo Promedio</h3>
           <p className="text-xl font-bold">
-            {(sessions.reduce((sum, session) => sum + session.duration, 0) / sessions.length / 60).toFixed(1)} h
+            {(sessions.reduce((sum, session) => sum + (session.duration || 0), 0) / (sessions.length || 1) / 60).toFixed(1)} h
           </p>
         </div>
       </div>
