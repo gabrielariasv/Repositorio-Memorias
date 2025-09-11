@@ -279,4 +279,43 @@ router.get('/charger/:chargerId/availability', async (req, res) => {
   }
 });
 
+// Crear una nueva reserva
+router.post('/reservation', async (req, res) => {
+  try {
+    const {
+      vehicleId,
+      chargerId,
+      userId,
+      startTime,
+      endTime,
+      calculatedEndTime,
+      status,
+      estimatedChargeTime,
+      bufferTime
+    } = req.body;
+
+    // Validar campos requeridos
+    if (!vehicleId || !chargerId || !userId || !startTime || !endTime || !calculatedEndTime) {
+      return res.status(400).json({ error: 'Faltan campos requeridos' });
+    }
+
+    // Crear la reserva
+    const reservation = new Reservation({
+      vehicleId,
+      chargerId,
+      userId,
+      startTime,
+      endTime,
+      calculatedEndTime,
+      status: status || 'upcoming',
+      estimatedChargeTime,
+      bufferTime
+    });
+    await reservation.save();
+    res.status(201).json(reservation);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

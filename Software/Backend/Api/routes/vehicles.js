@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Vehicle = require('../models/Vehicle');
 const ChargingSession = require('../models/ChargingSession');
+const Reservation = require('../models/Reservation');
 // Obtener vehículos por id de usuario
 router.get('/user/:userId', async (req, res) => {
   try {
@@ -125,6 +126,22 @@ router.get('/:id/energy-stats', async (req, res) => {
     ]);
     
     res.json(energyStats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Obtener reservas futuras (actuales) de un vehículo
+router.get('/:id/actual', async (req, res) => {
+  try {
+    const now = new Date();
+    const reservations = await Reservation.find({
+      vehicleId: req.params.id,
+      endTime: { $gt: now }
+    })
+      .populate('chargerId', 'name location')
+      .sort({ startTime: 1 });
+    res.json(reservations);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
