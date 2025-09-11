@@ -1,11 +1,12 @@
 // types/index.ts
-export interface CalendarEvent {
-  id: number;
+export type CalendarEvent = {
+  id: string;        // usar string si tus _id son ObjectId
   title: string;
   date: Date;
   endTime: Date;
-  color: string;
-}
+  color?: string;
+  raw?: any;
+};
 
 export interface WeeklyViewProps {
   currentDate: Date;

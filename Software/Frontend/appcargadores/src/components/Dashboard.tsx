@@ -1,15 +1,15 @@
 // components/Dashboard.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
-import { useAuth } from '../contexts/useAuth';
+import { useAuth } from '../contexts/useAuth'; // Cambiado a useAuth
 import ChargerList from './ChargerList';
 import ChargerForm from './ChargerForm';
 import VehicleDashboard from './VehicleDashboard';
-import { Charger, ChargerType } from '../models/Charger';
-import ThingSpeakChartPage from './ThingSpeakChartPage';
-import ThingSpeakChartDisp from './ThingSpeakChartDisp';
-import CalendarPage from '../pages/CalendarPage';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Charger } from '../models/Charger'; // Eliminado ChargerType ya que no se usa
+import ChargingSessionsChart from './ChargingSessionsChart';
+import ChargerOccupancyChart from './ChargerOccupancyChart';
+import ChargerCalendarPage from '../pages/ChargerCalendarPage';
+import { BrowserRouter as Router, Routes, Route, Link, useParams } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -48,7 +48,6 @@ const AdminDashboard: React.FC = () => {
         </nav>
         
         <Routes>
-          <Route path="/calendar" element={<CalendarPage />} />
           {/* Otras rutas para admin */}
         </Routes>
       </div>
@@ -58,7 +57,6 @@ const AdminDashboard: React.FC = () => {
 
 // Dashboard para administradores de estaciones
 const StationAdminDashboard: React.FC = () => {
-  const { user } = useAuth();
   const [chargers, setChargers] = useState<Charger[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -73,8 +71,12 @@ const StationAdminDashboard: React.FC = () => {
     try {
       const baseUrl = `${import.meta.env.VITE_API_URL}/api/chargers/`;
       const headers: Record<string, string> = {};
-      if ((user as any)?.token) headers['Authorization'] = `Bearer ${(user as any).token}`;
-      if ((user as any)?.accessToken) headers['Authorization'] = `Bearer ${(user as any).accessToken}`;
+      
+      // Obtener el token del localStorage o del contexto de autenticación
+      const token = localStorage.getItem('token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
       const params: Record<string, any> = {};
       if (statusFilter) params.status = statusFilter;
@@ -87,28 +89,51 @@ const StationAdminDashboard: React.FC = () => {
         throw new Error('Respuesta inesperada de la API: no vino un array');
       }
 
-      const mapped: Charger[] = data.map(mapApiToLocal);
-      setChargers(mapped);
+      setChargers(data);
     } catch (err: any) {
       console.error('Error fetchChargers:', err);
       setError(err?.response?.data?.message ?? err.message ?? 'Error al obtener cargadores');
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, typeFilter, user]);
+  }, [statusFilter, typeFilter]);
 
   useEffect(() => {
     fetchChargers();
   }, [fetchChargers]);
 
-  const addCharger = async (charger: Omit<Charger, '_id' | 'createdAt'>) => {
-    const newCharger: Charger = {
-      ...charger,
-      _id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date()
-    };
-    setChargers(prev => [...prev, newCharger]);
-    setShowForm(false);
+  const addCharger = async (chargerData: Omit<Charger, '_id' | 'createdAt'>) => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/chargers`, chargerData, { headers });
+      setChargers(prev => [...prev, response.data]);
+      setShowForm(false);
+    } catch (err: any) {
+      console.error('Error al agregar cargador:', err);
+      setError(err?.response?.data?.message ?? err.message ?? 'Error al agregar cargador');
+    }
+  };
+
+  // Componente para mostrar gráficas de un cargador específico
+  const ChargerChartsPage: React.FC = () => {
+    const { chargerId } = useParams<{ chargerId: string }>();
+    
+    if (!chargerId) {
+      return <div className="p-4">No se ha seleccionado ningún cargador</div>;
+    }
+    
+    return (
+      <div className="p-4">
+        <h2 className="text-2xl font-bold mb-4">Gráficas del Cargador</h2>
+        <ChargerOccupancyChart chargerId={chargerId} />
+        <ChargingSessionsChart chargerId={chargerId} />
+      </div>
+    );
   };
 
   return (
@@ -117,15 +142,6 @@ const StationAdminDashboard: React.FC = () => {
         <nav className="bg-white dark:bg-gray-800 shadow-md py-4 px-4 flex flex-wrap gap-3 justify-center sm:justify-start">
           <Link to="/" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
             <i className="fas fa-charging-station mr-2"></i>Cargadores
-          </Link>
-          <Link to="/thingspeak" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
-            <i className="fas fa-bolt mr-2"></i>Potencia
-          </Link>
-          <Link to="/thingspeak-disp" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
-            <i className="fas fa-car mr-2"></i>Ocupación
-          </Link>
-          <Link to="/calendar" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
-            <i className="fas fa-calendar mr-2"></i>Calendario
           </Link>
 
           <div className="ml-4 flex items-center gap-2">
@@ -142,7 +158,6 @@ const StationAdminDashboard: React.FC = () => {
               Nuevo cargador
             </button>
           </div>
-
         </nav>
 
         <Routes>
@@ -155,9 +170,9 @@ const StationAdminDashboard: React.FC = () => {
                   className="px-2 py-1 border rounded"
                 >
                   <option value="">Todos los estados</option>
-                  <option value="available">available</option>
-                  <option value="occupied">occupied</option>
-                  <option value="maintenance">maintenance</option>
+                  <option value="available">Disponible</option>
+                  <option value="occupied">Ocupado</option>
+                  <option value="maintenance">Mantenimiento</option>
                 </select>
 
                 <select
@@ -166,9 +181,11 @@ const StationAdminDashboard: React.FC = () => {
                   className="px-2 py-1 border rounded"
                 >
                   <option value="">Todos los tipos</option>
+                  <option value="Type1">Type1</option>
+                  <option value="Type2">Type2</option>
                   <option value="CCS">CCS</option>
                   <option value="CHAdeMO">CHAdeMO</option>
-                  <option value="Type2">Type2</option>
+                  <option value="Tesla">Tesla</option>
                 </select>
 
                 <button onClick={() => fetchChargers()} className="px-2 py-1 border rounded">Filtrar</button>
@@ -192,50 +209,12 @@ const StationAdminDashboard: React.FC = () => {
               )}
             </main>
           } />
-          <Route path="/thingspeak" element={<ThingSpeakChartPage />} />
-          <Route path="/thingspeak-disp" element={<ThingSpeakChartDisp />} />
-          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/chargers/:chargerId/calendar" element={<ChargerCalendarPage />} />
+          <Route path="/chargers/:chargerId/charts" element={<ChargerChartsPage />} />
         </Routes>
       </div>
     </Router>
   );
-}
-
-// Helper functions (sin cambios)
-function extractId(idField: any): string {
-  if (!idField) return '';
-  if (typeof idField === 'string') return idField;
-  if (typeof idField === 'object') {
-    if (idField.$oid) return idField.$oid;
-    if (idField.toString) return idField.toString();
-  }
-  return String(idField);
-}
-
-function mapApiToLocal(apiCharger: any): Charger {
-  const coords = apiCharger.location?.coordinates;
-  const lat = Array.isArray(coords) && coords.length >= 2 ? coords[1] : (apiCharger.location?.lat ?? 0);
-  const lng = Array.isArray(coords) && coords.length >= 2 ? coords[0] : (apiCharger.location?.lng ?? 0);
-
-  let type: ChargerType;
-  if (typeof apiCharger.chargerType === 'string') {
-    const key = apiCharger.chargerType as keyof typeof ChargerType;
-    type = (ChargerType as any)[key] ?? (apiCharger.chargerType as ChargerType);
-  } else {
-    type = ChargerType.CCS;
-  }
-
-  const id = extractId(apiCharger._id);
-
-  return {
-    _id: id,
-    name: apiCharger.name ?? apiCharger.originalId ?? `Cargador-${id}`,
-    type,
-    power: typeof apiCharger.powerOutput === 'number' ? apiCharger.powerOutput : (apiCharger.power ?? 0),
-    location: { lat, lng },
-    status: apiCharger.status ?? 'unknown',
-    createdAt: apiCharger.createdAt ? new Date(apiCharger.createdAt) : new Date()
-  } as Charger;
 }
 
 export default Dashboard;

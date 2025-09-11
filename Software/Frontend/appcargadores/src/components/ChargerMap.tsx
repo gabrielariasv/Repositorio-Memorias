@@ -31,14 +31,18 @@ export default function ChargerMap({ chargers }: ChargerMapProps) {
   // Detectar modo oscuro
   useEffect(() => {
     const checkDarkMode = () => {
-      setIsDarkMode(document.body.classList.contains('dark-mode'));
+      const isDark = document.documentElement.classList.contains('dark');
+      setIsDarkMode(isDark);
     };
     
     checkDarkMode();
     
     // Observar cambios en el modo oscuro
     const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    observer.observe(document.documentElement, { 
+      attributes: true, 
+      attributeFilter: ['class'] 
+    });
     
     return () => observer.disconnect();
   }, []);
@@ -52,8 +56,13 @@ export default function ChargerMap({ chargers }: ChargerMapProps) {
     </div>
   );
 
-  // Centrar el mapa en el primer cargador
-  const center: [number, number] = chargers.length > 0 ? [chargers[0].location.lat, chargers[0].location.lng] : [0, 0];
+  // Centrar el mapa en el primer cargador o en una ubicación por defecto
+  const defaultCenter: [number, number] = [-33.4489, -70.6693]; // Santiago, Chile como fallback
+  const center: [number, number] = chargers.length > 0 && 
+                                  chargers[0].location && 
+                                  Array.isArray(chargers[0].location.coordinates) ? 
+    [chargers[0].location.coordinates[1], chargers[0].location.coordinates[0]] : 
+    defaultCenter;
   
   return (
     <div className="h-80 w-full rounded-lg overflow-hidden">
@@ -70,26 +79,43 @@ export default function ChargerMap({ chargers }: ChargerMapProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         
-        {chargers.map((charger) => (
-          <Marker
-            key={charger._id || charger.name}
-            position={[charger.location.lat, charger.location.lng]}
-            icon={isDarkMode ? darkIcon : lightIcon}
-          >
-            <Popup className={`${isDarkMode ? 'dark-popup' : 'light-popup'}`}>
-              <div className={isDarkMode ? 'text-white' : 'text-gray-800'}>
-                <strong>{charger.name}</strong><br />
-                <div className="mt-1">
-                  <span className="inline-block w-3 h-3 rounded-full mr-1 bg-green-500"></span>
-                  {charger.type} - {charger.power} kW
+        {chargers.map((charger) => {
+          // Verificar que el cargador tenga coordenadas válidas
+          if (!charger.location || !Array.isArray(charger.location.coordinates) || charger.location.coordinates.length !== 2) {
+            return null;
+          }
+          
+          const [longitude, latitude] = charger.location.coordinates;
+          
+          return (
+            <Marker
+              key={charger._id}
+              position={[latitude, longitude]}
+              icon={isDarkMode ? darkIcon : lightIcon}
+            >
+              <Popup className={`${isDarkMode ? 'dark-popup' : 'light-popup'}`}>
+                <div className={isDarkMode ? 'text-white' : 'text-gray-800'}>
+                  <strong>{charger.name}</strong><br />
+                  <div className="mt-1">
+                    <span className={`inline-block w-3 h-3 rounded-full mr-1 ${
+                      charger.status === 'available' ? 'bg-green-500' :
+                      charger.status === 'occupied' ? 'bg-yellow-500' :
+                      'bg-red-500'
+                    }`}></span>
+                    {charger.chargerType} - {charger.powerOutput} kW
+                  </div>
+                  <div className="mt-2 text-sm">
+                    {latitude.toFixed(4)}, {longitude.toFixed(4)}
+                  </div>
+                  <div className="mt-1 text-xs">
+                    Estado: {charger.status === 'available' ? 'Disponible' :
+                            charger.status === 'occupied' ? 'Ocupado' : 'Mantenimiento'}
+                  </div>
                 </div>
-                <div className="mt-2 text-sm">
-                  {charger.location.lat.toFixed(4)}, {charger.location.lng.toFixed(4)}
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </div>
   );

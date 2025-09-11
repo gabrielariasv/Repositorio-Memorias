@@ -1,7 +1,9 @@
 // components/ChargerList.tsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Charger } from '../models/Charger';
 import ChargerMap from './ChargerMap';
+import { batchReverseGeocode } from '../utils/geocode';
 
 interface ChargerListProps {
   chargers: Charger[];
@@ -10,6 +12,8 @@ interface ChargerListProps {
 
 export default function ChargerList({ chargers, onAddNew }: ChargerListProps) {
   const [expandedChargerId, setExpandedChargerId] = useState<string | null>(null);
+  const [locationMap, setLocationMap] = useState<Record<string, string | null>>({});
+  const navigate = useNavigate();
 
   const toggleExpand = (chargerId: string) => {
     setExpandedChargerId(expandedChargerId === chargerId ? null : chargerId);
@@ -18,37 +22,53 @@ export default function ChargerList({ chargers, onAddNew }: ChargerListProps) {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'available': return 'Desocupado';
-      case 'in-use': return 'Ocupado';
+      case 'occupied': return 'Ocupado';
       case 'maintenance': return 'Mantenimiento';
       default: return 'Desconocido';
     }
   };
 
-  // Devuelve clases separadas para el punto (dot) y el texto (text)
   const getStatusClasses = (status: string) => {
     switch (status) {
       case 'available':
-        return {
-          dot: 'bg-green-500 dark:bg-green-600',
-          text: 'text-green-700 dark:text-green-300'
-        };
-      case 'in-use':
-        return {
-          dot: 'bg-yellow-500 dark:bg-yellow-600',
-          text: 'text-yellow-700 dark:text-yellow-300'
-        };
+        return { dot: 'bg-green-500 dark:bg-green-600', text: 'text-green-700 dark:text-green-300' };
+      case 'occupied':
+        return { dot: 'bg-yellow-500 dark:bg-yellow-600', text: 'text-yellow-700 dark:text-yellow-300' };
       case 'maintenance':
-        return {
-          dot: 'bg-red-500 dark:bg-red-600',
-          text: 'text-red-700 dark:text-red-300'
-        };
+        return { dot: 'bg-red-500 dark:bg-red-600', text: 'text-red-700 dark:text-red-300' };
       default:
-        return {
-          dot: 'bg-gray-500 dark:bg-gray-600',
-          text: 'text-gray-700 dark:text-gray-300'
-        };
+        return { dot: 'bg-gray-500 dark:bg-gray-600', text: 'text-gray-700 dark:text-gray-300' };
     }
   };
+
+  useEffect(() => {
+    let mounted = true;
+    
+    const items = chargers
+      .filter(c => c.location && Array.isArray(c.location.coordinates) && c.location.coordinates.length === 2)
+      .map(c => ({ 
+        id: c._id || c.name, 
+        lat: c.location.coordinates[1],
+        lon: c.location.coordinates[0] 
+      }));
+
+    if (items.length === 0) {
+      setLocationMap({});
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await batchReverseGeocode(items);
+        if (!mounted) return;
+        setLocationMap(prev => ({ ...prev, ...res }));
+      } catch (err) {
+        console.warn('Geocode batch error', err);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [chargers]);
 
   return (
     <div className="container mx-auto p-4 flex flex-col lg:flex-row gap-6">
@@ -65,12 +85,14 @@ export default function ChargerList({ chargers, onAddNew }: ChargerListProps) {
               </p>
             </div>
 
-            <button
-              onClick={onAddNew}
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 shadow-md transition-all flex items-center dark:from-green-600 dark:to-emerald-700"
-            >
-              <i className="fas fa-plus mr-2" /> Agregar Cargador
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onAddNew}
+                className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 shadow-md transition-all flex items-center dark:from-green-600 dark:to-emerald-700"
+              >
+                <i className="fas fa-plus mr-2" /> Agregar Cargador
+              </button>
+            </div>
           </div>
         </div>
 
@@ -91,16 +113,16 @@ export default function ChargerList({ chargers, onAddNew }: ChargerListProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {chargers.map((charger) => {
+            {chargers.map(charger => {
               const status = getStatusClasses(charger.status);
               return (
                 <div
-                  key={charger._id || charger.name}
+                  key={charger._id}
                   className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden transition-all duration-300"
                 >
                   {/* Encabezado de la tarjeta */}
                   <div
-                    onClick={() => toggleExpand(charger._id || '')}
+                    onClick={() => toggleExpand(charger._id)}
                     className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     <div className="flex justify-between items-start">
@@ -115,20 +137,52 @@ export default function ChargerList({ chargers, onAddNew }: ChargerListProps) {
                           </span>
                         </div>
                       </div>
-                      <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-lg text-xs font-medium">
-                        {charger.type}
+
+                      <div className="flex items-center gap-2">
+                        <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-lg text-xs font-medium">
+                          {charger.chargerType}
+                        </div>
+
+                        {/* Botón para ver gráficas del cargador */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/chargers/${charger._id}/charts`);
+                          }}
+                          className="px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 dark:text-blue-400 text-sm transition-colors"
+                        >
+                          <i className="fas fa-chart-line mr-1"></i> Gráficas
+                        </button>
+
+                        {/* Botón para ir al calendario del cargador */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/chargers/${charger._id}/calendar`);
+                          }}
+                          className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 text-sm transition-colors"
+                        >
+                          Ver calendario
+                        </button>
                       </div>
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Potencia</p>
-                        <p className="font-medium">{charger.power} kW</p>
+                        <p className="font-medium">{charger.powerOutput} kW</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Ubicación</p>
                         <p className="font-medium truncate">
-                          {charger.location.lat.toFixed(4)}, {charger.location.lng.toFixed(4)}
+                          {(() => {
+                            if (!charger.location || !Array.isArray(charger.location.coordinates)) {
+                              return 'Ubicación desconocida';
+                            }
+                            const label = locationMap[charger._id];
+                            if (label) return label;
+                            return `${charger.location.coordinates[1].toFixed(4)}, ${charger.location.coordinates[0].toFixed(4)}`;
+                          })()}
                         </p>
                       </div>
                     </div>
@@ -136,7 +190,7 @@ export default function ChargerList({ chargers, onAddNew }: ChargerListProps) {
                     <div className="mt-4 flex justify-end">
                       <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium flex items-center">
                         {expandedChargerId === charger._id ? 'Ocultar detalles' : 'Ver detalles'}
-                        <i className={`fas ${expandedChargerId === charger._id ? 'fa-chevron-up' : 'fa-chevron-down'} ml-2 text-xs`} />
+                        <i className={`fas ${expandedChargerId === charger._id ? 'fa-chevron-up' : 'fa-chevron-down'} ml-2 text-xs`}></i>
                       </button>
                     </div>
                   </div>
@@ -149,20 +203,22 @@ export default function ChargerList({ chargers, onAddNew }: ChargerListProps) {
                           <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Información detallada</h4>
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                              <span className="text-gray-600 dark:text-gray-400">ID:</span>
-                              <span className="font-medium text-gray-800 dark:text-gray-200">{charger._id}</span>
+                              <span className="text-gray-600 dark:text-gray-400">Tipo:</span>
+                              <span className="font-medium text-gray-800 dark:text-gray-200">
+                                {charger.chargerType}
+                              </span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-600 dark:text-gray-400">Fecha creación:</span>
+                              <span className="text-gray-600 dark:text-gray-400">Potencia:</span>
                               <span className="font-medium text-gray-800 dark:text-gray-200">
-                                {charger.createdAt ? new Date(charger.createdAt).toLocaleDateString() : 'Desconocida'}
+                                {charger.powerOutput} kW
                               </span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600 dark:text-gray-400">Estado actual:</span>
                               <span className="font-medium text-gray-800 dark:text-gray-200">
                                 {charger.status === 'available' ? 'Operativo y desocupado' :
-                                  charger.status === 'in-use' ? 'Ocupado actualmente' :
+                                  charger.status === 'occupied' ? 'Ocupado actualmente' :
                                     'En mantenimiento - No disponible'}
                               </span>
                             </div>
@@ -174,11 +230,15 @@ export default function ChargerList({ chargers, onAddNew }: ChargerListProps) {
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-600 dark:text-gray-400">Latitud:</span>
-                              <span className="font-medium text-gray-800 dark:text-gray-200">{charger.location.lat.toFixed(6)}</span>
+                              <span className="font-medium text-gray-800 dark:text-gray-200">
+                                {charger.location.coordinates[1].toFixed(6)}
+                              </span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600 dark:text-gray-400">Longitud:</span>
-                              <span className="font-medium text-gray-800 dark:text-gray-200">{charger.location.lng.toFixed(6)}</span>
+                              <span className="font-medium text-gray-800 dark:text-gray-200">
+                                {charger.location.coordinates[0].toFixed(6)}
+                              </span>
                             </div>
                             <div className="mt-2">
                               <button className="text-blue-600 dark:text-blue-400 hover:underline text-sm">
