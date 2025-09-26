@@ -1,4 +1,3 @@
-import React from 'react';
 import {useEffect } from 'react';
 import { useAuth } from './contexts/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';

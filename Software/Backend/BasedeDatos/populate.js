@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const csv = require('csv-parser');
 const fs = require('fs');
 const turf = require('@turf/turf');
+require('dotenv').config();
 
 let valpoPolygon = null;
 
@@ -278,7 +279,8 @@ async function importCSVData(filePath) {
     console.log('Iniciando importación de datos...');
     
     // Conectar a MongoDB sin opciones obsoletas
-    await mongoose.connect('mongodb://localhost:27017/ev_charging_db');
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/ev_charging_db';
+    await mongoose.connect(mongoUri);
     console.log('Conectado a MongoDB');
 
     // Eliminar la base de datos existente para evitar duplicados

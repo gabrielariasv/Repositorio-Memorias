@@ -105,50 +105,7 @@ const VehicleDashboard: React.FC = () => {
       fetchReservations(vehicleId);
     }
   };
-  {/* Sección Reservas actuales */ }
-  {
-    activeSection === 'reservas' && (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Reservas actuales</h2>
-        {loadingReservations ? (
-          <div className="flex items-center justify-center min-h-[120px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-          </div>
-        ) : (
-          <>
-            {reservations.filter(r => new Date(r.endTime) > new Date()).length > 0 ? (
-              <div className="overflow-x-auto">
-                <div className="max-h-96 overflow-y-auto custom-scrollbar" style={{ minWidth: '100%' }}>
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-100">
-                    <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha inicio</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha fin</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cargador</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reservations.filter(r => new Date(r.endTime) > new Date()).map(res => (
-                        <tr key={res._id}>
-                          <td className="px-6 py-4 whitespace-nowrap">{new Date(res.startTime).toLocaleString()}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{new Date(res.endTime).toLocaleString()}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{res.chargerId?.name || '-'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{res.status}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-600 dark:text-gray-300">No hay reservas actuales para este vehículo.</p>
-            )}
-          </>
-        )}
-      </div>
-    )
-  }
+  // ...existing code...
 
   if (loading) {
     return (
@@ -211,6 +168,48 @@ const VehicleDashboard: React.FC = () => {
       {/* Contenido principal */}
       <main className="flex-1 p-6 md:p-12">
         <div className="max-w-4xl mx-auto">
+          {/* Sección Reservas actuales */}
+          {activeSection === 'reservas' && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Reservas actuales</h2>
+              {loadingReservations ? (
+                <div className="flex items-center justify-center min-h-[120px]">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+                </div>
+              ) : (
+                <>
+                  {reservations.filter(r => new Date(r.endTime) > new Date()).length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <div className="max-h-96 overflow-y-auto custom-scrollbar" style={{ minWidth: '100%' }}>
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-100">
+                          <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha inicio</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha fin</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cargador</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estado</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reservations.filter(r => new Date(r.endTime) > new Date()).map(res => (
+                              <tr key={res._id}>
+                                <td className="px-6 py-4 whitespace-nowrap">{new Date(res.startTime).toLocaleString()}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">{new Date(res.endTime).toLocaleString()}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">{res.chargerId?.name || '-'}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">{res.status}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-600 dark:text-gray-300">No hay reservas actuales para este vehículo.</p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
           {activeSection !== 'historial' && (
             <>
               <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">¡Buenos días! ¿Dónde quieres cargar?</h1>
@@ -230,7 +229,7 @@ const VehicleDashboard: React.FC = () => {
               )}
             </>
           )}
-          {/* Sección Reservar y reservas actuales */}
+          {/* Sección Reservar y próximas reservas */}
           {activeSection === 'reservar' && (
             <>
               {/* Aquí iría el formulario o botón para reservar cargador */}

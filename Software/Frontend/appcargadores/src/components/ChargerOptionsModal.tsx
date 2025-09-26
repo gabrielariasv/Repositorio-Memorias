@@ -10,7 +10,7 @@ interface ChargerOptionsModalProps {
 
 
 
-const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user, selectedVehicle, fetchReservations, onReserveCharger }) => {
+const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user, selectedVehicle, fetchReservations}) => {
   const [loadingFind, setLoadingFind] = useState(false);
   const [loadingReserve, setLoadingReserve] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
