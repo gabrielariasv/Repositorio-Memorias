@@ -1,8 +1,7 @@
-// src/components/ChargerMap.tsx
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { Charger } from '../models/Charger';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 
 // Crea íconos para modo claro y oscuro
 const lightIcon = new L.Icon({
@@ -25,8 +24,13 @@ interface ChargerMapProps {
   chargers: Charger[];
 }
 
-export default function ChargerMap({ chargers }: ChargerMapProps) {
+export interface ChargerMapHandle {
+  flyTo: (opts: { lat: number; lng: number; zoom?: number }) => void;
+}
+
+const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers }, ref) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [mapInstance, setMapInstance] = useState<any>(null);
 
   // Detectar modo oscuro
   useEffect(() => {
@@ -34,18 +38,36 @@ export default function ChargerMap({ chargers }: ChargerMapProps) {
       const isDark = document.documentElement.classList.contains('dark');
       setIsDarkMode(isDark);
     };
-    
     checkDarkMode();
-    
-    // Observar cambios en el modo oscuro
     const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, { 
-      attributes: true, 
-      attributeFilter: ['class'] 
-    });
-    
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
+
+  useImperativeHandle(ref, () => ({
+    flyTo: ({ lat, lng, zoom = 17 }) => {
+      if (mapInstance) {
+        mapInstance.flyTo([lat, lng], zoom);
+      }
+    }
+  }), [mapInstance]);
+
+  // Efecto para controlar el z-index del mapa
+  useEffect(() => {
+    if (mapInstance) {
+      const container = mapInstance.getContainer();
+      if (container) {
+        // Asegurar que el mapa tenga un z-index menor que el navbar (z-50)
+        container.style.zIndex = '10';
+        
+        // También controlar los elementos internos de Leaflet
+        const leafletPanes = container.querySelectorAll('.leaflet-pane');
+        leafletPanes.forEach((pane: HTMLElement) => {
+          pane.style.zIndex = '10';
+        });
+      }
+    }
+  }, [mapInstance]);
 
   if (!chargers.length) return (
     <div className="h-80 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
@@ -63,14 +85,16 @@ export default function ChargerMap({ chargers }: ChargerMapProps) {
                                   Array.isArray(chargers[0].location.coordinates) ? 
     [chargers[0].location.coordinates[1], chargers[0].location.coordinates[0]] : 
     defaultCenter;
-  
+
   return (
-    <div className="h-80 w-full rounded-lg overflow-hidden">
+    <div className="h-80 w-full rounded-lg overflow-hidden relative z-10">
       <MapContainer 
         center={center} 
         zoom={13} 
+        // @ts-expect-error MapContainer whenReady passes an object with target (the map instance), but types expect no args
+        whenReady={({ target }) => setMapInstance(target)}
         style={{ height: '100%', width: '100%' }}
-        className="rounded-lg"
+        className="rounded-lg leaflet-container-custom"
       >
         <TileLayer 
           url={isDarkMode 
@@ -78,15 +102,11 @@ export default function ChargerMap({ chargers }: ChargerMapProps) {
             : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} 
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
-        
         {chargers.map((charger) => {
-          // Verificar que el cargador tenga coordenadas válidas
           if (!charger.location || !Array.isArray(charger.location.coordinates) || charger.location.coordinates.length !== 2) {
             return null;
           }
-          
           const [longitude, latitude] = charger.location.coordinates;
-          
           return (
             <Marker
               key={charger._id}
@@ -119,4 +139,6 @@ export default function ChargerMap({ chargers }: ChargerMapProps) {
       </MapContainer>
     </div>
   );
-}
+});
+
+export default ChargerMap;
