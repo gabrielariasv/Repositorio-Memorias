@@ -1,4 +1,15 @@
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+// src/components/ChargerMap.tsx
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+// Componente auxiliar para centrar el mapa cuando cambie la prop center
+function MapCenterer({ center }: { center?: { lat: number, lng: number } | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.setView([center.lat, center.lng]);
+    }
+  }, [center, map]);
+  return null;
+}
 import L from 'leaflet';
 import { Charger } from '../models/Charger';
 import { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
@@ -22,13 +33,11 @@ const darkIcon = new L.Icon({
 
 interface ChargerMapProps {
   chargers: Charger[];
+  userLocation?: { lat: number, lng: number } | null;
+  center?: { lat: number, lng: number } | null;
 }
 
-export interface ChargerMapHandle {
-  flyTo: (opts: { lat: number; lng: number; zoom?: number }) => void;
-}
-
-const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers }, ref) => {
+export default function ChargerMap({ chargers, userLocation, center }: ChargerMapProps) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [mapInstance, setMapInstance] = useState<any>(null);
 
@@ -44,32 +53,7 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers }, 
     return () => observer.disconnect();
   }, []);
 
-  useImperativeHandle(ref, () => ({
-    flyTo: ({ lat, lng, zoom = 17 }) => {
-      if (mapInstance) {
-        mapInstance.flyTo([lat, lng], zoom);
-      }
-    }
-  }), [mapInstance]);
-
-  // Efecto para controlar el z-index del mapa
-  useEffect(() => {
-    if (mapInstance) {
-      const container = mapInstance.getContainer();
-      if (container) {
-        // Asegurar que el mapa tenga un z-index menor que el navbar (z-50)
-        container.style.zIndex = '10';
-        
-        // También controlar los elementos internos de Leaflet
-        const leafletPanes = container.querySelectorAll('.leaflet-pane');
-        leafletPanes.forEach((pane: HTMLElement) => {
-          pane.style.zIndex = '10';
-        });
-      }
-    }
-  }, [mapInstance]);
-
-  if (!chargers.length) return (
+  if (!chargers.length && !userLocation) return (
     <div className="h-80 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
       <div className="text-center text-gray-500 dark:text-gray-400">
         <i className="fas fa-map-marker-alt text-4xl mb-3"></i>
@@ -78,59 +62,83 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers }, 
     </div>
   );
 
-  // Centrar el mapa en el primer cargador o en una ubicación por defecto
-  const defaultCenter: [number, number] = [-33.4489, -70.6693]; // Santiago, Chile como fallback
-  const center: [number, number] = chargers.length > 0 && 
-                                  chargers[0].location && 
-                                  Array.isArray(chargers[0].location.coordinates) ? 
-    [chargers[0].location.coordinates[1], chargers[0].location.coordinates[0]] : 
-    defaultCenter;
+  // Centrar el mapa en la ubicación del usuario si existe, si no en el primer cargador
+  const mapCenter: [number, number] = center
+    ? [center.lat, center.lng]
+    : userLocation
+      ? [userLocation.lat, userLocation.lng]
+      : chargers.length > 0
+        ? [chargers[0].location.lat, chargers[0].location.lng]
+        : [0, 0];
 
   return (
     <div className="h-80 w-full rounded-lg overflow-hidden relative z-10">
       <MapContainer 
-        center={center} 
+        center={mapCenter} 
         zoom={13} 
         // @ts-expect-error MapContainer whenReady passes an object with target (the map instance), but types expect no args
         whenReady={({ target }) => setMapInstance(target)}
         style={{ height: '100%', width: '100%' }}
         className="rounded-lg leaflet-container-custom"
       >
+        <MapCenterer center={center} />
         <TileLayer 
           url={isDarkMode 
             ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" 
             : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} 
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
-        {chargers.map((charger) => {
-          if (!charger.location || !Array.isArray(charger.location.coordinates) || charger.location.coordinates.length !== 2) {
-            return null;
-          }
-          const [longitude, latitude] = charger.location.coordinates;
-          return (
-            <Marker
-              key={charger._id}
-              position={[latitude, longitude]}
-              icon={isDarkMode ? darkIcon : lightIcon}
-            >
-              <Popup className={`${isDarkMode ? 'dark-popup' : 'light-popup'}`}>
-                <div className={isDarkMode ? 'text-white' : 'text-gray-800'}>
-                  <strong>{charger.name}</strong><br />
-                  <div className="mt-1">
-                    <span className={`inline-block w-3 h-3 rounded-full mr-1 ${
-                      charger.status === 'available' ? 'bg-green-500' :
-                      charger.status === 'occupied' ? 'bg-yellow-500' :
-                      'bg-red-500'
-                    }`}></span>
-                    {charger.chargerType} - {charger.powerOutput} kW
-                  </div>
-                  <div className="mt-2 text-sm">
-                    {latitude.toFixed(4)}, {longitude.toFixed(4)}
-                  </div>
-                  <div className="mt-1 text-xs">
-                    Estado: {charger.status === 'available' ? 'Disponible' :
-                            charger.status === 'occupied' ? 'Ocupado' : 'Mantenimiento'}
-                  </div>
+        {/* Marcador de usuario */}
+        {userLocation && (
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/64/64113.png', // icono azul
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+          })}>
+            <Popup>
+              <div
+                style={{
+                  background: isDarkMode ? '#222' : '#fff',
+                  color: isDarkMode ? '#fff' : '#222',
+                  borderRadius: 8,
+                  padding: 8,
+                  minWidth: 120,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}
+              >
+                <strong>Tu ubicación</strong>
+                <div className="mt-2 text-sm">
+                  {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+        {/* Marcadores de cargadores */}
+        {chargers.map((charger) => (
+          <Marker
+            key={charger._id || charger.name}
+            position={[charger.location.lat, charger.location.lng]}
+            icon={isDarkMode ? darkIcon : lightIcon}
+          >
+            <Popup>
+              <div
+                style={{
+                  background: isDarkMode ? '#222' : '#fff',
+                  color: isDarkMode ? '#fff' : '#222',
+                  borderRadius: 8,
+                  padding: 8,
+                  minWidth: 120,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}
+              >
+                <strong>{charger.name}</strong><br />
+                <div className="mt-1">
+                  <span className="inline-block w-3 h-3 rounded-full mr-1 bg-green-500"></span>
+                  {charger.type} - {charger.power} kW
+                </div>
+                <div className="mt-2 text-sm">
+                  {charger.location.lat.toFixed(4)}, {charger.location.lng.toFixed(4)}
                 </div>
               </Popup>
             </Marker>
