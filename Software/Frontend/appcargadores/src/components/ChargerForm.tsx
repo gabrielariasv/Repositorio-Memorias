@@ -18,9 +18,9 @@ export default function ChargerForm({ onSubmit, onCancel }: ChargerFormProps) {
     e.preventDefault();
     onSubmit({
       name,
-      type,
-      power,
-      location: { lat: position[0], lng: position[1] },
+      chargerType: type,
+      powerOutput: power,
+      location: {type: "Point", coordinates:[position[0], position[1]] },
       status: 'available'
     });
   };

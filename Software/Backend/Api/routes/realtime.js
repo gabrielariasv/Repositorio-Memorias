@@ -115,4 +115,57 @@ router.get('/charger/:chargerId', async (req, res) => {
   }
 });
 
+// New endpoint for real-time session data
+router.post('/session-data', async (req, res) => {
+    try {
+        const { sessionId, timestamp, power, energy, chargerId, vehicleId } = req.body;
+        
+        // Update charger status to occupied
+        await Charger.findByIdAndUpdate(chargerId, {
+            status: 'occupied',
+            $push: {
+                occupancyHistory: {
+                    start: timestamp,
+                    occupied: true,
+                    sessionId: sessionId
+                }
+            }
+        });
+        
+        res.json({ success: true, message: 'Realtime data received' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// New endpoint to start simulation
+router.post('/start-simulation', async (req, res) => {
+    try {
+        const { chargerId, vehicleId } = req.body;
+        
+        // Get charger data for simulation parameters
+        const charger = await Charger.findById(chargerId);
+        if (!charger) {
+            return res.status(404).json({ error: 'Cargador no encontrado' });
+        }
+        
+        // Create new charging session
+        const session = new ChargingSession({
+            vehicleId: vehicleId,
+            chargerId: chargerId,
+            startTime: new Date(),
+            status: 'active'
+        });
+        await session.save();
+        
+        res.json({ 
+            success: true, 
+            sessionId: session._id,
+            powerOutput: charger.powerOutput 
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

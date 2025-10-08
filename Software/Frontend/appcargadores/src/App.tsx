@@ -1,4 +1,3 @@
-import React from 'react';
 import {useEffect } from 'react';
 import { useAuth } from './contexts/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -38,16 +37,12 @@ function App() {
     );
   }
 
-  return (
-    <div className="flex-grow p-4">
-      {user ? (
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      ) : (
-        <Login />
-      )}
-    </div>
+  return user ? (
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  ) : (
+    <Login />
   );
 }
 

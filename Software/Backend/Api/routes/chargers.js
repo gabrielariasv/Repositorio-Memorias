@@ -6,6 +6,7 @@ const ChargingSession = require('../models/ChargingSession');
 
 const calcularDistancia = require('../utils/calcularDistancia');
 const Reservation = require('../models/Reservation');
+const { authenticateToken } = require('./auth');
 
 // Obtener todos los cargadores
 router.get('/', async (req, res) => {
@@ -55,6 +56,41 @@ router.get('/nearby', async (req, res) => {
 });
 
 // (Mover esta ruta al final del archivo para evitar conflictos con rutas específicas como /recommendation y /nearby)
+
+// Actualizar nombre de un cargador
+router.patch('/:id/name', authenticateToken, async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'El nombre es requerido' });
+    }
+
+    const trimmedName = name.trim();
+
+    const charger = await Charger.findById(req.params.id);
+
+    if (!charger) {
+      return res.status(404).json({ error: 'Cargador no encontrado' });
+    }
+
+    // Validar que el usuario sea dueño del cargador o admin general
+    if (req.user.role !== 'app_admin' && charger.ownerId?.toString() !== req.user.userId) {
+      return res.status(403).json({ error: 'No tienes permiso para modificar este cargador' });
+    }
+
+    charger.name = trimmedName;
+    await charger.save();
+
+    res.json({
+      message: 'Nombre del cargador actualizado correctamente',
+      charger
+    });
+  } catch (error) {
+    console.error('Error al actualizar nombre de cargador:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Obtener historial de uso de un cargador
 router.get('/:id/usage-history', async (req, res) => {

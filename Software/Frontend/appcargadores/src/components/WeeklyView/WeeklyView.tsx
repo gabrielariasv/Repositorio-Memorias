@@ -1,18 +1,10 @@
 // components/WeeklyView/WeeklyView.tsx
-import React, { useState, useEffect } from 'react';
-import {
-  format,
-  startOfWeek,
-  addDays,
-  isSameDay,
-  getHours,
-  getMinutes,
-  startOfDay,
-  isToday
-} from 'date-fns';
+import { useState, useEffect, useMemo } from 'react';
+import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { WeeklyViewProps } from '../../types';
 import Event from '../Event/Event';
+import { CalEvent, groupEventsByDay, getDateKeyInTZ, EventFragment } from '../../utils/calendar';
 
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
@@ -26,11 +18,25 @@ const useIsMobile = () => {
   return isMobile;
 };
 
+const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0..23
+
 const WeeklyView = ({ currentDate, events, onDateChange }: WeeklyViewProps) => {
   const isMobile = useIsMobile();
   const [weekDays, setWeekDays] = useState<Date[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(currentDate);
-  const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 7:00 - 21:00
+
+  const calEvents: CalEvent[] = useMemo(() => {
+    return (events || []).map(ev => ({
+      id: String(ev.id),
+      title: ev.title,
+      date: ev.date,
+      endTime: ev.endTime,
+      color: ev.color,
+      raw: (ev as any).raw ?? undefined
+    }));
+  }, [events]);
+
+  const eventsByDay = useMemo(() => groupEventsByDay(calEvents), [calEvents]);
 
   useEffect(() => {
     if (isMobile) {
@@ -61,19 +67,36 @@ const WeeklyView = ({ currentDate, events, onDateChange }: WeeklyViewProps) => {
     setSelectedDate(today);
   };
 
-  const getEventsForDay = (day: Date) => events.filter(event => isSameDay(event.date, day));
+  const renderFragment = (frag: EventFragment) => {
+    // Top and height in px: 1 minute = 1px -> 60px per hour
+    const top = frag.startHour * 60 + frag.startMinute;
+    const height = frag.endHour * 60 + frag.endMinute - (frag.startHour * 60 + frag.startMinute);
 
-  const getEventPosition = (event: any) => {
-    const startHour = getHours(event.date);
-    const startMinute = getMinutes(event.date);
-    const endHour = getHours(event.endTime);
-    const endMinute = getMinutes(event.endTime);
+    const fakeStart = new Date();
+    fakeStart.setHours(frag.startHour, frag.startMinute, 0, 0);
+    const fakeEnd = new Date();
+    fakeEnd.setHours(frag.endHour % 24, frag.endMinute, 0, 0);
 
-    // 1 hour = 60px (consistent con CSS de time-slot)
-    const top = ((startHour - 7) * 60 + startMinute);
-    const height = ((endHour - startHour) * 60 + (endMinute - startMinute));
-
-    return { top, height };
+    return (
+      <Event
+        key={`${frag.id}-${frag.dayKey}-${frag.startHour}-${frag.startMinute}`}
+        event={{
+          id: frag.id,
+          title: frag.title,
+          date: fakeStart,
+          endTime: fakeEnd,
+          color: frag.color
+        } as any}
+        style={{
+          position: 'absolute',
+          left: '8px',
+          right: '8px',
+          top: `${top}px`,
+          height: `${height}px`,
+          zIndex: 50
+        }}
+      />
+    );
   };
 
   return (
@@ -91,12 +114,10 @@ const WeeklyView = ({ currentDate, events, onDateChange }: WeeklyViewProps) => {
           {isMobile ? (
             <span onClick={navigateToToday} className="cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 dark:hover:bg-gray-600">
               {format(selectedDate, 'EEEE, d MMMM', { locale: es })}
-              {isToday(selectedDate) && <span className="ml-2 inline-block bg-[#1976d2] dark:bg-[#1565c0] text-white px-2 py-0.5 rounded-full text-xs">Hoy</span>}
             </span>
           ) : (
             <span onClick={navigateToToday} className="cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 dark:hover:bg-gray-600">
               Semana {format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd')} - {format(addDays(startOfWeek(currentDate, { weekStartsOn: 1 }), 6), 'd MMMM', { locale: es })}
-              {isToday(currentDate) && <span className="ml-2 inline-block bg-[#1976d2] dark:bg-[#1565c0] text-white px-2 py-0.5 rounded-full text-xs">Esta semana</span>}
             </span>
           )}
         </div>
@@ -110,7 +131,6 @@ const WeeklyView = ({ currentDate, events, onDateChange }: WeeklyViewProps) => {
         </button>
       </div>
 
-      {/* header - oculto en mobile */}
       <div className="hidden md:flex border-b-2 border-gray-200 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-700">
         <div className="w-[60px] min-w-[60px] border-r border-gray-200 dark:border-gray-700"></div>
         {weekDays.map((day, idx) => (
@@ -121,43 +141,43 @@ const WeeklyView = ({ currentDate, events, onDateChange }: WeeklyViewProps) => {
           >
             <div className="text-2xl font-bold">{format(day, 'd')}</div>
             <div className="text-sm uppercase">{format(day, 'EEE', { locale: es })}</div>
-            {isToday(day) && <div className="absolute top-1 right-1 bg-[#1976d2] dark:bg-[#1565c0] text-white text-xs px-1 rounded">Hoy</div>}
           </div>
         ))}
       </div>
 
       <div className="flex flex-1 overflow-y-auto relative">
-        <div className="w-[60px] min-w-[60px] pt-1">
-          {hours.map(hour => (
+        {/* time column */}
+        <div className="w-[60px] min-w-[60px] pt-0 relative">
+          {HOURS.map(hour => (
             <div key={hour} className="h-[60px] border-b border-gray-200 dark:border-gray-700 flex items-center justify-center text-sm text-gray-500 dark:text-gray-300">
-              {hour}:00
+              {String(hour).padStart(2, '0')}:00
             </div>
           ))}
         </div>
 
-        {weekDays.map(day => (
-          <div key={day.toString()} className="flex-1 border-r border-gray-200 dark:border-gray-700 relative">
-            {hours.map(hour => (
-              <div key={`${day.toString()}-${hour}`} className="h-[60px] border-b border-gray-100 dark:border-gray-700 flex items-start pl-1 text-sm text-gray-500 dark:text-gray-300">
-                &nbsp;
-              </div>
-            ))}
+        {/* day columns */}
+        {weekDays.map(day => {
+          const key = getDateKeyInTZ(day);
+          const frags = eventsByDay[key] || [];
 
-            {getEventsForDay(day).map(event => {
-              const { top, height } = getEventPosition(event);
-              return (
-                <Event
-                  key={event.id}
-                  event={event}
-                  style={{
-                    top: `${top}px`,
-                    height: `${height}px`
-                  }}
-                />
-              );
-            })}
-          </div>
-        ))}
+          return (
+            <div
+              key={key}
+              className="flex-1 border-r border-gray-200 dark:border-gray-700 relative"
+              style={{ minHeight: `${HOURS.length * 60}px` }}
+            >
+              {/* hour rows */}
+              {HOURS.map(hour => (
+                <div key={hour} className="h-[60px] border-b border-gray-100 dark:border-gray-700 flex items-start pl-1 text-sm text-gray-500 dark:text-gray-300">
+                  &nbsp;
+                </div>
+              ))}
+
+              {/* render event fragments directly (cada Event es absolute respecto a este div relativo) */}
+              {frags.map(f => renderFragment(f))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

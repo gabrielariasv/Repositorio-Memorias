@@ -91,4 +91,65 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 });
 
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { name, currentPassword, newPassword, confirmNewPassword } = req.body;
+
+    const user = await User.findById(req.user.userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    if (typeof name === 'string') {
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        return res.status(400).json({ error: 'El nombre no puede estar vacío.' });
+      }
+      user.name = trimmedName;
+    }
+
+    const wantsPasswordChange = Boolean(newPassword || confirmNewPassword || currentPassword);
+
+    if (wantsPasswordChange) {
+      if (!currentPassword || !newPassword || !confirmNewPassword) {
+        return res.status(400).json({ error: 'Debes proporcionar la contraseña actual y la nueva contraseña dos veces.' });
+      }
+
+      const matches = await bcrypt.compare(currentPassword, user.password);
+      if (!matches) {
+        return res.status(400).json({ error: 'La contraseña actual no es correcta.' });
+      }
+
+      if (newPassword !== confirmNewPassword) {
+        return res.status(400).json({ error: 'La nueva contraseña y su confirmación no coinciden.' });
+      }
+
+      const passwordPolicy = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+      if (!passwordPolicy.test(newPassword)) {
+        return res.status(400).json({
+          error: 'La nueva contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y un carácter especial.'
+        });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(newPassword, salt);
+    }
+
+    await user.save();
+
+    const safeUser = await User.findById(user._id)
+      .populate('vehicles ownedStations')
+      .select('-password');
+
+    res.json({
+      message: 'Perfil actualizado correctamente.',
+      user: safeUser,
+    });
+  } catch (error) {
+    console.error('Error al actualizar perfil:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = { router, authenticateToken };
