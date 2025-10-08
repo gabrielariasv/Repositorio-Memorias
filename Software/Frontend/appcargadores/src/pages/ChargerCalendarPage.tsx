@@ -218,10 +218,10 @@ export default function ChargerCalendarPage() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate('/chargers')}
+              onClick={() => navigate('/')}
               className="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 dark:text-gray-100 text-gray-800 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
-              Volver
+              Volver a cargadores
             </button>
 
             <button

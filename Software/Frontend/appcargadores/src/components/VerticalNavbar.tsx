@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/useAuth';
+import { useEvVehicle } from '../contexts/useEvVehicle';
 
 const VerticalNavbar: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const evVehicleContext = useEvVehicle();
 
   const handleLogout = () => {
     logout();
@@ -13,7 +15,6 @@ const VerticalNavbar: React.FC = () => {
 
   const stationAdminMenu = [
     { path: '/', label: 'Cargadores', icon: '⚡' },
-    { path: '/charging-history', label: 'Historial de carga', icon: '📊' },
     { path: '/profile', label: 'Editar datos de perfil', icon: '👤' },
   ];
 
@@ -41,6 +42,7 @@ const VerticalNavbar: React.FC = () => {
   };
 
   const menuItems = getMenuItems();
+  const showVehicleSelector = user?.role === 'ev_user' && evVehicleContext;
 
   return (
     <>
@@ -62,7 +64,7 @@ const VerticalNavbar: React.FC = () => {
         />
       )}
 
-      {/* Sidebar - Aumentado z-index */}
+      {/* Sidebar - Fijo en la pantalla */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-[60] lg:z-50
         w-64 bg-white dark:bg-gray-800 shadow-lg transform
@@ -83,6 +85,84 @@ const VerticalNavbar: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {showVehicleSelector && (
+            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+              <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                Vehículo seleccionado
+              </h3>
+              {evVehicleContext.loading ? (
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent"></span>
+                  Cargando vehículos…
+                </div>
+              ) : evVehicleContext.vehicles.length > 0 ? (
+                <>
+                  <select
+                    value={evVehicleContext.selectedVehicle?._id ?? ''}
+                    onChange={event => evVehicleContext.selectVehicle(event.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  >
+                    {evVehicleContext.vehicles.map(vehicle => (
+                      <option key={vehicle._id} value={vehicle._id}>
+                        {vehicle.model} · {vehicle.chargerType}
+                      </option>
+                    ))}
+                  </select>
+
+                  {evVehicleContext.selectedVehicle ? (
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-300">
+                      <div className="rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-gray-800/70">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
+                          Nivel de carga
+                        </div>
+                        <div className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-100">
+                          {evVehicleContext.selectedVehicle.currentChargeLevel ?? '--'}%
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-gray-800/70">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
+                          Capacidad
+                        </div>
+                        <div className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-100">
+                          {evVehicleContext.selectedVehicle.batteryCapacity ?? '--'} kWh
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-gray-800/70">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
+                          Modelo
+                        </div>
+                        <div className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-100">
+                          {evVehicleContext.selectedVehicle.model}
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-gray-800/70">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
+                          Tipo de cargador
+                        </div>
+                        <div className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-100">
+                          {evVehicleContext.selectedVehicle.chargerType}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-3 rounded-lg bg-white px-3 py-2 text-sm text-gray-500 shadow-sm dark:bg-gray-800/70 dark:text-gray-300">
+                      Selecciona un vehículo para ver sus detalles.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No tienes vehículos registrados.
+                </p>
+              )}
+              {evVehicleContext.error && (
+                <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                  {evVehicleContext.error}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
