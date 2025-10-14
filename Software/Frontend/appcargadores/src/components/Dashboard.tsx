@@ -13,6 +13,7 @@ import ChargerCalendarPage from '../pages/ChargerCalendarPage';
 import ChargerHistoryPage from '../pages/ChargerHistoryPage';
 import ProfilePage from '../pages/ProfilePage';
 import { EvVehicleProvider } from '../contexts/EvVehicleContext';
+import AdminDashboard from './AdminDashboard';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -32,24 +33,6 @@ const Dashboard: React.FC = () => {
       return null;
   }
 };
-
-const AdminDashboard: React.FC = () => (
-  <Router>
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
-      <VerticalNavbar />
-      <div className="flex-1 p-6">
-        <div className="mx-auto max-w-4xl rounded-2xl bg-white p-10 text-center shadow-xl dark:bg-gray-800">
-          <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100">
-            Panel del administrador general
-          </h1>
-          <p className="mt-4 text-base text-gray-600 dark:text-gray-300">
-            Aquí podrás revisar métricas globales y administrar usuarios en futuras iteraciones.
-          </p>
-        </div>
-      </div>
-    </div>
-  </Router>
-);
 
 const StationAdminDashboard: React.FC = () => {
   const [chargers, setChargers] = useState<Charger[]>([]);

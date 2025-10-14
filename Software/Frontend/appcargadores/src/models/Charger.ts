@@ -1,12 +1,20 @@
 // src/models/Charger.ts
-// Asegúrate de exportar el enum correctamente
+// Tipos de cargador compatibles con el backend
 export enum ChargerType {
-  TYPE1 = "J1772 (Tipo 1)",
-  TYPE2 = "Mennekes (Tipo 2)",
-  CCS = "CCS (Combo)",
-  CHADEMO = "CHAdeMO",
-  TESLA = "Tesla Supercharger"
+  TYPE1 = 'Type1',
+  TYPE2 = 'Type2',
+  CCS = 'CCS',
+  CHADEMO = 'CHAdeMO',
+  TESLA = 'Tesla'
 }
+
+export const CHARGER_TYPE_LABELS: Record<ChargerType, string> = {
+  [ChargerType.TYPE1]: 'J1772 (Tipo 1)',
+  [ChargerType.TYPE2]: 'Mennekes (Tipo 2)',
+  [ChargerType.CCS]: 'CCS (Combo)',
+  [ChargerType.CHADEMO]: 'CHAdeMO',
+  [ChargerType.TESLA]: 'Tesla Supercharger'
+};
 
 export interface Location {
   lat: number;

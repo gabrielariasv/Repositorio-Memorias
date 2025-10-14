@@ -11,6 +11,7 @@ const vehiclesRoutes = require('./routes/vehicles');
 const chargersRoutes = require('./routes/chargers');
 const calendarRoutes = require('./routes/calendar');
 const simulatorRoutes = require('./routes/simulator');
+const usersRoutes = require('./routes/users');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,6 +36,7 @@ app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/chargers', chargersRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/simulator', simulatorRoutes);
+app.use('/api/users', usersRoutes);
 
 // Ruta de bienvenida
 app.get('/', (req, res) => {

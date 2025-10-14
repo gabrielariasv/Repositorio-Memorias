@@ -3,6 +3,7 @@ const router = express.Router();
 const Vehicle = require('../models/Vehicle');
 const Charger = require('../models/Charger');
 const ChargingSession = require('../models/ChargingSession');
+const User = require('../models/User');
 
 const calcularDistancia = require('../utils/calcularDistancia');
 const Reservation = require('../models/Reservation');
@@ -23,6 +24,58 @@ router.get('/', async (req, res) => {
     
     res.json(chargers);
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Crear un nuevo cargador
+router.post('/', authenticateToken, async (req, res) => {
+  try {
+    const {
+      name,
+      chargerType,
+      powerOutput,
+      status = 'available',
+      location,
+      ownerId: requestedOwnerId
+    } = req.body;
+
+    if (!name || !chargerType || !powerOutput || !location?.coordinates || location.coordinates.length !== 2) {
+      return res.status(400).json({ error: 'Datos del cargador incompletos' });
+    }
+
+    const ownerId = requestedOwnerId || req.user.userId;
+
+    if (!ownerId) {
+      return res.status(400).json({ error: 'Se requiere un propietario para el cargador' });
+    }
+
+    if (req.user.role !== 'app_admin' && ownerId !== req.user.userId) {
+      return res.status(403).json({ error: 'No tienes permiso para crear cargadores para este usuario' });
+    }
+
+    const owner = await User.findById(ownerId);
+    if (!owner) {
+      return res.status(404).json({ error: 'Propietario no encontrado' });
+    }
+
+    const charger = await Charger.create({
+      name: name.trim(),
+      chargerType,
+      powerOutput,
+      status,
+      location,
+      ownerId
+    });
+
+    if (!owner.ownedStations.includes(charger._id)) {
+      owner.ownedStations.push(charger._id);
+      await owner.save();
+    }
+
+    res.status(201).json(charger);
+  } catch (error) {
+    console.error('Error al crear cargador:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -88,6 +141,35 @@ router.patch('/:id/name', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Error al actualizar nombre de cargador:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Eliminar un cargador
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const charger = await Charger.findById(req.params.id);
+
+    if (!charger) {
+      return res.status(404).json({ error: 'Cargador no encontrado' });
+    }
+
+    if (req.user.role !== 'app_admin' && charger.ownerId?.toString() !== req.user.userId) {
+      return res.status(403).json({ error: 'No tienes permiso para eliminar este cargador' });
+    }
+
+    await Charger.deleteOne({ _id: charger._id });
+
+    if (charger.ownerId) {
+      await User.updateOne(
+        { _id: charger.ownerId },
+        { $pull: { ownedStations: charger._id } }
+      );
+    }
+
+    res.json({ message: 'Cargador eliminado correctamente' });
+  } catch (error) {
+    console.error('Error al eliminar cargador:', error);
     res.status(500).json({ error: error.message });
   }
 });

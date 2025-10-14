@@ -1,6 +1,6 @@
 // src/components/ChargerForm.tsx
 import { useState } from 'react';
-import { Charger, ChargerType } from '../models/Charger'; // Ruta corregida
+import { Charger, ChargerType, CHARGER_TYPE_LABELS } from '../models/Charger'; // Ruta corregida
 import MapPicker from './MapPicker';
 
 interface ChargerFormProps {
@@ -20,7 +20,7 @@ export default function ChargerForm({ onSubmit, onCancel }: ChargerFormProps) {
       name,
       chargerType: type,
       powerOutput: power,
-      location: {type: "Point", coordinates:[position[0], position[1]] },
+      location: { type: 'Point', coordinates: [position[1], position[0]] },
       status: 'available'
     });
   };
@@ -57,7 +57,7 @@ export default function ChargerForm({ onSubmit, onCancel }: ChargerFormProps) {
             className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             {Object.values(ChargerType).map(t => (
-              <option key={t} value={t}>{t}</option>
+              <option key={t} value={t}>{CHARGER_TYPE_LABELS[t]}</option>
             ))}
           </select>
         </div>

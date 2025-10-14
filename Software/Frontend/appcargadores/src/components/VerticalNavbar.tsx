@@ -26,6 +26,7 @@ const VerticalNavbar: React.FC = () => {
 
   const adminMenu = [
     { path: '/', label: 'Dashboard', icon: '🏠' },
+    { path: '/management', label: 'Gestión', icon: '🧑‍💼' },
   ];
 
   const getMenuItems = () => {
@@ -64,9 +65,9 @@ const VerticalNavbar: React.FC = () => {
         />
       )}
 
-      {/* Sidebar - Fijo en la pantalla */}
+      {/* Sidebar - siempre fijo */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-[60] lg:z-50
+        fixed inset-y-0 left-0 z-[60]
         w-64 bg-white dark:bg-gray-800 shadow-lg transform
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
         lg:translate-x-0 transition-transform duration-300 ease-in-out
