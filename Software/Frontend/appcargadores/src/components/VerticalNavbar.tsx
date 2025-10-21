@@ -75,7 +75,8 @@ const VerticalNavbar: React.FC = () => {
       `}>
         {/* User Profile */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center space-x-3 flex-1">
             <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-semibold">
               {user?.name ? user.name[0].toUpperCase() : 'U'}
             </div>
@@ -84,6 +85,7 @@ const VerticalNavbar: React.FC = () => {
               <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">
                 {user?.role?.replace('_', ' ')}
               </div>
+            </div>
             </div>
           </div>
 

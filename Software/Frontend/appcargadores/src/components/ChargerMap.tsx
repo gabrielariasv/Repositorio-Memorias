@@ -65,6 +65,7 @@ interface ChargerMapProps {
   chargers: ChargerWithLatLng[];
   userLocation?: { lat: number, lng: number } | null;
   center?: { lat: number, lng: number } | null;
+  onReserveCharger?: (chargerId: string) => void;
 }
 
 const resolveLatLng = (location: ChargerWithLatLng['location']) => {
@@ -76,7 +77,7 @@ const resolveLatLng = (location: ChargerWithLatLng['location']) => {
   return null;
 };
 
-const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, userLocation, center }, ref) => {
+const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, userLocation, center, onReserveCharger }, ref) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
 
@@ -195,6 +196,16 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
                   <div className="mt-2 text-sm">
                     {resolvedLocation.lat.toFixed(4)}, {resolvedLocation.lng.toFixed(4)}
                   </div>
+                  {onReserveCharger && charger._id && (
+                    <div className="mt-3">
+                      <button
+                        onClick={() => onReserveCharger(charger._id)}
+                        className="w-full px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors"
+                      >
+                        Reservar
+                      </button>
+                    </div>
+                  )}
                 </div>
               </Popup>
             </Marker>

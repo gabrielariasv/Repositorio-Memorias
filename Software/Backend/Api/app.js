@@ -12,9 +12,14 @@ const chargersRoutes = require('./routes/chargers');
 const calendarRoutes = require('./routes/calendar');
 const simulatorRoutes = require('./routes/simulator');
 const usersRoutes = require('./routes/users');
+const notificationsRoutes = require('./routes/notifications');
+const reservationsRoutes = require('./routes/reservations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const http = require('http');
+const server = http.createServer(app);
+const { init: initSocket } = require('./utils/socket');
 
 // Middleware
 app.use(cors());
@@ -37,6 +42,8 @@ app.use('/api/chargers', chargersRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/simulator', simulatorRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/reservations', reservationsRoutes);
 
 // Ruta de bienvenida
 app.get('/', (req, res) => {
@@ -64,7 +71,11 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
+// Init Socket.IO
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
+initSocket(server, FRONTEND_ORIGIN);
+
 // Iniciar servidor
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Servidor ejecutándose en puerto ${PORT}`);
 });

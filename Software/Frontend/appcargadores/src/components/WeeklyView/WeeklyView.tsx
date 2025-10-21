@@ -20,20 +20,34 @@ const useIsMobile = () => {
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0..23
 
-const WeeklyView = ({ currentDate, events, onDateChange }: WeeklyViewProps) => {
+const WeeklyView = ({ currentDate, events, onDateChange, onTimeSlotClick }: WeeklyViewProps) => {
   const isMobile = useIsMobile();
   const [weekDays, setWeekDays] = useState<Date[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(currentDate);
 
+  // Sincroniza selectedDate con currentDate cuando cambia la prop
+  useEffect(() => {
+    setSelectedDate(currentDate);
+  }, [currentDate]);
+
   const calEvents: CalEvent[] = useMemo(() => {
-    return (events || []).map(ev => ({
-      id: String(ev.id),
-      title: ev.title,
-      date: ev.date,
-      endTime: ev.endTime,
-      color: ev.color,
-      raw: (ev as any).raw ?? undefined
-    }));
+    return (events || [])
+      .filter(ev => {
+        // Filtrar eventos con fechas inválidas
+        return ev.date && 
+               ev.endTime && 
+               !isNaN(ev.date.getTime()) && 
+               !isNaN(ev.endTime.getTime()) && 
+               ev.endTime > ev.date;
+      })
+      .map(ev => ({
+        id: String(ev.id),
+        title: ev.title,
+        date: ev.date,
+        endTime: ev.endTime,
+        color: ev.color,
+        raw: (ev as any).raw ?? undefined
+      }));
   }, [events]);
 
   const eventsByDay = useMemo(() => groupEventsByDay(calEvents), [calEvents]);
@@ -166,12 +180,26 @@ const WeeklyView = ({ currentDate, events, onDateChange }: WeeklyViewProps) => {
               className="flex-1 border-r border-gray-200 dark:border-gray-700 relative"
               style={{ minHeight: `${HOURS.length * 60}px` }}
             >
-              {/* hour rows */}
-              {HOURS.map(hour => (
-                <div key={hour} className="h-[60px] border-b border-gray-100 dark:border-gray-700 flex items-start pl-1 text-sm text-gray-500 dark:text-gray-300">
-                  &nbsp;
-                </div>
-              ))}
+              {/* hour rows - ahora clickeables */}
+              {HOURS.map(hour => {
+                const handleSlotClick = () => {
+                  if (onTimeSlotClick) {
+                    const clickedDate = new Date(day);
+                    clickedDate.setHours(hour, 0, 0, 0);
+                    onTimeSlotClick(clickedDate);
+                  }
+                };
+
+                return (
+                  <div
+                    key={hour}
+                    className={`h-[60px] border-b border-gray-100 dark:border-gray-700 flex items-start pl-1 text-sm text-gray-500 dark:text-gray-300 ${onTimeSlotClick ? 'cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20' : ''}`}
+                    onClick={handleSlotClick}
+                  >
+                    &nbsp;
+                  </div>
+                );
+              })}
 
               {/* render event fragments directly (cada Event es absolute respecto a este div relativo) */}
               {frags.map(f => renderFragment(f))}

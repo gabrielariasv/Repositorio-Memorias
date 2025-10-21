@@ -3,6 +3,7 @@ const router = express.Router();
 const Charger = require('../models/Charger');
 const ChargingSession = require('../models/ChargingSession');
 const Vehicle = require('../models/Vehicle');
+const Reservation = require('../models/Reservation');
 
 // Estado actual de todos los cargadores
 router.get('/chargers-status', async (req, res) => {
@@ -12,10 +13,21 @@ router.get('/chargers-status', async (req, res) => {
       .populate('occupancyHistory.sessionId', 'startTime endTime');
     
     const now = new Date();
-    const chargersWithCurrentStatus = chargers.map(charger => {
-      const isOccupied = charger.occupancyHistory.some(record => 
+    const chargersWithCurrentStatus = await Promise.all(chargers.map(async charger => {
+      // Verificar si hay una sesión de carga activa
+      const isOccupiedBySession = charger.occupancyHistory.some(record => 
         record.start <= now && record.end >= now && record.occupied
       );
+      
+      // Verificar si hay una reserva activa en este momento
+      const activeReservation = await Reservation.findOne({
+        chargerId: charger._id,
+        startTime: { $lte: now },
+        endTime: { $gte: now },
+        status: 'active'
+      });
+      
+      const isOccupied = isOccupiedBySession || !!activeReservation;
       
       return {
         _id: charger._id,
@@ -24,9 +36,11 @@ router.get('/chargers-status', async (req, res) => {
         status: isOccupied ? 'occupied' : charger.status,
         powerOutput: charger.powerOutput,
         chargerType: charger.chargerType,
-        currentOccupancy: isOccupied
+        currentOccupancy: isOccupied,
+        occupiedByReservation: !!activeReservation,
+        occupiedBySession: isOccupiedBySession
       };
-    });
+    }));
     
     res.json(chargersWithCurrentStatus);
   } catch (error) {
@@ -81,13 +95,26 @@ router.get('/charger/:chargerId', async (req, res) => {
       return res.status(404).json({ error: 'Cargador no encontrado' });
     }
     
-    // Obtener sesión activa actual (si existe)
     const now = new Date();
+    
+    // Obtener sesión activa actual (si existe)
     const activeSession = await ChargingSession.findOne({
       chargerId: req.params.chargerId,
       startTime: { $lte: now },
       endTime: { $gte: now }
     }).populate('vehicleId', 'model');
+    
+    // Obtener reserva activa actual (si existe)
+    const activeReservation = await Reservation.findOne({
+      chargerId: req.params.chargerId,
+      startTime: { $lte: now },
+      endTime: { $gte: now },
+      status: 'active'
+    }).populate('vehicleId', 'model brand');
+    
+    // Determinar el estado real del cargador
+    const isOccupied = !!activeSession || !!activeReservation;
+    const currentStatus = isOccupied ? 'occupied' : charger.status;
     
     // Calcular métricas recientes (últimas 24 horas)
     const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
@@ -102,8 +129,15 @@ router.get('/charger/:chargerId', async (req, res) => {
       : 0;
     
     res.json({
-      charger,
+      charger: {
+        ...charger.toObject(),
+        currentStatus,
+        isOccupied,
+        occupiedByReservation: !!activeReservation,
+        occupiedBySession: !!activeSession
+      },
       activeSession,
+      activeReservation,
       stats24h: {
         sessionCount: recentSessions.length,
         totalEnergy: totalEnergy24h,

@@ -12,6 +12,7 @@ export interface WeeklyViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onDateChange: (date: Date) => void;
+  onTimeSlotClick?: (clickedTime: Date) => void;
 }
 
 export interface MonthlyCalendarProps {

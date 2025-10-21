@@ -3,14 +3,15 @@ import axios from 'axios';
 import { BrowserRouter as Router, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/useAuth';
 import VerticalNavbar from './VerticalNavbar';
+import NotificationBell from './NotificationBell';
 import ChargerList from './ChargerList';
-import ChargerForm from './ChargerForm';
 import VehicleDashboard from './VehicleDashboard';
 import { Charger } from '../models/Charger';
 import ChargingSessionsChart from './ChargingSessionsChart';
 import ChargerOccupancyChart from './ChargerOccupancyChart';
 import ChargerCalendarPage from '../pages/ChargerCalendarPage';
 import ChargerHistoryPage from '../pages/ChargerHistoryPage';
+import ChargerReservationPage from '../pages/ChargerReservationPage';
 import ProfilePage from '../pages/ProfilePage';
 import { EvVehicleProvider } from '../contexts/EvVehicleContext';
 import AdminDashboard from './AdminDashboard';
@@ -38,7 +39,6 @@ const StationAdminDashboard: React.FC = () => {
   const [chargers, setChargers] = useState<Charger[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
 
   const fetchChargers = useCallback(async () => {
     try {
@@ -70,23 +70,6 @@ const StationAdminDashboard: React.FC = () => {
   useEffect(() => {
     fetchChargers();
   }, [fetchChargers]);
-
-  const addCharger = async (chargerData: Omit<Charger, '_id' | 'createdAt'>) => {
-    try {
-      const token = localStorage.getItem('token');
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await axios.post<Charger>(`${import.meta.env.VITE_API_URL}/api/chargers`, chargerData, { headers });
-      setChargers(prev => [...prev, response.data]);
-      setShowForm(false);
-    } catch (err: any) {
-      console.error('Error al agregar cargador:', err);
-      setError(err?.response?.data?.message ?? err.message ?? 'Error al agregar cargador');
-    }
-  };
 
   const handleChargerRenamed = (updated: Charger) => {
     setChargers(prev => prev.map(charger => (charger._id === updated._id ? { ...charger, ...updated } : charger)));
@@ -132,20 +115,12 @@ const StationAdminDashboard: React.FC = () => {
             Administra tus estaciones sin desplazamientos adicionales.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => fetchChargers()}
-            className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
-          >
-            Actualizar
-          </button>
-          <button
-            onClick={() => setShowForm(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-          >
-            Nuevo cargador
-          </button>
-        </div>
+        <button
+          onClick={() => fetchChargers()}
+          className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+        >
+          Actualizar
+        </button>
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden rounded-2xl bg-white shadow dark:bg-gray-800">
@@ -161,15 +136,9 @@ const StationAdminDashboard: React.FC = () => {
             </div>
           )}
           <div className="flex-1 min-h-0 overflow-hidden">
-            {showForm ? (
-              <div className="mx-auto flex h-full min-h-0 max-w-3xl flex-col overflow-y-auto">
-                <ChargerForm onSubmit={addCharger} onCancel={() => setShowForm(false)} />
-              </div>
-            ) : (
-              <div className="h-full min-h-0 overflow-hidden">
-                <ChargerList chargers={chargers} onChargerRename={handleChargerRenamed} />
-              </div>
-            )}
+            <div className="h-full min-h-0 overflow-hidden">
+              <ChargerList chargers={chargers} onChargerRename={handleChargerRenamed} />
+            </div>
           </div>
         </div>
       </div>
@@ -181,7 +150,11 @@ const StationAdminDashboard: React.FC = () => {
       <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
         <VerticalNavbar />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <main className="flex-1 overflow-hidden px-4 py-6 sm:px-6">
+          {/* top right header */}
+          <div className="flex items-center justify-end px-4 pt-4 sm:px-6">
+            <NotificationBell />
+          </div>
+          <main className="flex-1 overflow-hidden px-4 py-2 sm:px-6">
             <div className="mx-auto flex h-full max-w-7xl flex-col">
               <Routes>
                 <Route path="/" element={<StationAdminHome />} />
@@ -203,12 +176,18 @@ const EVUserDashboard: React.FC = () => (
     <EvVehicleProvider>
       <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
         <VerticalNavbar />
-        <div className="flex-1 p-6">
+        <div className="flex-1">
+          <div className="flex items-center justify-end px-4 pt-4 sm:px-6">
+            <NotificationBell />
+          </div>
+          <div className="p-6">
           <Routes>
             <Route path="/" element={<VehicleDashboard />} />
             <Route path="/charging-history" element={<VehicleDashboard />} />
+            <Route path="/chargers/:chargerId/reserve" element={<ChargerReservationPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Routes>
+          </div>
         </div>
       </div>
     </EvVehicleProvider>

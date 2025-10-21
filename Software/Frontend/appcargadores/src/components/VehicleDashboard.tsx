@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ChargerOptionsModal from './ChargerOptionsModal';
 import ChargerMap, { ChargerMapHandle, FlyToOptions } from './ChargerMap';
 import { getTravelTimeORS } from '../utils/getTravelTimeORS';
@@ -32,6 +32,7 @@ interface ChargingSession {
 const VehicleDashboard: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const evVehicleContext = useEvVehicle();
 
   const [showChargerOptions, setShowChargerOptions] = useState(false);
@@ -116,9 +117,9 @@ const VehicleDashboard: React.FC = () => {
     }
   }, []);
 
-  const handleReserveCharger = useCallback(() => {
-    console.log('Reservar un cargador');
-  }, []);
+  const handleReserveCharger = useCallback((chargerId: string) => {
+    navigate(`/chargers/${chargerId}/reserve`);
+  }, [navigate]);
 
   useEffect(() => {
     if (!evVehicleContext?.selectedVehicle?._id) {
@@ -342,13 +343,13 @@ const VehicleDashboard: React.FC = () => {
                   className="rounded bg-indigo-600 px-6 py-3 font-semibold text-white shadow transition-colors duration-200 hover:bg-indigo-700"
                   onClick={() => setShowChargerOptions(true)}
                 >
-                  Buscar Cargador
+                  Reserva un Cargador
                 </button>
               </section>
 
               <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
                 <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">Mapa de cargadores</h2>
-                <ChargerMap ref={mapRef} chargers={mappedChargers} userLocation={userLocation} />
+                <ChargerMap ref={mapRef} chargers={mappedChargers} userLocation={userLocation} onReserveCharger={handleReserveCharger} />
               </section>
 
               <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">

@@ -22,7 +22,28 @@ router.get('/', async (req, res) => {
       .populate('ownerId', 'name email')
       .populate('reservations');
     
-    res.json(chargers);
+    // Calcular estado en tiempo real basándose en reservas activas
+    const now = new Date();
+    const chargersWithRealTimeStatus = await Promise.all(chargers.map(async (charger) => {
+      // Buscar si hay una reserva activa en este momento
+      const activeReservation = await Reservation.findOne({
+        chargerId: charger._id,
+        startTime: { $lte: now },
+        endTime: { $gt: now },
+        status: { $in: ['active', 'upcoming'] }
+      });
+      
+      // Si hay una reserva activa, marcar como ocupado
+      const realTimeStatus = activeReservation ? 'occupied' : charger.status;
+      
+      return {
+        ...charger.toObject(),
+        status: realTimeStatus,
+        hasActiveReservation: !!activeReservation
+      };
+    }));
+    
+    res.json(chargersWithRealTimeStatus);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -398,7 +419,25 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Cargador no encontrado' });
     }
     
-    res.json(charger);
+    // Calcular estado en tiempo real basándose en reservas activas
+    const now = new Date();
+    const activeReservation = await Reservation.findOne({
+      chargerId: charger._id,
+      startTime: { $lte: now },
+      endTime: { $gt: now },
+      status: { $in: ['active', 'upcoming'] }
+    });
+    
+    // Si hay una reserva activa, marcar como ocupado
+    const realTimeStatus = activeReservation ? 'occupied' : charger.status;
+    
+    const chargerWithRealTimeStatus = {
+      ...charger.toObject(),
+      status: realTimeStatus,
+      hasActiveReservation: !!activeReservation
+    };
+    
+    res.json(chargerWithRealTimeStatus);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

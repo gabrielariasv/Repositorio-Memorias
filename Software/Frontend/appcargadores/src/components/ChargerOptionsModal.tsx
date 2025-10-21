@@ -5,10 +5,10 @@ interface ChargerOptionsModalProps {
   user: any;
   selectedVehicle: any;
   fetchReservations: (vehicleId: string) => Promise<void>;
-  onReserveCharger: () => void;
+  onReserveCharger: (chargerId: string) => void;
 }
 
-const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user, selectedVehicle, fetchReservations }) => {
+const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user, selectedVehicle, fetchReservations, onReserveCharger }) => {
   const [loadingFind, setLoadingFind] = useState(false);
   const [loadingReserve, setLoadingReserve] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -152,12 +152,12 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           className="flex-1 py-3 px-6 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow transition-colors duration-200 disabled:opacity-60"
           onClick={handleFind}
           disabled={loadingFind}
-        >{loadingFind ? 'Buscando...' : 'Encuéntrame un cargador'}</button>
+        >{loadingFind ? 'Buscando...' : 'Reserva Rápida'}</button>
         <button
           className="flex-1 py-3 px-6 rounded bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold shadow transition-colors duration-200 disabled:opacity-60"
           onClick={handleManual}
           disabled={loadingReserve}
-        >{loadingReserve ? 'Cargando...' : 'Reservar un cargador'}</button>
+        >{loadingReserve ? 'Cargando...' : 'Reserva Específica'}</button>
       </div>
       {/* Preferencias embebidas debajo de los botones */}
       <div className="mb-4">
@@ -238,38 +238,17 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           </select>
           <div className="flex gap-2 mt-2">
             <button
-              className="flex-1 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold"
-              disabled={!selectedCharger || loadingReserve}
-              onClick={async () => {
-                if (!selectedCharger || !selectedVehicle) return;
-                setLoadingReserve(true);
-                setFeedback(null);
-                try {
-                  const batteryCapacity = selectedVehicle.batteryCapacity;
-                  const currentChargeLevel = selectedVehicle.currentChargeLevel;
-                  const energyNeeded = batteryCapacity * (1 - currentChargeLevel / 100);
-                  const power = selectedCharger.powerOutput || selectedCharger.power;
-                  const chargeTimeHours = energyNeeded / power;
-                  const chargeTimeMs = chargeTimeHours * 60 * 60 * 1000;
-                  const now = new Date();
-                  const startTime = now;
-                  const endTime = new Date(now.getTime() + chargeTimeMs);
-                  setProposal({
-                    charger: selectedCharger,
-                    startTime,
-                    endTime,
-                    power,
-                    chargeTimeHours
-                  });
-                  setShowConfirm(true);
-                  setShowChargerList(false);
-                } catch (e) {
-                  setFeedback('No se pudo calcular la reserva.');
-                } finally {
-                  setLoadingReserve(false);
+              className="flex-1 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+              disabled={!selectedCharger}
+              onClick={() => {
+                if (selectedCharger) {
+                  onReserveCharger(selectedCharger._id);
+                  onClose();
                 }
               }}
-            >Proponer reserva</button>
+            >
+              Ir a calendario de reserva
+            </button>
             <button
               className="flex-1 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold"
               onClick={() => { setShowChargerList(false); setSelectedCharger(null); }}
