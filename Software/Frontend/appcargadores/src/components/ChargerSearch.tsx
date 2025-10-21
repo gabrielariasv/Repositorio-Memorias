@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import './DropdownSearch.css';
 import { Charger } from '../models/Charger';
 
 export type LocationOption = {
@@ -123,9 +122,9 @@ const ChargerSearch: React.FC<ChargerSearchProps> = ({ chargers, mode, onResults
   }, [search, mode, chargers, onResults]);
 
   return (
-    <div className="dropdown" ref={ref}>
+    <div className="relative w-full" ref={ref}>
       <input
-        className="dropbtn"
+        className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all"
         type="text"
         placeholder={mode === 'name' ? 'Buscar por nombre...' : 'Buscar por ubicación...'}
         value={search}
@@ -136,15 +135,16 @@ const ChargerSearch: React.FC<ChargerSearchProps> = ({ chargers, mode, onResults
         onFocus={() => setOpen(true)}
       />
       {open && search.trim().length > 0 && (
-        <div className={`dropdown-content show`} style={{ width: "100%" }}>
+        <div className="absolute z-50 mt-2 max-h-64 w-full overflow-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl">
           {loading ? (
-            <div className="p-2 text-center text-gray-500">Buscando...</div>
+            <div className="p-3 text-center text-gray-600 dark:text-gray-300">Buscando...</div>
           ) : mode === 'location' ? (
             options.length > 0 ? (
               options.map(opt => (
-                <div
+                <button
+                  type="button"
                   key={opt.label}
-                  className="dropdown-item"
+                  className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700/60 focus:outline-none"
                   onClick={() => {
                     setSearch(opt.label);
                     setOpen(false);
@@ -169,30 +169,29 @@ const ChargerSearch: React.FC<ChargerSearchProps> = ({ chargers, mode, onResults
                   }}
                 >
                   {opt.label}
-                </div>
+                </button>
               ))
             ) : (
-              <div className="p-2 text-gray-500">No se encontraron ubicaciones</div>
+              <div className="p-3 text-sm text-gray-600 dark:text-gray-300">No se encontraron ubicaciones</div>
             )
+          ) : suggestions.length > 0 ? (
+            suggestions.map(charger => (
+              <button
+                type="button"
+                key={charger._id}
+                className="block w-full text-left px-4 py-2.5 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700/60 focus:outline-none"
+                onClick={() => {
+                  setSearch(charger.name);
+                  setOpen(false);
+                  setSuggestions([charger]);
+                  onResults([charger]);
+                }}
+              >
+                {charger.name}
+              </button>
+            ))
           ) : (
-            suggestions.length > 0 ? (
-              suggestions.map(charger => (
-                <div
-                  key={charger._id}
-                  className="dropdown-item"
-                  onClick={() => {
-                    setSearch(charger.name);
-                    setOpen(false);
-                    setSuggestions([charger]);
-                    onResults([charger]);
-                  }}
-                >
-                  {charger.name}
-                </div>
-              ))
-            ) : (
-              <div className="p-2 text-gray-500">No se encontraron cargadores</div>
-            )
+            <div className="p-3 text-sm text-gray-600 dark:text-gray-300">No se encontraron cargadores</div>
           )}
         </div>
       )}

@@ -49,43 +49,6 @@ function DesktopChargerList({
             
             {/* Filtros y Búsqueda */}
             <div className="space-y-4">
-              {/* Barra de Búsqueda */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex items-center gap-2">
-                    <i className="fas fa-search text-gray-400 dark:text-gray-500"></i>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Modo de búsqueda:</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSearchMode('name')}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        searchMode === 'name'
-                          ? 'bg-blue-500 text-white shadow-md'
-                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
-                      }`}
-                    >
-                      <i className="fas fa-tag mr-2"></i>Por nombre
-                    </button>
-                    <button
-                      onClick={() => setSearchMode('location')}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        searchMode === 'location'
-                          ? 'bg-blue-500 text-white shadow-md'
-                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
-                      }`}
-                    >
-                      <i className="fas fa-map-marker-alt mr-2"></i>Por ubicación
-                    </button>
-                  </div>
-                </div>
-                <ChargerSearch
-                  chargers={chargers}
-                  mode={searchMode}
-                  onResults={setFilteredChargers}
-                />
-              </div>
-
               {/* Filtros */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -125,31 +88,41 @@ function DesktopChargerList({
                 </div>
               </div>
 
-              {/* Botones de Acción */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setFilteredChargers(
-                    chargers.filter(c =>
-                      (!statusFilter || c.status === statusFilter) &&
-                      (!typeFilter || c.chargerType === typeFilter)
-                    )
-                  )}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 px-4 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] flex items-center justify-center gap-2"
-                >
-                  <i className="fas fa-filter"></i>
-                  Aplicar Filtros
-                </button>
-                <button
-                  onClick={() => {
-                    setStatusFilter(undefined);
-                    setTypeFilter(undefined);
-                    setFilteredChargers(chargers);
-                  }}
-                  className="px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl font-medium transition-all duration-200 flex items-center gap-2"
-                >
-                  <i className="fas fa-redo"></i>
-                  Limpiar
-                </button>
+              {/* Barra de Búsqueda */}
+              <div className="rounded-xl p-4 bg-transparent">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <i className="fas fa-search text-gray-400 dark:text-gray-500"></i>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Modo de búsqueda:</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSearchMode('name')}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        searchMode === 'name'
+                          ? 'bg-blue-500 text-white shadow-md'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
+                      }`}
+                    >
+                      <i className="fas fa-tag mr-2"></i>Por nombre
+                    </button>
+                    <button
+                      onClick={() => setSearchMode('location')}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        searchMode === 'location'
+                          ? 'bg-blue-500 text-white shadow-md'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
+                      }`}
+                    >
+                      <i className="fas fa-map-marker-alt mr-2"></i>Por ubicación
+                    </button>
+                  </div>
+                </div>
+                <ChargerSearch
+                  chargers={chargers}
+                  mode={searchMode}
+                  onResults={setFilteredChargers}
+                />
               </div>
             </div>
           </div>
@@ -290,9 +263,17 @@ function DesktopChargerList({
                               <i className="fas fa-map text-xs"></i>
                               Ver en mapa
                             </button>
-                            <button className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm font-medium flex items-center gap-1.5 transition-colors">
-                              {expandedChargerId === charger._id ? 'Ocultar detalles' : 'Ver detalles'}
-                              <i className={`fas ${expandedChargerId === charger._id ? 'fa-chevron-up' : 'fa-chevron-down'} text-xs transition-transform`}></i>
+                            <button className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors group">
+                              <span>{expandedChargerId === charger._id ? 'Ocultar detalles' : 'Ver detalles'}</span>
+                              <div className={`p-1.5 rounded-md border-2 transition-all ${
+                                expandedChargerId === charger._id 
+                                  ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400' 
+                                  : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 group-hover:border-gray-400 dark:group-hover:border-gray-500'
+                              }`}>
+                                <i className={`fas ${expandedChargerId === charger._id ? 'fa-compress-alt' : 'fa-expand-alt'} text-xs ${
+                                  expandedChargerId === charger._id ? 'text-blue-600 dark:text-blue-400' : ''
+                                }`}></i>
+                              </div>
                             </button>
                           </div>
                         </div>
@@ -503,49 +484,29 @@ function MobileChargerList({
                 <option value="Tesla">Tesla</option>
               </select>
             </div>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => setFilteredChargers(
-                  chargers.filter(c =>
-                    (!statusFilter || c.status === statusFilter) &&
-                    (!typeFilter || c.chargerType === typeFilter)
-                  )
-                )}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2.5 px-4 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <i className="fas fa-filter"></i>
-                Aplicar
-              </button>
-              <button
-                onClick={() => {
-                  setStatusFilter(undefined);
-                  setTypeFilter(undefined);
-                  setFilteredChargers(chargers);
-                }}
-                className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors"
-              >
-                <i className="fas fa-redo"></i>
-              </button>
-            </div>
           </div>
         )}
       </div>
 
       {/* Map Section - Collapsible */}
       <div className={`flex-shrink-0 border-b border-gray-200 dark:border-gray-700 transition-all duration-300 ${isMapMinimized ? 'h-12' : 'h-48'}`}>
-        <div className="p-3 bg-gray-50 dark:bg-gray-700 flex justify-between items-center">
+        <button 
+          onClick={() => setIsMapMinimized(!isMapMinimized)}
+          className="w-full p-3 bg-gray-50 dark:bg-gray-700 flex justify-between items-center hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer group"
+        >
           <h3 className="font-semibold text-gray-800 dark:text-white flex items-center gap-2">
             <i className="fas fa-map-marker-alt text-green-500"></i>
             Mapa de Cargadores
           </h3>
-          <button 
-            onClick={() => setIsMapMinimized(!isMapMinimized)}
-            className="p-2 rounded-lg bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors"
-          >
-            <i className={`fas ${isMapMinimized ? 'fa-chevron-down' : 'fa-chevron-up'} text-gray-600 dark:text-gray-300`}></i>
-          </button>
-        </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400 hidden group-hover:inline">
+              {isMapMinimized ? 'Expandir' : 'Minimizar'}
+            </span>
+            <div className="p-2 rounded-lg bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-sm group-hover:border-blue-500 dark:group-hover:border-blue-400 transition-all">
+              <i className={`fas ${isMapMinimized ? 'fa-expand-alt' : 'fa-compress-alt'} text-lg ${isMapMinimized ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'}`}></i>
+            </div>
+          </div>
+        </button>
         {!isMapMinimized && (
           <div className="h-40">
             <ChargerMap ref={mapRef} chargers={filteredChargers} />
@@ -666,9 +627,17 @@ function MobileChargerList({
                           </span>
                         </div>
                         
-                        <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xs font-medium flex items-center gap-1">
-                          {expandedChargerId === charger._id ? 'Ocultar' : 'Detalles'}
-                          <i className={`fas ${expandedChargerId === charger._id ? 'fa-chevron-up' : 'fa-chevron-down'} text-xs`}></i>
+                        <button className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors group">
+                          <span>{expandedChargerId === charger._id ? 'Ocultar' : 'Detalles'}</span>
+                          <div className={`p-1 rounded border-2 transition-all ${
+                            expandedChargerId === charger._id 
+                              ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400' 
+                              : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 group-hover:border-blue-400'
+                          }`}>
+                            <i className={`fas ${expandedChargerId === charger._id ? 'fa-compress-alt' : 'fa-expand-alt'} text-xs ${
+                              expandedChargerId === charger._id ? 'text-blue-600 dark:text-blue-400' : ''
+                            }`}></i>
+                          </div>
                         </button>
                       </div>
                     </div>

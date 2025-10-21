@@ -20,6 +20,7 @@ const PORT = process.env.PORT || 3000;
 const http = require('http');
 const server = http.createServer(app);
 const { init: initSocket } = require('./utils/socket');
+const { startReservationScheduler } = require('./utils/reservationScheduler');
 
 // Middleware
 app.use(cors());
@@ -74,6 +75,8 @@ app.use('*', (req, res) => {
 // Init Socket.IO
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
 initSocket(server, FRONTEND_ORIGIN);
+// Start reservation reminder scheduler
+startReservationScheduler();
 
 // Iniciar servidor
 server.listen(PORT, () => {

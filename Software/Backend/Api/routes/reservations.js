@@ -3,6 +3,8 @@ const router = express.Router();
 const Reservation = require('../models/Reservation');
 const Charger = require('../models/Charger');
 const Vehicle = require('../models/Vehicle');
+const Notification = require('../models/Notification');
+const { emitToUser } = require('../utils/socket');
 const { authenticateToken } = require('./auth');
 
 // POST /api/reservations - Crear una nueva reserva
@@ -152,6 +154,127 @@ router.post('/update-statuses', async (req, res) => {
     );
 
     res.json({ message: 'Estados de reservas actualizados' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/reservations/:id/accept - Aceptar una reserva (usuario o dueño de estación)
+router.post('/:id/accept', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const requesterId = req.user.userId;
+
+    const reservation = await Reservation.findById(id);
+    if (!reservation) return res.status(404).json({ error: 'Reserva no encontrada' });
+
+    const charger = await Charger.findById(reservation.chargerId).select('ownerId name');
+    const isOwner = charger && String(charger.ownerId) === String(requesterId);
+    const isUser = String(reservation.userId) === String(requesterId);
+    const isAdmin = req.user.role === 'app_admin';
+    if (!isOwner && !isUser && !isAdmin) {
+      return res.status(403).json({ error: 'No autorizado para aceptar esta reserva' });
+    }
+
+    if (reservation.status === 'cancelled' || reservation.status === 'completed') {
+      return res.status(400).json({ error: 'La reserva ya no es válida para aceptar' });
+    }
+
+    reservation.acceptanceStatus = 'accepted';
+    await reservation.save();
+
+    // Notificar a ambas partes
+    const messages = {
+      user: `Tu reserva ha sido aceptada${isOwner ? ' por el dueño de la estación' : ''}.`,
+      owner: `La reserva fue aceptada${isUser ? ' por el usuario' : ''}.`
+    };
+    try {
+      const notifUser = await Notification.create({
+        user: reservation.userId,
+        title: 'Reserva aceptada',
+        message: messages.user,
+        type: 'success',
+        data: { reservationId: reservation._id }
+      });
+      emitToUser(String(reservation.userId), 'notification', notifUser);
+      if (charger?.ownerId) {
+        const notifOwner = await Notification.create({
+          user: charger.ownerId,
+          title: 'Reserva aceptada',
+          message: messages.owner,
+          type: 'success',
+          data: { reservationId: reservation._id }
+        });
+        emitToUser(String(charger.ownerId), 'notification', notifOwner);
+      }
+    } catch (_) {}
+
+    res.json({ message: 'Reserva aceptada', reservation });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/reservations/:id/cancel - Cancelar con motivo (usuario o dueño de estación)
+router.post('/:id/cancel', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const requesterId = req.user.userId;
+    const ALLOWED = ['indisponibilidad', 'mantenimiento', 'falta_tiempo', 'otro'];
+    if (!ALLOWED.includes(String(reason))) {
+      return res.status(400).json({ error: 'Motivo inválido' });
+    }
+
+    const reservation = await Reservation.findById(id);
+    if (!reservation) return res.status(404).json({ error: 'Reserva no encontrada' });
+    if (reservation.status === 'cancelled' || reservation.status === 'completed') {
+      return res.status(400).json({ error: 'La reserva ya no se puede cancelar' });
+    }
+
+    const charger = await Charger.findById(reservation.chargerId).select('ownerId name');
+    const isOwner = charger && String(charger.ownerId) === String(requesterId);
+    const isUser = String(reservation.userId) === String(requesterId);
+    const isAdmin = req.user.role === 'app_admin';
+    if (!isOwner && !isUser && !isAdmin) {
+      return res.status(403).json({ error: 'No autorizado para cancelar esta reserva' });
+    }
+
+    reservation.status = 'cancelled';
+    reservation.cancellationReason = reason;
+    reservation.cancelledBy = isOwner ? 'owner' : isUser ? 'user' : 'system';
+    await reservation.save();
+
+    // Notificar a ambas partes con el motivo
+    const reasonText = {
+      indisponibilidad: 'Indisponibilidad',
+      mantenimiento: 'En mantenimiento',
+      falta_tiempo: 'Falta de tiempo',
+      otro: 'Otro motivo'
+    }[reason];
+    const baseMsg = `Reserva cancelada. Motivo: ${reasonText}`;
+    try {
+      const notifUser = await Notification.create({
+        user: reservation.userId,
+        title: 'Reserva cancelada',
+        message: baseMsg,
+        type: 'warning',
+        data: { reservationId: reservation._id, reason }
+      });
+      emitToUser(String(reservation.userId), 'notification', notifUser);
+      if (charger?.ownerId) {
+        const notifOwner = await Notification.create({
+          user: charger.ownerId,
+          title: 'Reserva cancelada',
+          message: baseMsg,
+          type: 'warning',
+          data: { reservationId: reservation._id, reason }
+        });
+        emitToUser(String(charger.ownerId), 'notification', notifOwner);
+      }
+    } catch (_) {}
+
+    res.json({ message: 'Reserva cancelada', reservation });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -7,9 +7,15 @@ const ReservationSchema = new mongoose.Schema({
   startTime: Date,
   endTime: Date,
   calculatedEndTime: Date,
-  status: { type: String, enum: ['upcoming', 'active', 'completed', 'cancelled'] },
+  status: { type: String, enum: ['upcoming', 'active', 'completed', 'cancelled'], default: 'upcoming' },
   estimatedChargeTime: Number,
-  bufferTime: Number
+  bufferTime: Number,
+  // Workflow fields
+  acceptanceStatus: { type: String, enum: ['pending', 'accepted'], default: 'pending' },
+  cancelledBy: { type: String, enum: ['user', 'owner', 'system'], default: undefined },
+  cancellationReason: { type: String, enum: ['indisponibilidad', 'mantenimiento', 'falta_tiempo', 'otro'], default: undefined },
+  preNotified: { type: Boolean, default: false },
+  startNotified: { type: Boolean, default: false }
 });
 
 module.exports = mongoose.model('Reservation', ReservationSchema);
