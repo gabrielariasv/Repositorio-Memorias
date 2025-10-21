@@ -2,12 +2,70 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const csv = require('csv-parser');
 const fs = require('fs');
+const turf = require('@turf/turf');
+require('dotenv').config();
+
+let valpoPolygon = null;
+
+try {
+  // Opción A: archivo ya con la geometría de la región (recomendado)
+  const data = JSON.parse(fs.readFileSync('valparaiso_region.geojson', 'utf8'));
+  // Soportar FeatureCollection o Feature/Polygon/MultiPolygon
+  if (data.type === 'FeatureCollection') {
+    // si vienen varias features, unirlas en una sola geometría
+    valpoPolygon = data.features.length === 1 ? data.features[0] : turf.union(...data.features);
+  } else {
+    valpoPolygon = data;
+  }
+  console.log('Cargado valparaiso_region.geojson');
+} catch (e1) {
+  try {
+    // Opción B: cargar archivo completo de comunas y filtrar por propiedad que contenga "valpara"
+    const chile = JSON.parse(fs.readFileSync('chile_comunas.geojson', 'utf8'));
+    const features = chile.features.filter(f => {
+      const propsStr = JSON.stringify(f.properties || {}).toLowerCase();
+      return propsStr.includes('valpara'); // coincidir "valparaiso", "valparaíso", etc.
+    });
+
+    if (!features || features.length === 0) throw new Error('No se encontró la Región de Valparaíso en chile_comunas.geojson');
+
+    valpoPolygon = features.length === 1 ? features[0] : turf.union(...features);
+    console.log('Extraída la geometría de Valparaíso desde chile_comunas.geojson');
+  } catch (e2) {
+    console.warn('No se encontró GeoJSON de la Región de Valparaíso en el proyecto. Se usará fallback bbox (menos preciso).');
+    valpoPolygon = null;
+  }
+}
 
 // Función para generar coordenadas aleatorias
 function generateRandomCoordinates() {
-  const randomLat = -33.4 + (Math.random() * 10 - 5);
-  const randomLon = -70.6 + (Math.random() * 10 - 5);
-  return [randomLon, randomLat];
+  // Fallback simple si no cargó el polígono (mantengo tu bbox aproximado)
+  if (!valpoPolygon) {
+    const latMin = -33.95;
+    const latMax = -32.033333;
+    const lonMin = -72.0;
+    const lonMax = -70.0;
+    const randomLat = latMin + Math.random() * (latMax - latMin);
+    const randomLon = lonMin + Math.random() * (lonMax - lonMin);
+    return [randomLon, randomLat];
+  }
+
+  const bbox = turf.bbox(valpoPolygon); // [minX, minY, maxX, maxY] => [lonMin, latMin, lonMax, latMax]
+  const maxAttempts = 10000;
+  let attempts = 0;
+
+  while (attempts++ < maxAttempts) {
+    const lon = bbox[0] + Math.random() * (bbox[2] - bbox[0]);
+    const lat = bbox[1] + Math.random() * (bbox[3] - bbox[1]);
+    const pt = turf.point([lon, lat]);
+
+    if (turf.booleanPointInPolygon(pt, valpoPolygon)) {
+      return [lon, lat];
+    }
+  }
+
+  // Si por alguna razón no encontramos punto en X intentos, devolvemos el centro del bbox
+  return [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2];
 }
 
 // Función para generar nombres aleatorios
@@ -221,7 +279,8 @@ async function importCSVData(filePath) {
     console.log('Iniciando importación de datos...');
     
     // Conectar a MongoDB sin opciones obsoletas
-    await mongoose.connect('mongodb://localhost:27017/ev_charging_db');
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/ev_charging_db';
+    await mongoose.connect(mongoUri);
     console.log('Conectado a MongoDB');
 
     // Eliminar la base de datos existente para evitar duplicados

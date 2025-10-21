@@ -1,5 +1,5 @@
 // components/MonthlyCalendar/MonthlyCalendar.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   format,
   startOfMonth,
@@ -16,7 +16,6 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { MonthlyCalendarProps } from '../../types';
-import Event from '../Event/Event';
 
 const MonthlyCalendar = ({ currentDate, onDateChange, events }: MonthlyCalendarProps) => {
   const [month, setMonth] = useState<Date[][]>([]);
@@ -92,7 +91,7 @@ const MonthlyCalendar = ({ currentDate, onDateChange, events }: MonthlyCalendarP
     setShowYearPicker(false);
   };
 
-  const toggleMonthPicker = (): void => {
+/*  const toggleMonthPicker = (): void => {
     setShowMonthPicker(!showMonthPicker);
     setShowYearPicker(false);
     setShowWheelPicker(false);
@@ -103,7 +102,7 @@ const MonthlyCalendar = ({ currentDate, onDateChange, events }: MonthlyCalendarP
     setShowMonthPicker(false);
     setShowWheelPicker(false);
   };
-
+*/
   const toggleWheelPicker = (): void => {
     setShowWheelPicker(!showWheelPicker);
     setShowMonthPicker(false);

@@ -1,15 +1,18 @@
-// components/Dashboard.tsx
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
+import { BrowserRouter as Router, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/useAuth';
+import VerticalNavbar from './VerticalNavbar';
 import ChargerList from './ChargerList';
 import ChargerForm from './ChargerForm';
 import VehicleDashboard from './VehicleDashboard';
-import { Charger, ChargerType } from '../models/Charger';
-import ThingSpeakChartPage from './ThingSpeakChartPage';
-import ThingSpeakChartDisp from './ThingSpeakChartDisp';
-import CalendarPage from '../pages/CalendarPage';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Charger } from '../models/Charger';
+import ChargingSessionsChart from './ChargingSessionsChart';
+import ChargerOccupancyChart from './ChargerOccupancyChart';
+import ChargerCalendarPage from '../pages/ChargerCalendarPage';
+import ChargerHistoryPage from '../pages/ChargerHistoryPage';
+import ProfilePage from '../pages/ProfilePage';
+import { EvVehicleProvider } from '../contexts/EvVehicleContext';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -18,224 +21,215 @@ const Dashboard: React.FC = () => {
     return null;
   }
 
-  // Renderizar dashboard según el rol del usuario
   switch (user.role) {
     case 'app_admin':
       return <AdminDashboard />;
     case 'station_admin':
       return <StationAdminDashboard />;
     case 'ev_user':
-      return <VehicleDashboard />;
+      return <EVUserDashboard />;
     default:
-      return (
-        <div className="p-4">
-          <h1 className="text-2xl font-bold">Rol no reconocido</h1>
-        </div>
-      );
+      return null;
   }
 };
 
-// Dashboard para administradores (placeholder)
-const AdminDashboard: React.FC = () => {
-  return (
-    <Router>
-      <div className="min-h-screen flex flex-col">
-        <nav className="bg-white dark:bg-gray-800 shadow-md py-4 px-4 flex flex-wrap gap-3 justify-center sm:justify-start">
-          <Link to="/calendar" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
-            <i className="fas fa-calendar mr-2"></i>Calendario
-          </Link>
-          {/* Otros enlaces para admin */}
-        </nav>
-        
-        <Routes>
-          <Route path="/calendar" element={<CalendarPage />} />
-          {/* Otras rutas para admin */}
-        </Routes>
+const AdminDashboard: React.FC = () => (
+  <Router>
+    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+      <VerticalNavbar />
+      <div className="flex-1 p-6">
+        <div className="mx-auto max-w-4xl rounded-2xl bg-white p-10 text-center shadow-xl dark:bg-gray-800">
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100">
+            Panel del administrador general
+          </h1>
+          <p className="mt-4 text-base text-gray-600 dark:text-gray-300">
+            Aquí podrás revisar métricas globales y administrar usuarios en futuras iteraciones.
+          </p>
+        </div>
       </div>
-    </Router>
-  );
-};
+    </div>
+  </Router>
+);
 
-// Dashboard para administradores de estaciones
 const StationAdminDashboard: React.FC = () => {
-  const { user } = useAuth();
   const [chargers, setChargers] = useState<Charger[]>([]);
-  const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
+  const [showForm, setShowForm] = useState(false);
 
   const fetchChargers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
     try {
-      const baseUrl = `${import.meta.env.VITE_API_URL}/api/chargers/`;
+      setLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem('token');
       const headers: Record<string, string> = {};
-      if ((user as any)?.token) headers['Authorization'] = `Bearer ${(user as any).token}`;
-      if ((user as any)?.accessToken) headers['Authorization'] = `Bearer ${(user as any).accessToken}`;
-
-      const params: Record<string, any> = {};
-      if (statusFilter) params.status = statusFilter;
-      if (typeFilter) params.chargerType = typeFilter;
-
-      const resp = await axios.get(baseUrl, { params, headers });
-      const data = resp.data;
-
-      if (!Array.isArray(data)) {
-        throw new Error('Respuesta inesperada de la API: no vino un array');
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
       }
 
-      const mapped: Charger[] = data.map(mapApiToLocal);
-      setChargers(mapped);
+      const response = await axios.get<Charger[]>(`${import.meta.env.VITE_API_URL}/api/chargers`, { headers });
+      const data = response.data;
+
+      if (!Array.isArray(data)) {
+        throw new Error('Respuesta inesperada: se esperaba un listado de cargadores.');
+      }
+
+      setChargers(data);
     } catch (err: any) {
       console.error('Error fetchChargers:', err);
       setError(err?.response?.data?.message ?? err.message ?? 'Error al obtener cargadores');
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, typeFilter, user]);
+  }, []);
 
   useEffect(() => {
     fetchChargers();
   }, [fetchChargers]);
 
-  const addCharger = async (charger: Omit<Charger, '_id' | 'createdAt'>) => {
-    const newCharger: Charger = {
-      ...charger,
-      _id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date()
-    };
-    setChargers(prev => [...prev, newCharger]);
-    setShowForm(false);
+  const addCharger = async (chargerData: Omit<Charger, '_id' | 'createdAt'>) => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await axios.post<Charger>(`${import.meta.env.VITE_API_URL}/api/chargers`, chargerData, { headers });
+      setChargers(prev => [...prev, response.data]);
+      setShowForm(false);
+    } catch (err: any) {
+      console.error('Error al agregar cargador:', err);
+      setError(err?.response?.data?.message ?? err.message ?? 'Error al agregar cargador');
+    }
   };
+
+  const handleChargerRenamed = (updated: Charger) => {
+    setChargers(prev => prev.map(charger => (charger._id === updated._id ? { ...charger, ...updated } : charger)));
+  };
+
+  const ChargerChartsPage: React.FC = () => {
+    const { chargerId } = useParams<{ chargerId: string }>();
+    const navigate = useNavigate();
+
+    if (!chargerId) {
+      return <div className="p-6 text-gray-700 dark:text-gray-200">No se ha seleccionado ningún cargador.</div>;
+    }
+
+    return (
+      <div className="flex h-full flex-col gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Gráficas del Cargador</h2>
+          <button
+            onClick={() => navigate('/')}
+            className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+          >
+            Volver a cargadores
+          </button>
+        </div>
+        <div className="grid flex-1 gap-6 lg:grid-cols-2">
+          <div className="rounded-2xl bg-white p-6 shadow dark:bg-gray-800">
+            <ChargerOccupancyChart chargerId={chargerId} />
+          </div>
+          <div className="rounded-2xl bg-white p-6 shadow dark:bg-gray-800">
+            <ChargingSessionsChart chargerId={chargerId} />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const StationAdminHome: React.FC = () => (
+    <div className="flex h-full min-h-0 flex-col gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Gestión de Cargadores</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Administra tus estaciones sin desplazamientos adicionales.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => fetchChargers()}
+            className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+          >
+            Actualizar
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+          >
+            Nuevo cargador
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-hidden rounded-2xl bg-white shadow dark:bg-gray-800">
+        <div className="flex h-full min-h-0 flex-col p-6">
+          {loading && (
+            <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-700 dark:border-indigo-900/40 dark:bg-indigo-900/20 dark:text-indigo-200">
+              Cargando cargadores…
+            </div>
+          )}
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-900/30 dark:text-red-200">
+              {error}
+            </div>
+          )}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {showForm ? (
+              <div className="mx-auto flex h-full min-h-0 max-w-3xl flex-col overflow-y-auto">
+                <ChargerForm onSubmit={addCharger} onCancel={() => setShowForm(false)} />
+              </div>
+            ) : (
+              <div className="h-full min-h-0 overflow-hidden">
+                <ChargerList chargers={chargers} onChargerRename={handleChargerRenamed} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <Router>
-      <div className="min-h-screen flex flex-col">
-        <nav className="bg-white dark:bg-gray-800 shadow-md py-4 px-4 flex flex-wrap gap-3 justify-center sm:justify-start">
-          <Link to="/" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
-            <i className="fas fa-charging-station mr-2"></i>Cargadores
-          </Link>
-          <Link to="/thingspeak" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
-            <i className="fas fa-bolt mr-2"></i>Potencia
-          </Link>
-          <Link to="/thingspeak-disp" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
-            <i className="fas fa-car mr-2"></i>Ocupación
-          </Link>
-          <Link to="/calendar" className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700">
-            <i className="fas fa-calendar mr-2"></i>Calendario
-          </Link>
-
-          <div className="ml-4 flex items-center gap-2">
-            <button
-              onClick={() => fetchChargers()}
-              className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 transition-colors"
-            >
-              Actualizar
-            </button>
-            <button
-              onClick={() => setShowForm(true)}
-              className="px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900/30 dark:hover:bg-blue-800/40 dark:text-blue-200 transition-colors"
-            >
-              Nuevo cargador
-            </button>
-          </div>
-
-        </nav>
-
-        <Routes>
-          <Route path="/" element={
-            <main className="flex-grow p-4">
-              <div className="max-w-3xl mx-auto mb-4 flex gap-2 items-center">
-                <select
-                  value={statusFilter ?? ''}
-                  onChange={(e) => setStatusFilter(e.target.value || undefined)}
-                  className="px-2 py-1 border rounded"
-                >
-                  <option value="">Todos los estados</option>
-                  <option value="available">available</option>
-                  <option value="occupied">occupied</option>
-                  <option value="maintenance">maintenance</option>
-                </select>
-
-                <select
-                  value={typeFilter ?? ''}
-                  onChange={(e) => setTypeFilter(e.target.value || undefined)}
-                  className="px-2 py-1 border rounded"
-                >
-                  <option value="">Todos los tipos</option>
-                  <option value="CCS">CCS</option>
-                  <option value="CHAdeMO">CHAdeMO</option>
-                  <option value="Type2">Type2</option>
-                </select>
-
-                <button onClick={() => fetchChargers()} className="px-2 py-1 border rounded">Filtrar</button>
-              </div>
-
-              {loading && <div className="text-center py-8">Cargando cargadores...</div>}
-              {error && <div className="text-red-600 mb-4">Error: {error}</div>}
-
-              {showForm ? (
-                <div className="max-w-3xl mx-auto py-4 sm:py-8">
-                  <ChargerForm 
-                    onSubmit={addCharger} 
-                    onCancel={() => setShowForm(false)} 
-                  />
-                </div>
-              ) : (
-                <ChargerList 
-                  chargers={chargers} 
-                  onAddNew={() => setShowForm(true)} 
-                />
-              )}
-            </main>
-          } />
-          <Route path="/thingspeak" element={<ThingSpeakChartPage />} />
-          <Route path="/thingspeak-disp" element={<ThingSpeakChartDisp />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-        </Routes>
+      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+        <VerticalNavbar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <main className="flex-1 overflow-hidden px-4 py-6 sm:px-6">
+            <div className="mx-auto flex h-full max-w-7xl flex-col">
+              <Routes>
+                <Route path="/" element={<StationAdminHome />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/chargers/:chargerId/calendar" element={<ChargerCalendarPage />} />
+                <Route path="/chargers/:chargerId/charts" element={<ChargerChartsPage />} />
+                <Route path="/chargers/:chargerId/history" element={<ChargerHistoryPage />} />
+              </Routes>
+            </div>
+          </main>
+        </div>
       </div>
     </Router>
   );
-}
+};
 
-// Helper functions (sin cambios)
-function extractId(idField: any): string {
-  if (!idField) return '';
-  if (typeof idField === 'string') return idField;
-  if (typeof idField === 'object') {
-    if (idField.$oid) return idField.$oid;
-    if (idField.toString) return idField.toString();
-  }
-  return String(idField);
-}
-
-function mapApiToLocal(apiCharger: any): Charger {
-  const coords = apiCharger.location?.coordinates;
-  const lat = Array.isArray(coords) && coords.length >= 2 ? coords[1] : (apiCharger.location?.lat ?? 0);
-  const lng = Array.isArray(coords) && coords.length >= 2 ? coords[0] : (apiCharger.location?.lng ?? 0);
-
-  let type: ChargerType;
-  if (typeof apiCharger.chargerType === 'string') {
-    const key = apiCharger.chargerType as keyof typeof ChargerType;
-    type = (ChargerType as any)[key] ?? (apiCharger.chargerType as ChargerType);
-  } else {
-    type = ChargerType.CCS;
-  }
-
-  const id = extractId(apiCharger._id);
-
-  return {
-    _id: id,
-    name: apiCharger.name ?? apiCharger.originalId ?? `Cargador-${id}`,
-    type,
-    power: typeof apiCharger.powerOutput === 'number' ? apiCharger.powerOutput : (apiCharger.power ?? 0),
-    location: { lat, lng },
-    status: apiCharger.status ?? 'unknown',
-    createdAt: apiCharger.createdAt ? new Date(apiCharger.createdAt) : new Date()
-  } as Charger;
-}
+const EVUserDashboard: React.FC = () => (
+  <Router>
+    <EvVehicleProvider>
+      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+        <VerticalNavbar />
+        <div className="flex-1 p-6">
+          <Routes>
+            <Route path="/" element={<VehicleDashboard />} />
+            <Route path="/charging-history" element={<VehicleDashboard />} />
+            <Route path="/profile" element={<ProfilePage />} />
+          </Routes>
+        </div>
+      </div>
+    </EvVehicleProvider>
+  </Router>
+);
 
 export default Dashboard;

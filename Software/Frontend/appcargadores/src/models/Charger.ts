@@ -15,11 +15,14 @@ export interface Location {
 }
 
 export interface Charger {
-  _id?: string;  // Compatible con MongoDB
+  _id: string;
   name: string;
-  type: ChargerType;
-  power: number;  // kW
-  location: Location;
-  status: 'available' | 'in-use' | 'maintenance';
+  chargerType: string;
+  powerOutput: number;
+  status: 'available' | 'occupied' | 'maintenance';
+  location: {
+    type: string;
+    coordinates: [number, number]; // [longitude, latitude]
+  };
   createdAt?: Date;
 }

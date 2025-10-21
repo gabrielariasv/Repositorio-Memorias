@@ -13,7 +13,7 @@ function MapCenterer({ center }: { center?: { lat: number, lng: number } | null 
 }
 import L from 'leaflet';
 import { Charger } from '../models/Charger';
-import { useState } from 'react';
+import { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 
 // Crea íconos para modo claro y oscuro
 const lightIcon = new L.Icon({
@@ -44,21 +44,19 @@ interface ChargerMapProps {
 
 export default function ChargerMap({ chargers, userLocation, center, zoom = 12, onChargerClick }: ChargerMapProps) {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [mapInstance, setMapInstance] = useState<any>(null);
   // guardamos la instancia de Leaflet aquí (se asigna via whenCreated)
   const mapRef = useRef<any>(null);
 
   // Detectar modo oscuro
   useEffect(() => {
     const checkDarkMode = () => {
-      setIsDarkMode(document.body.classList.contains('dark-mode'));
+      const isDark = document.documentElement.classList.contains('dark');
+      setIsDarkMode(isDark);
     };
-    
     checkDarkMode();
-    
-    // Observar cambios en el modo oscuro
     const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
 
@@ -113,14 +111,14 @@ export default function ChargerMap({ chargers, userLocation, center, zoom = 12, 
         : [0, 0];
 
   return (
-    <div className="h-80 w-full rounded-lg overflow-hidden">
+    <div className="h-80 w-full rounded-lg overflow-hidden relative z-10">
       <MapContainer 
         center={mapCenter} 
         zoom={13}
         // whenCreated nos da la instancia de Leaflet Map para invalidateSize y control
         whenCreated={(m) => { mapRef.current = m; /* invalidar tamaño al crearse */ setTimeout(() => { try { m.invalidateSize(); } catch (e) {} }, 50); }}
         style={{ height: '100%', width: '100%' }}
-        className="rounded-lg"
+        className="rounded-lg leaflet-container-custom"
       >
         <MapCenterer center={center} />
         <TileLayer 
@@ -188,11 +186,13 @@ export default function ChargerMap({ chargers, userLocation, center, zoom = 12, 
                 <div className="mt-2 text-sm">
                   {charger.location.lat.toFixed(4)}, {charger.location.lng.toFixed(4)}
                 </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </div>
   );
-}
+});
+
+export default ChargerMap;

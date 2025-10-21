@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ChargerOptionsModal from './ChargerOptionsModal';
 import ChargerMap from './ChargerMap';
 import { getTravelTimeORS } from '../utils/getTravelTimeORS';
 import { useAuth } from '../contexts/useAuth';
+import { useLocation } from 'react-router-dom';
+import { useEvVehicle } from '../contexts/useEvVehicle';
+
 
 interface Reservation {
   _id: string;
@@ -57,12 +60,9 @@ const VehicleDashboard: React.FC = () => {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [chargingHistory, setChargingHistory] = useState<ChargingSession[]>([]);
-  const [loading, setLoading] = useState(true);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loadingReservations, setLoadingReservations] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [activeSection, setActiveSection] = useState<'reservar' | 'reservas' | 'historial'>('reservar');
-
   const [showAllReservations, setShowAllReservations] = useState(false);
 
   // Estación seleccionada desde el mapa para preseleccionar en el modal
@@ -80,34 +80,9 @@ const VehicleDashboard: React.FC = () => {
     } finally {
       setLoadingReservations(false);
     }
-  };
+  }, []);
 
-  const fetchUserVehicles = React.useCallback(async () => {
-    if (!user?._id) return;
-    try {
-      // Obtener vehículos del usuario
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/vehicles/user/${user._id}`);
-      const data = await response.json();
-      setVehicles(data);
-      if (data.length > 0) {
-        setSelectedVehicle(data[0]);
-        fetchChargingHistory(data[0]._id);
-        fetchReservations(data[0]._id);
-      }
-    } catch (error) {
-      console.error('Error fetching vehicles:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user?.vehicles && user.vehicles.length > 0) {
-      fetchUserVehicles();
-    }
-  }, [user, fetchUserVehicles]);
-
-  const fetchChargingHistory = async (vehicleId: string) => {
+  const fetchChargingHistory = useCallback(async (vehicleId: string) => {
     setLoadingHistory(true);
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/vehicles/${vehicleId}/charging-history`);
@@ -145,13 +120,16 @@ const VehicleDashboard: React.FC = () => {
     setModalSelectedCharger(charger);
   };
 
-  if (loading) {
+  if (vehiclesLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      <div className="flex h-full min-h-[320px] items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-indigo-600"></div>
       </div>
     );
   }
+
+  const isReservarSection = location.pathname === '/';
+  const isHistorialSection = location.pathname === '/charging-history';
 
   return (
     <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900">
@@ -378,63 +356,102 @@ const VehicleDashboard: React.FC = () => {
                           </tbody>
                         </table>
                       </div>
-                    </div>
+                    ) : (
+                      <p className="text-gray-600 dark:text-gray-300">No hay reservas actuales para este vehículo.</p>
+                    )}
                   </div>
+                </>
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                  Selecciona un vehículo desde el menú lateral para planificar nuevas reservas.
                 </div>
               )}
-            </>
+            </div>
           )}
-          {/* Sección Historial */}
-          {activeSection === 'historial' && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Historial de Carga</h2>
-              {loadingHistory ? (
-                <div className="flex items-center justify-center min-h-[120px]">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-                </div>
-              ) : chargingHistory.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <div
-                    className="max-h-96 overflow-y-auto custom-scrollbar"
-                    style={{ minWidth: '100%' }}
-                  >
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-100">
-                      <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cargador</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Energía (kWh)</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Duración (min)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {chargingHistory.map((session) => (
-                          <tr key={session._id}>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {new Date(session.startTime).toLocaleDateString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {session.chargerId.name}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {session.energyDelivered.toFixed(2)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {session.duration.toFixed(0)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+
+          {isHistorialSection && (
+            <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+              <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">Historial de Carga</h2>
+              {selectedVehicle ? (
+                loadingHistory ? (
+                  <div className="flex min-h-[120px] items-center justify-center">
+                    <div className="h-12 w-12 animate-spin rounded-full border-t-2 border-b-2 border-indigo-600"></div>
                   </div>
-                </div>
+                ) : chargingHistory.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-cyan-400 dark:scrollbar-track-gray-800">
+                      <table className="min-w-full divide-y divide-gray-200 text-gray-800 dark:divide-gray-700 dark:text-gray-100">
+                        <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Fecha</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Cargador</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Energía (kWh)</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Duración (min)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {chargingHistory.map((session) => (
+                            <tr key={session._id}>
+                              <td className="whitespace-nowrap px-6 py-4">{new Date(session.startTime).toLocaleDateString()}</td>
+                              <td className="whitespace-nowrap px-6 py-4">{session.chargerId.name}</td>
+                              <td className="whitespace-nowrap px-6 py-4">{session.energyDelivered.toFixed(2)}</td>
+                              <td className="whitespace-nowrap px-6 py-4">{session.duration.toFixed(0)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-600 dark:text-gray-300">No hay historial de carga para este vehículo.</p>
+                )
               ) : (
-                <p className="text-gray-600 dark:text-gray-300">No hay historial de carga para este vehículo.</p>
+                <p className="text-center text-gray-600 dark:text-gray-300">
+                  Selecciona un vehículo desde el menú lateral para revisar su historial de carga.
+                </p>
               )}
             </div>
           )}
         </div>
-      </main>
+      </div>
+
+      {showAllReservations && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="relative w-full max-w-[82vw] rounded-lg bg-white p-8 shadow-lg dark:bg-gray-900">
+            <button
+              className="absolute right-4 top-4 text-2xl text-gray-500 transition hover:text-gray-800 dark:hover:text-gray-200"
+              onClick={() => setShowAllReservations(false)}
+            >
+              &times;
+            </button>
+            <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">Todas las reservas</h2>
+            <div className="overflow-x-auto">
+              <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-cyan-400 dark:scrollbar-track-gray-800">
+                <table className="min-w-full divide-y divide-gray-200 text-gray-800 dark:divide-gray-700 dark:text-gray-100">
+                  <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Fecha inicio</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Fecha fin</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Cargador</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reservations.map(res => (
+                      <tr key={res._id}>
+                        <td className="whitespace-nowrap px-6 py-4">{new Date(res.startTime).toLocaleString()}</td>
+                        <td className="whitespace-nowrap px-6 py-4">{new Date(res.endTime).toLocaleString()}</td>
+                        <td className="whitespace-nowrap px-6 py-4">{res.chargerId?.name || '-'}</td>
+                        <td className="whitespace-nowrap px-6 py-4">{res.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
