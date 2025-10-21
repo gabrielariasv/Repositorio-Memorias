@@ -238,6 +238,129 @@ router.get('/charger/:chargerId/availability', async (req, res) => {
   }
 });
 
+// GET /api/calendar/charger/:chargerId/next-available?minDuration=30&lookAheadDays=7
+router.get('/charger/:chargerId/next-available', async (req, res) => {
+  try {
+    const chargerId = req.params.chargerId;
+    const minDuration = parseInt(req.query.minDuration, 10) || 30; // minutos por defecto
+    const lookAheadDays = parseInt(req.query.lookAheadDays, 10) || 7;
+
+    if (minDuration <= 0) {
+      return res.status(400).json({ error: 'minDuration debe ser un entero positivo (minutos)' });
+    }
+
+    const now = new Date();
+    const searchEnd = new Date(now.getTime() + lookAheadDays * 24 * 60 * 60 * 1000);
+
+    // obtener reservas futuras y sesiones que solapan el rango de búsqueda
+    const reservations = await Reservation.find({
+      chargerId,
+      status: { $in: ['upcoming', 'active'] },
+      $or: [
+        { startTime: { $lt: searchEnd }, calculatedEndTime: { $gt: now } },
+        { startTime: { $lt: searchEnd }, endTime: { $gt: now } }
+      ]
+    }).sort({ startTime: 1 }).lean();
+
+    const sessions = await ChargingSession.find({
+      chargerId,
+      startTime: { $lt: searchEnd },
+      endTime: { $gt: now }
+    }).sort({ startTime: 1 }).lean();
+
+    // construir lista de intervalos ocupados dentro de [now, searchEnd)
+    const busyIntervals = [];
+
+    reservations.forEach(r => {
+      const s = new Date(r.startTime) < now ? now : new Date(r.startTime);
+      const e = new Date(r.calculatedEndTime || r.endTime) > searchEnd ? searchEnd : new Date(r.calculatedEndTime || r.endTime);
+      if (s < e) busyIntervals.push({ start: s.getTime(), end: e.getTime(), source: 'reservation', id: r._id, status: r.status });
+    });
+
+    sessions.forEach(ses => {
+      const s = new Date(ses.startTime) < now ? now : new Date(ses.startTime);
+      const e = new Date(ses.endTime) > searchEnd ? searchEnd : new Date(ses.endTime);
+      if (s < e) busyIntervals.push({ start: s.getTime(), end: e.getTime(), source: 'session', id: ses._id });
+    });
+
+    // si no hay ocupaciones, la primera ventana es ahora
+    if (busyIntervals.length === 0) {
+      const availableStart = now;
+      const availableEnd = new Date(availableStart.getTime() + minDuration * 60 * 1000);
+      if (availableEnd <= searchEnd) {
+        return res.json({
+          chargerId,
+          found: true,
+          start: availableStart.toISOString(),
+          end: availableEnd.toISOString(),
+          durationMin: minDuration,
+          checkedUntil: searchEnd.toISOString()
+        });
+      } else {
+        return res.json({ chargerId, found: false, message: 'No hay ventana suficiente en el periodo de búsqueda' });
+      }
+    }
+
+    // merge de intervalos ocupados
+    busyIntervals.sort((a, b) => a.start - b.start);
+    const merged = [];
+    for (const iv of busyIntervals) {
+      if (!merged.length) {
+        merged.push({ ...iv });
+        continue;
+      }
+      const last = merged[merged.length - 1];
+      if (iv.start <= last.end) {
+        last.end = Math.max(last.end, iv.end);
+      } else {
+        merged.push({ ...iv });
+      }
+    }
+
+    // buscar huecos entre now y searchEnd
+    let cursor = now.getTime();
+    const minMs = minDuration * 60 * 1000;
+    for (const m of merged) {
+      // espacio antes del intervalo m
+      if (m.start - cursor >= minMs) {
+        const start = new Date(cursor);
+        const end = new Date(cursor + minMs);
+        return res.json({
+          chargerId,
+          found: true,
+          start: start.toISOString(),
+          end: end.toISOString(),
+          durationMin: minDuration,
+          checkedUntil: searchEnd.toISOString()
+        });
+      }
+      // mover cursor después del intervalo ocupado
+      cursor = Math.max(cursor, m.end);
+      // si cursor ya pasa searchEnd, salimos
+      if (cursor >= searchEnd.getTime()) break;
+    }
+
+    // comprobar después del último ocupado hasta searchEnd
+    if (searchEnd.getTime() - cursor >= minMs) {
+      const start = new Date(cursor);
+      const end = new Date(cursor + minMs);
+      return res.json({
+        chargerId,
+        found: true,
+        start: start.toISOString(),
+        end: end.toISOString(),
+        durationMin: minDuration,
+        checkedUntil: searchEnd.toISOString()
+      });
+    }
+
+    // no se encontró ventana suficiente
+    res.json({ chargerId, found: false, message: 'No se encontró ventana disponible en el periodo de búsqueda' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Crear una nueva reserva
 router.post('/reservation', async (req, res) => {
   try {
@@ -250,7 +373,9 @@ router.post('/reservation', async (req, res) => {
       calculatedEndTime,
       status,
       estimatedChargeTime,
-      bufferTime
+      bufferTime,
+      targetPercent, // nuevo opcional
+      estimatedEnergyKWh // nuevo opcional
     } = req.body;
 
     // Validar campos requeridos
@@ -293,7 +418,10 @@ router.post('/reservation', async (req, res) => {
       calculatedEndTime,
       status: status || 'upcoming',
       estimatedChargeTime,
-      bufferTime
+      bufferTime,
+      // almacenar datos opcionales para referencia
+      targetPercent: targetPercent !== undefined ? Number(targetPercent) : undefined,
+      estimatedEnergyKWh: estimatedEnergyKWh !== undefined ? Number(estimatedEnergyKWh) : undefined
     });
     await reservation.save();
     res.status(201).json(reservation);

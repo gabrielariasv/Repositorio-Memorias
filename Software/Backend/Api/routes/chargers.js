@@ -190,7 +190,14 @@ router.get('/recommendation', async (req, res) => {
     }
     const batteryCapacity = vehicle.batteryCapacity;
     const chargeLevel = Number(currentChargeLevel);
-    const energyNeeded = batteryCapacity * (1 - chargeLevel / 100);
+
+    // Nuevo: leer targetCharge (porcentaje objetivo). Si no viene, por defecto 100.
+    const targetCharge = req.query.targetCharge !== undefined ? Number(req.query.targetCharge) : 100;
+    if (isNaN(targetCharge) || targetCharge <= chargeLevel) {
+      return res.status(400).json({ error: 'Parámetro targetCharge inválido o no mayor al nivel actual de carga' });
+    }
+    // energía necesaria para alcanzar target (kWh)
+    const energyNeeded = batteryCapacity * (targetCharge / 100 - chargeLevel / 100);
 
     // 3. Calcular variables para cada cargador
     let maxDist = 0, maxCost = 0, maxTime = 0, maxDemora = 0;
@@ -211,11 +218,14 @@ router.get('/recommendation', async (req, res) => {
       const tCarga = charger.powerOutput ? (energyNeeded / charger.powerOutput) * 60 : null;
       if (!tCarga) continue; // Si no hay potencia, no es reservable
 
+      // adjuntar estimación de energía y target al objeto para que el frontend lo use
+      const estimatedEnergyKWh = energyNeeded;
+
       // Demora: buscar el primer bloque disponible suficientemente largo
       let tDemora = null;
       const reservas = await Reservation.find({
         chargerId: charger._id,
-        endTime: { $gt: now },
+        calculatedEndTime: { $gt: now },
         status: { $in: ['upcoming', 'active'] }
       }).sort({ startTime: 1 });
 
@@ -233,7 +243,7 @@ router.get('/recommendation', async (req, res) => {
         }
         // Mover cursor al final de la reserva actual
         if (reservas[i]) {
-          cursor = new Date(reservas[i].endTime);
+          cursor = new Date(reservas[i].calculatedEndTime);
         }
       }
       // Si nunca encontró un bloque, o el primer bloque disponible es después de 1 semana, no agregar el cargador
@@ -244,7 +254,7 @@ router.get('/recommendation', async (req, res) => {
       maxTime = Math.max(maxTime, tCarga);
       maxDemora = Math.max(maxDemora, tDemora);
 
-      results.push({ charger, dist, cost, tCarga, tDemora });
+      results.push({ charger, dist, cost, tCarga, tDemora, estimatedEnergyKWh, targetCharge });
     }
 
     // 4. Calcular performance solo para los reservables
@@ -262,7 +272,9 @@ router.get('/recommendation', async (req, res) => {
 
     // 5. Ordenar y retornar el mejor
     results.sort((a, b) => a.performance - b.performance);
+    // incluir target/energy en la respuesta para uso en UI
     res.json({ best: results[0], ranking: results });
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

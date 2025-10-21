@@ -3,6 +3,7 @@ import ChargerOptionsModal from './ChargerOptionsModal';
 import ChargerMap from './ChargerMap';
 import { getTravelTimeORS } from '../utils/getTravelTimeORS';
 import { useAuth } from '../contexts/useAuth';
+
 interface Reservation {
   _id: string;
   vehicleId: string;
@@ -27,12 +28,13 @@ interface ChargingSession {
 }
 
 const VehicleDashboard: React.FC = () => {
-  const [showChargerOptions, setShowChargerOptions] = useState(false);
   // Estado para cargadores, ubicación usuario y centro del mapa
   const [allChargers, setAllChargers] = useState<any[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
   const [mapCenter, setMapCenter] = useState<{ lat: number, lng: number } | null>(null);
-
+  // nuevo estado para controlar el zoom del mapa cuando se centra en una estación
+  const [mapZoom, setMapZoom] = useState<number>(12);
+  
   // Obtener todos los cargadores para el mapa
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/chargers/nearby?latitude=-33.4489&longitude=-70.6693&maxDistance=1000000`)
@@ -62,6 +64,9 @@ const VehicleDashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'reservar' | 'reservas' | 'historial'>('reservar');
 
   const [showAllReservations, setShowAllReservations] = useState(false);
+
+  // Estación seleccionada desde el mapa para preseleccionar en el modal
+  const [modalSelectedCharger, setModalSelectedCharger] = useState<any | null>(null);
 
   // Obtener reservas actuales del vehículo
   const fetchReservations = async (vehicleId: string) => {
@@ -124,50 +129,21 @@ const VehicleDashboard: React.FC = () => {
       fetchReservations(vehicleId);
     }
   };
-  {/* Sección Reservas actuales */ }
-  {
-    activeSection === 'reservas' && (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Reservas actuales</h2>
-        {loadingReservations ? (
-          <div className="flex items-center justify-center min-h-[120px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-          </div>
-        ) : (
-          <>
-            {reservations.filter(r => new Date(r.endTime) > new Date()).length > 0 ? (
-              <div className="overflow-x-auto">
-                <div className="max-h-96 overflow-y-auto custom-scrollbar" style={{ minWidth: '100%' }}>
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-100">
-                    <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha inicio</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha fin</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cargador</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reservations.filter(r => new Date(r.endTime) > new Date()).map(res => (
-                        <tr key={res._id}>
-                          <td className="px-6 py-4 whitespace-nowrap">{new Date(res.startTime).toLocaleString()}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{new Date(res.endTime).toLocaleString()}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{res.chargerId?.name || '-'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{res.status}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-600 dark:text-gray-300">No hay reservas actuales para este vehículo.</p>
-            )}
-          </>
-        )}
-      </div>
-    )
-  }
+
+  const handleChargerClick = (charger: any) => {
+    // centrar mapa en la estación si tiene coords
+    const coords = charger?.location?.coordinates;
+    if (Array.isArray(coords) && coords.length >= 2) {
+      setMapCenter({ lat: coords[1], lng: coords[0] });
+      setMapZoom(16); // hacer zoom cuando se centra en un cargador desde el mapa
+    } else if (charger?.location?.lat != null && charger?.location?.lng != null) {
+      setMapCenter({ lat: charger.location.lat, lng: charger.location.lng });
+      setMapZoom(16); // hacer zoom cuando se centra en un cargador desde el mapa
+    }
+    // abrir sección reservar y preseleccionar la estación en el modal
+    setActiveSection('reservar');
+    setModalSelectedCharger(charger);
+  };
 
   if (loading) {
     return (
@@ -180,7 +156,7 @@ const VehicleDashboard: React.FC = () => {
   return (
     <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900">
       {/* Sidebar */}
-      <aside className="w-full md:w-80 bg-white dark:bg-gray-800 flex flex-col items-center py-8 px-4 border-r border-gray-200 dark:border-gray-700 min-h-screen">
+      <aside className="w-full md:w-64 bg-white dark:bg-gray-800 flex flex-col items-center py-6 px-3 border-r border-gray-200 dark:border-gray-700 min-h-screen">
         {/* Perfil */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-20 h-20 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-3xl font-bold text-gray-600 dark:text-gray-200 mb-2">
@@ -220,7 +196,7 @@ const VehicleDashboard: React.FC = () => {
           <button
             className={`w-full py-2 rounded text-left px-4 font-medium transition ${activeSection === 'reservar' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
             onClick={() => setActiveSection('reservar')}
-          >Reservar</button>
+          >Reservas</button>
           <button
             className={`w-full py-2 rounded text-left px-4 font-medium transition ${activeSection === 'historial' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
             onClick={() => setActiveSection('historial')}
@@ -228,143 +204,149 @@ const VehicleDashboard: React.FC = () => {
         </nav>
       </aside>
       {/* Contenido principal */}
-      <main className="flex-1 p-6 md:p-12">
-        <div className="max-w-4xl mx-auto">
+      <main className="flex-1 p-6 md:p-8">
+        <div className="w-full">
           {activeSection !== 'historial' && (
             <>
+              {/* Mensaje de bienvenida */}
               <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">¡Buenos días! ¿Dónde quieres cargar?</h1>
               <p className="text-gray-600 dark:text-gray-300 mb-6">Planifica otra carga como encuentres necesario</p>
-              {/* Mapa de cargadores y usuario */}
-              {!showAllReservations && (
-                <div className="mb-8">
-                  <ChargerMap
-                    chargers={allChargers.map(c => ({
-                      ...c,
-                      power: typeof (c.power ?? c.powerOutput) === 'number'
-                        ? Number((c.power ?? c.powerOutput).toFixed(2))
-                        : c.power ?? c.powerOutput,
-                      location: {
-                        ...c.location,
-                        lat: c.location?.coordinates?.[1] ?? c.location?.lat ?? 0,
-                        lng: c.location?.coordinates?.[0] ?? c.location?.lng ?? 0
-                      }
-                    }))}
-                    userLocation={userLocation}
-                    center={mapCenter}
-                  />
-                </div>
-              )}
-              <button
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded shadow transition-colors duration-200 mb-4"
-                onClick={() => setShowChargerOptions((prev) => !prev)}
-              >Buscar Cargador</button>
-              {showChargerOptions && (
-                <div className="w-full max-w-2xl mx-auto mb-8">
-                  <ChargerOptionsModal
-                    onClose={() => setShowChargerOptions(false)}
-                    user={user}
-                    selectedVehicle={selectedVehicle}
-                    fetchReservations={fetchReservations}
-                    onReserveCharger={() => { }}
-                  />
-                </div>
-              )}
-            </>
-          )}
-          {/* Sección Reservar y reservas actuales */}
-          {activeSection === 'reservar' && (
-            <>
-              {/* Aquí iría el formulario o botón para reservar cargador */}
-              {/* ...otros elementos de la sección reservar... */}
-              {/* Tarjetas de próximas reservas */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-8">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Próximas reservas</h2>
-                  {reservations.length > 2 && (
-                    <button
-                      className="text-indigo-600 dark:text-indigo-300 text-sm font-semibold hover:underline"
-                      onClick={() => setShowAllReservations(true)}
-                    >Ver todas</button>
+
+              {/* Layout: izquierda = reservar + mapa, derecha = próximas reservas */}
+              <div className="flex flex-col md:flex-row gap-8">
+                <div className="flex-1">
+                  {/* Opciones de cargador (modal / UI de reserva) */}
+                  <div className="w-full mb-8">
+                    <ChargerOptionsModal
+                      onClose={() => { }}
+                      user={user}
+                      selectedVehicle={selectedVehicle}
+                      fetchReservations={fetchReservations}
+                      onReserveCharger={() => { }}
+                      onCenterCharger={(coords) => { setMapCenter(coords); setMapZoom(16); }}
+                      externalSelectedCharger={modalSelectedCharger}
+                    />
+                  </div>
+
+                  {/* Mapa de cargadores y usuario */}
+                  {!showAllReservations && (
+                    <div className="mb-8">
+                      {/* @ts-ignore */}
+                      <ChargerMap
+                        chargers={allChargers.map(c => ({
+                          ...c,
+                          power: typeof (c.power ?? c.powerOutput) === 'number'
+                            ? Number((c.power ?? c.powerOutput).toFixed(2))
+                            : c.power ?? c.powerOutput,
+                          location: {
+                            ...c.location,
+                            lat: c.location?.coordinates?.[1] ?? c.location?.lat ?? 0,
+                            lng: c.location?.coordinates?.[0] ?? c.location?.lng ?? 0
+                          }
+                        }))}
+                        userLocation={userLocation}
+                        center={mapCenter}
+                        zoom={mapZoom}
+                        onChargerClick={handleChargerClick}
+                      />
+                    </div>
                   )}
                 </div>
-                {loadingReservations ? (
-                  <div className="flex items-center justify-center min-h-[120px]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-                  </div>
-                ) : reservations.length > 0 ? (
-                  <div className="flex flex-col gap-4">
-                    {reservations.slice(0, 2).map(res => {
-                      const start = new Date(res.startTime);
-                      const end = new Date(res.endTime);
-                      const now = new Date();
-                      const day = start.toLocaleDateString('en-US', { weekday: 'short' });
-                      const date = start.getDate();
-                      const month = start.toLocaleString('en-US', { month: 'short' });
-                      // Calcular duración estimada en milisegundos
-                      const durationMs = end.getTime() - start.getTime();
-                      const durationH = Math.floor(durationMs / (1000 * 60 * 60));
-                      const durationM = Math.floor((durationMs / (1000 * 60)) % 60);
-                      const durationStr = durationH > 0 ? `${durationH}h${durationM > 0 ? ' ' + durationM + 'm' : ''}` : `${durationM}m`;
-                      const enCurso = start <= now && now < end;
-                      // Buscar el cargador en allChargers para obtener su ubicación
-                      const chargerObj = allChargers.find(c => (("_id" in c && (c as any)._id === res.chargerId?._id) || c.name === res.chargerId?.name));
-                      const chargerLocation = chargerObj?.location?.coordinates
-                        ? { lat: chargerObj.location.coordinates[1], lng: chargerObj.location.coordinates[0] }
-                        : null;
-                      return (
-                        <div key={res._id} className="flex items-center bg-indigo-50 dark:bg-indigo-900 rounded-lg p-4 shadow-sm">
-                          <div className="flex flex-col items-center justify-center w-14 mr-4">
-                            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-300 uppercase">{day}</span>
-                            <span className="text-2xl font-bold text-indigo-700 dark:text-indigo-200 leading-none">{date}</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{month}</span>
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-semibold text-gray-800 dark:text-gray-100">{res.chargerId?.name || '-'}</div>
-                            <div className="text-sm text-gray-500 dark:text-gray-300">Carga de Vehículo Tipo {selectedVehicle?.chargerType || '-'}</div>
-                            {enCurso && (
-                              <div className="inline-block bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 text-xs font-semibold px-2 py-1 rounded mt-2">En curso</div>
-                            )}
-                          </div>
-                          <div className="text-right min-w-[150px] flex flex-col items-end gap-1">
-                            <div className="font-semibold text-gray-800 dark:text-gray-100">
-                              {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+
+                <aside className="md:w-96 w-full">
+                  {/* Próximas reservas (columna derecha) */}
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Próximas reservas</h2>
+                      {reservations.length > 2 && (
+                        <button
+                          className="text-indigo-600 dark:text-indigo-300 text-sm font-semibold hover:underline"
+                          onClick={() => setShowAllReservations(true)}
+                        >Ver todas</button>
+                      )}
+                    </div>
+                    {loadingReservations ? (
+                      <div className="flex items-center justify-center min-h-[120px]">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+                      </div>
+                    ) : reservations.length > 0 ? (
+                      <div className="flex flex-col gap-4">
+                        {reservations.slice(0, 2).map(res => {
+                          const start = new Date(res.startTime);
+                          const end = new Date(res.endTime);
+                          const now = new Date();
+                          const day = start.toLocaleDateString('en-US', { weekday: 'short' });
+                          const date = start.getDate();
+                          const month = start.toLocaleString('en-US', { month: 'short' });
+                          // Calcular duración estimada en milisegundos
+                          const durationMs = end.getTime() - start.getTime();
+                          const durationH = Math.floor(durationMs / (1000 * 60 * 60));
+                          const durationM = Math.floor((durationMs / (1000 * 60)) % 60);
+                          const durationStr = durationH > 0 ? `${durationH}h${durationM > 0 ? ' ' + durationM + 'm' : ''}` : `${durationM}m`;
+                          const enCurso = start <= now && now < end;
+                          // Buscar el cargador en allChargers para obtener su ubicación
+                          const chargerObj = allChargers.find(c => (("_id" in c && (c as any)._id === res.chargerId?._id) || c.name === res.chargerId?.name));
+                          const chargerLocation = chargerObj?.location?.coordinates
+                            ? { lat: chargerObj.location.coordinates[1], lng: chargerObj.location.coordinates[0] }
+                            : null;
+                          return (
+                            <div key={res._id} className="flex items-center bg-indigo-50 dark:bg-indigo-900 rounded-lg p-4 shadow-sm">
+                              <div className="flex flex-col items-center justify-center w-14 mr-4">
+                                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-300 uppercase">{day}</span>
+                                <span className="text-2xl font-bold text-indigo-700 dark:text-indigo-200 leading-none">{date}</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{month}</span>
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-semibold text-gray-800 dark:text-gray-100">{res.chargerId?.name || '-'}</div>
+                                <div className="text-sm text-gray-500 dark:text-gray-300">Carga de Vehículo Tipo {selectedVehicle?.chargerType || '-'}</div>
+                                {enCurso && (
+                                  <div className="inline-block bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 text-xs font-semibold px-2 py-1 rounded mt-2">En curso</div>
+                                )}
+                              </div>
+                              <div className="text-right min-w-[150px] flex flex-col items-end gap-1">
+                                <div className="font-semibold text-gray-800 dark:text-gray-100">
+                                  {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-300 mt-1">Duración estimada: {durationStr}</div>
+                                {chargerLocation && (
+                                  <button
+                                    className="mt-1 px-2 py-1 bg-indigo-200 dark:bg-indigo-700 text-indigo-800 dark:text-indigo-100 text-xs rounded hover:bg-indigo-300 dark:hover:bg-indigo-600 transition"
+                                    onClick={async () => {
+                                      setMapCenter(chargerLocation);
+                                      setMapZoom(16); // hacer zoom al centrar desde la lista de reservas
+                                       if (userLocation) {
+                                         const apiKey = import.meta.env.VITE_ORS_API_KEY;
+                                         if (apiKey) {
+                                           const duration = await getTravelTimeORS({
+                                             origin: userLocation,
+                                             destination: chargerLocation,
+                                             apiKey
+                                           });
+                                           if (duration) {
+                                             console.log(`Tiempo estimado en auto (ORS): ${duration}`);
+                                           } else {
+                                             console.log('No se pudo obtener el tiempo estimado de viaje');
+                                           }
+                                         } else {
+                                           console.log('No hay API key de OpenRouteService configurada');
+                                         }
+                                       }
+                                     }}
+                                  >Centrar en mapa</button>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-300 mt-1">Duración estimada: {durationStr}</div>
-                            {chargerLocation && (
-                              <button
-                                className="mt-1 px-2 py-1 bg-indigo-200 dark:bg-indigo-700 text-indigo-800 dark:text-indigo-100 text-xs rounded hover:bg-indigo-300 dark:hover:bg-indigo-600 transition"
-                                onClick={async () => {
-                                  setMapCenter(chargerLocation);
-                                  if (userLocation) {
-                                    const apiKey = import.meta.env.VITE_ORS_API_KEY;
-                                    if (apiKey) {
-                                      const duration = await getTravelTimeORS({
-                                        origin: userLocation,
-                                        destination: chargerLocation,
-                                        apiKey
-                                      });
-                                      if (duration) {
-                                        console.log(`Tiempo estimado en auto (ORS): ${duration}`);
-                                      } else {
-                                        console.log('No se pudo obtener el tiempo estimado de viaje');
-                                      }
-                                    } else {
-                                      console.log('No hay API key de OpenRouteService configurada');
-                                    }
-                                  }
-                                }}
-                              >Centrar en mapa</button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-gray-600 dark:text-gray-300">No hay reservas actuales para este vehículo.</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-gray-600 dark:text-gray-300">No hay reservas actuales para este vehículo.</p>
-                )}
+                </aside>
               </div>
-              {/* Modal o sección para ver todas las reservas en tabla */}
+
+              {/* Modal de todas las reservas (queda igual, lo mantenemos aquí) */}
               {showAllReservations && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
                   <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8" style={{ maxWidth: '82vw', width: '100%' }}>

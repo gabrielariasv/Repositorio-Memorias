@@ -1,5 +1,6 @@
 // src/components/ChargerMap.tsx
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import React, { useEffect, useRef } from 'react';
 // Componente auxiliar para centrar el mapa cuando cambie la prop center
 function MapCenterer({ center }: { center?: { lat: number, lng: number } | null }) {
   const map = useMap();
@@ -12,7 +13,7 @@ function MapCenterer({ center }: { center?: { lat: number, lng: number } | null 
 }
 import L from 'leaflet';
 import { Charger } from '../models/Charger';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 // Crea íconos para modo claro y oscuro
 const lightIcon = new L.Icon({
@@ -31,14 +32,20 @@ const darkIcon = new L.Icon({
   iconAnchor: [12, 41],
 });
 
+// Añade onChargerClick al tipo de props
 interface ChargerMapProps {
   chargers: Charger[];
   userLocation?: { lat: number, lng: number } | null;
   center?: { lat: number, lng: number } | null;
+  // nuevo prop - nivel de zoom a aplicar cuando se centra
+  zoom?: number;
+  onChargerClick?: (charger: Charger) => void; // <-- nuevo prop opcional
 }
 
-export default function ChargerMap({ chargers, userLocation, center }: ChargerMapProps) {
+export default function ChargerMap({ chargers, userLocation, center, zoom = 12, onChargerClick }: ChargerMapProps) {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  // guardamos la instancia de Leaflet aquí (se asigna via whenCreated)
+  const mapRef = useRef<any>(null);
 
   // Detectar modo oscuro
   useEffect(() => {
@@ -54,6 +61,38 @@ export default function ChargerMap({ chargers, userLocation, center }: ChargerMa
     
     return () => observer.disconnect();
   }, []);
+
+  // Cuando cambian `center` o `zoom`, actualizar la vista del mapa.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    // invalidar tamaño para que Leaflet recalcule y pinte correctamente
+    // se usa pequeño delay para esperar a que el DOM se haya reflowed
+    setTimeout(() => {
+      try { map.invalidateSize(); } catch (e) { /* no-op */ }
+    }, 50);
+    
+    if (center && typeof center.lat === 'number' && typeof center.lng === 'number') {
+      if (typeof map.setView === 'function') {
+        try {
+          map.setView([center.lat, center.lng], zoom, { animate: true });
+        } catch (e) {
+          if (typeof map.flyTo === 'function') map.flyTo([center.lat, center.lng], zoom, { animate: true });
+        }
+      } else if (typeof map.setCenter === 'function') {
+        map.setCenter({ lat: center.lat, lng: center.lng });
+        if (typeof map.setZoom === 'function') map.setZoom(zoom);
+      }
+    } else if (userLocation && typeof userLocation.lat === 'number') {
+      if (typeof map.setView === 'function') {
+        try { map.setView([userLocation.lat, userLocation.lng], zoom, { animate: true }); }
+        catch (e) { if (typeof map.flyTo === 'function') map.flyTo([userLocation.lat, userLocation.lng], zoom, { animate: true }); }
+      } else if (typeof map.setCenter === 'function') {
+        map.setCenter({ lat: userLocation.lat, lng: userLocation.lng });
+        if (typeof map.setZoom === 'function') map.setZoom(zoom);
+      }
+    }
+  }, [center, zoom, userLocation]);
 
   if (!chargers.length && !userLocation) return (
     <div className="h-80 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
@@ -77,7 +116,9 @@ export default function ChargerMap({ chargers, userLocation, center }: ChargerMa
     <div className="h-80 w-full rounded-lg overflow-hidden">
       <MapContainer 
         center={mapCenter} 
-        zoom={13} 
+        zoom={13}
+        // whenCreated nos da la instancia de Leaflet Map para invalidateSize y control
+        whenCreated={(m) => { mapRef.current = m; /* invalidar tamaño al crearse */ setTimeout(() => { try { m.invalidateSize(); } catch (e) {} }, 50); }}
         style={{ height: '100%', width: '100%' }}
         className="rounded-lg"
       >
@@ -120,6 +161,13 @@ export default function ChargerMap({ chargers, userLocation, center }: ChargerMa
             key={charger._id || charger.name}
             position={[charger.location.lat, charger.location.lng]}
             icon={isDarkMode ? darkIcon : lightIcon}
+            eventHandlers={{
+              click: () => {
+                // comportamiento existente (p.ej. centrar/abrir popup)...
+                // ahora además emitimos el callback si existe
+                if (onChargerClick) onChargerClick(charger);
+              },
+            }}
           >
             <Popup>
               <div
