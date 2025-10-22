@@ -239,7 +239,7 @@ const VehicleDashboard: React.FC = () => {
             : null;
 
           return (
-            <div key={res._id} className="flex items-center rounded-lg bg-indigo-50 p-7 shadow-sm dark:bg-indigo-900/60">
+            <div key={res._id} className="flex items-center rounded-lg bg-indigo-50 p-5 shadow-sm dark:bg-indigo-900/60">
               <div className="mr-4 flex w-14 flex-col items-center justify-center">
                 <span className="text-xs font-semibold uppercase text-indigo-600 dark:text-indigo-300">{day}</span>
                 <span className="text-2xl font-bold leading-none text-indigo-700 dark:text-indigo-100">{date}</span>
@@ -327,7 +327,7 @@ const VehicleDashboard: React.FC = () => {
   return (
     <div className="flex h-full min-h-0 flex-col bg-gray-100 dark:bg-gray-900">
       <main className="flex-1 overflow-y-auto p-6 md:p-12">
-        <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
           {vehiclesError && (
             <div className="md:col-span-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700 dark:border-red-500 dark:bg-red-900/40 dark:text-red-200">
               {vehiclesError}
@@ -336,7 +336,6 @@ const VehicleDashboard: React.FC = () => {
 
           {!isHistoryView && (
             <>
-              {/* Left column: mensaje de bienvenida + mapa (ocupa 1/2 en md) */}
               <div className="space-y-6">
                 <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
                   <h1 className="mb-3 text-3xl font-bold text-gray-800 dark:text-gray-100">¡Buenos días! ¿Dónde quieres cargar?</h1>
@@ -351,14 +350,12 @@ const VehicleDashboard: React.FC = () => {
 
                 <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
                   <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">Mapa de cargadores</h2>
-                  {/* Aumenta la altura del mapa para que la columna izquierda sea más alta */}
-                  <div className="h-72 md:h-96 rounded overflow-hidden">
+                  <div className="h-72 md:h-80 rounded overflow-hidden">
                     <ChargerMap ref={mapRef} chargers={mappedChargers} userLocation={userLocation} onReserveCharger={handleReserveCharger} />
                   </div>
                 </section>
               </div>
 
-              {/* Right column: próximas reservas (ocupa 1/2 en md) - ocupa toda la altura de la fila */}
               <div className="h-full">
                 <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800 h-full flex flex-col">
                   <div className="mb-4 flex items-center justify-between">
@@ -372,7 +369,6 @@ const VehicleDashboard: React.FC = () => {
                       </button>
                     )}
                   </div>
-                  {/* Contenedor que hace scroll interno si hay muchas reservas y ocupa el espacio restante */}
                   <div className="flex-1 overflow-y-auto">
                     {renderReservationCards()}
                   </div>
@@ -411,6 +407,7 @@ const VehicleDashboard: React.FC = () => {
               selectedVehicle={selectedVehicle}
               fetchReservations={fetchReservations}
               onReserveCharger={handleReserveCharger}
+              userLocation={userLocation}
             />
           </div>
         </div>

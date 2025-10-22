@@ -242,8 +242,8 @@ async function generateFictionalReservations(chargersMap, vehiclesMap, usersMap)
       // Calcular tiempo final con margen de error (20% adicional)
       const endTime = new Date(startTime);
       endTime.setMinutes(startTime.getMinutes() + estimatedMinutes);
-      
-      const bufferMinutes = Math.floor(estimatedMinutes * 0.2); // 20% de margen
+
+      const bufferMinutes = 20; // 10 minutos de margen
       const calculatedEndTime = new Date(endTime);
       calculatedEndTime.setMinutes(endTime.getMinutes() + bufferMinutes);
       

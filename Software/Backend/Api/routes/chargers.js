@@ -25,12 +25,12 @@ router.get('/', async (req, res) => {
     // Calcular estado en tiempo real basándose en reservas activas
     const now = new Date();
     const chargersWithRealTimeStatus = await Promise.all(chargers.map(async (charger) => {
-      // Buscar si hay una reserva activa en este momento
+      // Buscar si hay una reserva activa en este momento (usar calculatedEndTime)
       const activeReservation = await Reservation.findOne({
         chargerId: charger._id,
         startTime: { $lte: now },
-        endTime: { $gt: now },
-        status: { $in: ['active', 'upcoming'] }
+        status: { $in: ['active', 'upcoming'] },
+        calculatedEndTime: { $gt: now }
       });
       
       // Si hay una reserva activa, marcar como ocupado
@@ -319,8 +319,21 @@ router.get('/recommendation', async (req, res) => {
       return res.status(400).json({ error: 'Faltan o son inválidos los parámetros de pesos (distancia, costo, tiempoCarga, demora)' });
     }
 
-    // 1. Obtener cargadores disponibles con reservas pobladas
-    const chargers = await Charger.find({ status: 'available' }).populate('reservations');
+    // No considerar cargadores a más de 10 km (10000 metros)
+    const MAX_DISTANCE_METERS = 30000;
+
+    // 1. Obtener cargadores disponibles cerca del usuario (filtrado en BD)
+    const userLat = parseFloat(latitude);
+    const userLng = parseFloat(longitude);
+    const chargers = await Charger.find({
+      status: 'available',
+      location: {
+        $near: {
+          $geometry: { type: 'Point', coordinates: [userLng, userLat] },
+          $maxDistance: MAX_DISTANCE_METERS
+        }
+      }
+    }).populate('reservations');
 
     // 2. Obtener datos del vehículo
     const vehicle = await Vehicle.findById(vehicleId);
@@ -335,7 +348,7 @@ router.get('/recommendation', async (req, res) => {
     let maxDist = 0, maxCost = 0, maxTime = 0, maxDemora = 0;
     const now = new Date();
     const results = [];
-    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+    const daysThreshold = 2 * 24 * 60 * 60 * 1000; // 2 días en milisegundos
     for (const charger of chargers) {
       // Distancia
       const dist = calcularDistancia(
@@ -344,39 +357,47 @@ router.get('/recommendation', async (req, res) => {
         charger.location.coordinates[1],
         charger.location.coordinates[0]
       );
-      // Costo (puedes ajustar según tu modelo)
+      // Costo (asumir 1 unidad monetaria si no está definido)
       const cost = charger.cost || 1;
-      // Tiempo de carga (en minutos)
       const tCarga = charger.powerOutput ? (energyNeeded / charger.powerOutput) * 60 : null;
-      if (!tCarga) continue; // Si no hay potencia, no es reservable
+      if (!tCarga) continue;
 
-      // Demora: buscar el primer bloque disponible suficientemente largo
       let tDemora = null;
       const reservas = await Reservation.find({
         chargerId: charger._id,
-        endTime: { $gt: now },
-        status: { $in: ['upcoming', 'active'] }
+        status: { $in: ['upcoming', 'active'] },
+        calculatedEndTime: { $gt: now }
       }).sort({ startTime: 1 });
 
       let cursor = new Date(now);
       let found = false;
       for (let i = 0; i <= reservas.length; i++) {
-        const nextStart = reservas[i]?.startTime ? new Date(reservas[i].startTime) : null;
-        // Si no hay más reservas, el bloque es hasta 1 semana desde ahora
-        const nextBlockEnd = nextStart || new Date(now.getTime() + oneWeekMs);
-        const blockDuration = (nextBlockEnd - cursor) / (60 * 1000); // minutos
-        if (blockDuration >= tCarga) {
-          tDemora = (cursor - now) / (60 * 1000); // minutos de espera
+        const nextReserveStart = reservas[i]?.startTime ? new Date(reservas[i].startTime) : null;
+        const nextReserveEnd = reservas[i]?.calculatedEndTime ? new Date(reservas[i].calculatedEndTime) : null;
+        if(reservas[i]){
+          if(cursor > nextReserveStart){
+            cursor = new Date(reservas[i].calculatedEndTime);
+            continue; 
+          }
+          const nextBlockEnd = nextReserveStart || new Date(now.getTime() + daysThreshold);
+          const blockDuration = (nextBlockEnd - cursor) / (60 * 1000);
+          if (blockDuration >= tCarga) {
+            tDemora = (cursor - now) / (60 * 1000);
+            found = true;
+            break;
+          }
+          cursor = new Date(reservas[i].calculatedEndTime);
+          if(cursor > new Date(now.getTime() + daysThreshold)) {
+            break;
+          }
+        } else {
+          tDemora = (cursor - new Date(now.getTime())) / (60 * 1000);
           found = true;
           break;
         }
-        // Mover cursor al final de la reserva actual
-        if (reservas[i]) {
-          cursor = new Date(reservas[i].endTime);
-        }
       }
-      // Si nunca encontró un bloque, o el primer bloque disponible es después de 1 semana, no agregar el cargador
-      if (!found || (tDemora !== null && tDemora > (oneWeekMs / (60 * 1000)))) continue;
+      // Si nunca encontró un bloque, o el primer bloque disponible es después del limite de tiempo
+      if (!found || (tDemora !== null && tDemora > (daysThreshold / (60 * 1000)))) continue;
 
       maxDist = Math.max(maxDist, dist);
       maxCost = Math.max(maxCost, cost);
@@ -424,8 +445,8 @@ router.get('/:id', async (req, res) => {
     const activeReservation = await Reservation.findOne({
       chargerId: charger._id,
       startTime: { $lte: now },
-      endTime: { $gt: now },
-      status: { $in: ['active', 'upcoming'] }
+      status: { $in: ['active', 'upcoming'] },
+      calculatedEndTime: { $gt: now }
     });
     
     // Si hay una reserva activa, marcar como ocupado

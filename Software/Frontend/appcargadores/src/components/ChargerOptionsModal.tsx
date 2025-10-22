@@ -6,9 +6,10 @@ interface ChargerOptionsModalProps {
   selectedVehicle: any;
   fetchReservations: (vehicleId: string) => Promise<void>;
   onReserveCharger: (chargerId: string) => void;
+  userLocation?: { lat: number; lng: number } | null;
 }
 
-const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user, selectedVehicle, fetchReservations, onReserveCharger }) => {
+const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user, selectedVehicle, fetchReservations, onReserveCharger, userLocation }) => {
   const [loadingFind, setLoadingFind] = useState(false);
   const [loadingReserve, setLoadingReserve] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -25,7 +26,41 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
   });
   const [showPreferences, setShowPreferences] = useState(false);
 
+  // Nuevo estado para ranking y control de "otra recomendación"
+  const [ranking, setRanking] = useState<any[] | null>(null);
+  const [currentRankingIndex, setCurrentRankingIndex] = useState<number>(0);
+  const [lastRankingIds, setLastRankingIds] = useState<string[] | null>(null);
+
   // Encuéntrame un cargador automático usando el endpoint de recomendación
+  // Extrae la petición y devuelve el ranking (sin mutar UI)
+  const fetchRecommendationData = async () => {
+    if (!selectedVehicle || !user) throw new Error('Selecciona un vehículo primero.');
+    const batteryCapacity = selectedVehicle.batteryCapacity;
+    const currentChargeLevel = selectedVehicle.currentChargeLevel;
+    const energyNeeded = batteryCapacity * (1 - currentChargeLevel / 100);
+    if (energyNeeded <= 0) throw new Error('El vehículo ya está completamente cargado.');
+
+    const latitude = userLocation?.lat ?? -33.4489;
+    const longitude = userLocation?.lng ?? -70.6693;
+    const params = new URLSearchParams({
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+      vehicleId: selectedVehicle._id,
+      currentChargeLevel: currentChargeLevel.toString(),
+      distancia: preferences.distancia.toString(),
+      costo: preferences.costo.toString(),
+      tiempoCarga: preferences.tiempoCarga.toString(),
+      demora: preferences.demora.toString()
+    });
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/recommendation?${params}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'No se pudo obtener recomendación.' }));
+      throw new Error(err.error || 'No se pudo obtener recomendación.');
+    }
+    const data = await res.json();
+    return data; // { best, ranking }
+  };
+
   const handleFind = async () => {
     setLoadingFind(true);
     setFeedback(null);
@@ -33,34 +68,17 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     setShowConfirm(false);
     setShowChargerList(false);
     try {
-      if (!selectedVehicle || !user) throw new Error('Selecciona un vehículo primero.');
-      const batteryCapacity = selectedVehicle.batteryCapacity;
-      const currentChargeLevel = selectedVehicle.currentChargeLevel;
-      const energyNeeded = batteryCapacity * (1 - currentChargeLevel / 100);
-      if (energyNeeded <= 0) throw new Error('El vehículo ya está completamente cargado.');
-
-      // Coordenadas fijas de Santiago, puedes cambiarlas por la ubicación real del usuario
-      const latitude = -33.4489;
-      const longitude = -70.6693;
-      const params = new URLSearchParams({
-        latitude: latitude.toString(),
-        longitude: longitude.toString(),
-        vehicleId: selectedVehicle._id,
-        currentChargeLevel: currentChargeLevel.toString(),
-        distancia: preferences.distancia.toString(),
-        costo: preferences.costo.toString(),
-        tiempoCarga: preferences.tiempoCarga.toString(),
-        demora: preferences.demora.toString()
-      });
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/recommendation?${params}`);
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'No se pudo obtener recomendación.');
+      const data = await fetchRecommendationData();
+      if (!data?.best) {
+        throw new Error('No se encontró un cargador disponible para recomendar.');
       }
-      const data = await res.json();
-      if (!data.best) throw new Error('No se encontró un cargador disponible para recomendar.');
-      const { charger, tCarga, tDemora } = data.best;
-      // Calcular tiempos de inicio y fin
+      // Guardar ranking e índice
+      const rankingList = Array.isArray(data.ranking) ? data.ranking : [];
+      setRanking(rankingList);
+      setLastRankingIds(rankingList.map((r: any) => r.charger?._id || r.chargerId || ''));
+      setCurrentRankingIndex(0);
+      const best = data.best;
+      const { charger, tCarga, tDemora } = best;
       const now = new Date();
       const startTime = new Date(now.getTime() + (tDemora * 60 * 1000));
       const endTime = new Date(startTime.getTime() + (tCarga * 60 * 1000));
@@ -87,7 +105,9 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     setShowConfirm(false);
     setFeedback(null);
     try {
-      const chargersRes = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/nearby?latitude=-33.4489&longitude=-70.6693&maxDistance=100000`);
+      const latitude = userLocation?.lat ?? -33.4489;
+      const longitude = userLocation?.lng ?? -70.6693;
+      const chargersRes = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/nearby?latitude=${latitude}&longitude=${longitude}&maxDistance=100000`);
       const chargers = await chargersRes.json();
       setChargersList(chargers);
       setShowChargerList(true);
@@ -105,19 +125,15 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     setFeedback(null);
     try {
       const { charger, startTime, endTime, chargeTimeHours } = proposal;
-      const reservationRes = await fetch(`${import.meta.env.VITE_API_URL}/api/calendar/reservation`, {
+      // Usar el endpoint de reservations (backend: routes/reservations.js -> POST /api/reservations)
+      const reservationRes = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vehicleId: selectedVehicle._id,
           chargerId: charger._id,
-          userId: user._id,
           startTime,
-          endTime,
-          calculatedEndTime: endTime,
-          status: 'upcoming',
-          estimatedChargeTime: Math.round(chargeTimeHours * 60),
-          bufferTime: 0
+          endTime
         })
       });
       if (reservationRes.ok) {
@@ -130,12 +146,79 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           onClose();
         }, 1800);
       } else {
-        setFeedback('No se pudo realizar la reserva.');
+        const err = await reservationRes.json().catch(() => null);
+        setFeedback(err?.error || 'No se pudo realizar la reserva.');
       }
     } catch (e) {
       setFeedback('No se pudo realizar la reserva.');
     } finally {
       setLoadingReserve(false);
+    }
+  };
+
+  // Maneja "Otra Recomendación"
+  const handleAnotherRecommendation = async () => {
+    // Si hay siguiente en ranking local, usarla
+    if (ranking && currentRankingIndex + 1 < ranking.length) {
+      const nextIndex = currentRankingIndex + 1;
+      const next = ranking[nextIndex];
+      setCurrentRankingIndex(nextIndex);
+      const { charger, tCarga, tDemora } = next;
+      const now = new Date();
+      const startTime = new Date(now.getTime() + (tDemora * 60 * 1000));
+      const endTime = new Date(startTime.getTime() + (tCarga * 60 * 1000));
+      setProposal({
+        charger,
+        startTime,
+        endTime,
+        power: charger.powerOutput,
+        chargeTimeHours: tCarga / 60
+      });
+      setShowConfirm(true);
+      return;
+    }
+
+    // Si no hay siguiente, volver a pedir recomendaciones y comparar
+    setLoadingFind(true);
+    setFeedback(null);
+    try {
+      const data = await fetchRecommendationData();
+      const newRanking = Array.isArray(data.ranking) ? data.ranking : [];
+      const newIds = newRanking.map((r: any) => r.charger?._id || r.chargerId || '');
+      const prevIds = lastRankingIds ?? [];
+      const listsEqual = prevIds.length === newIds.length && prevIds.every((id, idx) => id === newIds[idx]);
+
+      if (!newRanking.length) {
+        setFeedback('No se encontraron recomendaciones adicionales.');
+        setTimeout(() => setFeedback(null), 2500);
+      } else if (!listsEqual) {
+        // Nueva lista distinta: usar la primera de la nueva lista
+        setRanking(newRanking);
+        setLastRankingIds(newIds);
+        setCurrentRankingIndex(0);
+        const first = newRanking[0];
+        const { charger, tCarga, tDemora } = first;
+        const now = new Date();
+        const startTime = new Date(now.getTime() + (tDemora * 60 * 1000));
+        const endTime = new Date(startTime.getTime() + (tCarga * 60 * 1000));
+        setProposal({
+          charger,
+          startTime,
+          endTime,
+          power: charger.powerOutput,
+          chargeTimeHours: tCarga / 60
+        });
+        setShowConfirm(true);
+      } else {
+        // Lista igual: no hay nuevas recomendaciones
+        setFeedback('No hay nuevas recomendaciones.');
+        setTimeout(() => setFeedback(null), 2500);
+      }
+    } catch (e: any) {
+      setFeedback(e.message || 'No se pudo obtener nuevas recomendaciones.');
+      setTimeout(() => setFeedback(null), 2500);
+    } finally {
+      setLoadingFind(false);
     }
   };
 
@@ -269,10 +352,16 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           <div className="flex gap-2 mt-4">
             <button className="flex-1 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold" onClick={confirmReservation} disabled={loadingReserve}>Aceptar</button>
             <button className="flex-1 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold" onClick={() => { setProposal(null); setShowConfirm(false); }}>Cancelar</button>
+            <button
+              className="flex-1 py-2 rounded bg-yellow-500 hover:bg-yellow-600 text-white font-semibold"
+              onClick={handleAnotherRecommendation}
+              disabled={loadingFind}
+            >
+              Otra Recomendación
+            </button>
           </div>
         </div>
       )}
-      {/* Feedback */}
       {feedback && <div className="mt-4 text-center text-green-600 dark:text-green-300">{feedback}</div>}
     </div>
   );
