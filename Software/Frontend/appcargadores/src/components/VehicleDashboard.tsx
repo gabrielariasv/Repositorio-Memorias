@@ -216,7 +216,7 @@ const VehicleDashboard: React.FC = () => {
 
     return (
       <div className="flex flex-col gap-4">
-        {reservations.slice(0, 2).map((res) => {
+        {reservations.slice(0, 4).map((res) => {
           const start = new Date(res.startTime);
           const end = new Date(res.endTime);
           const now = new Date();
@@ -239,7 +239,7 @@ const VehicleDashboard: React.FC = () => {
             : null;
 
           return (
-            <div key={res._id} className="flex items-center rounded-lg bg-indigo-50 p-4 shadow-sm dark:bg-indigo-900/60">
+            <div key={res._id} className="flex items-center rounded-lg bg-indigo-50 p-7 shadow-sm dark:bg-indigo-900/60">
               <div className="mr-4 flex w-14 flex-col items-center justify-center">
                 <span className="text-xs font-semibold uppercase text-indigo-600 dark:text-indigo-300">{day}</span>
                 <span className="text-2xl font-bold leading-none text-indigo-700 dark:text-indigo-100">{date}</span>
@@ -327,57 +327,69 @@ const VehicleDashboard: React.FC = () => {
   return (
     <div className="flex h-full min-h-0 flex-col bg-gray-100 dark:bg-gray-900">
       <main className="flex-1 overflow-y-auto p-6 md:p-12">
-        <div className="mx-auto flex max-w-5xl flex-col gap-6">
+        <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-6">
           {vehiclesError && (
-            <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-700 dark:border-red-500 dark:bg-red-900/40 dark:text-red-200">
+            <div className="md:col-span-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700 dark:border-red-500 dark:bg-red-900/40 dark:text-red-200">
               {vehiclesError}
             </div>
           )}
 
           {!isHistoryView && (
-            <div className="space-y-6">
-              <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-                <h1 className="mb-3 text-3xl font-bold text-gray-800 dark:text-gray-100">¡Buenos días! ¿Dónde quieres cargar?</h1>
-                <p className="mb-6 text-gray-600 dark:text-gray-300">Planifica otra carga como encuentres necesario.</p>
-                <button
-                  className="rounded bg-indigo-600 px-6 py-3 font-semibold text-white shadow transition-colors duration-200 hover:bg-indigo-700"
-                  onClick={() => setShowChargerOptions(true)}
-                >
-                  Reserva un Cargador
-                </button>
-              </section>
+            <>
+              {/* Left column: mensaje de bienvenida + mapa (ocupa 1/2 en md) */}
+              <div className="space-y-6">
+                <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+                  <h1 className="mb-3 text-3xl font-bold text-gray-800 dark:text-gray-100">¡Buenos días! ¿Dónde quieres cargar?</h1>
+                  <p className="mb-6 text-gray-600 dark:text-gray-300">Planifica otra carga como encuentres necesario.</p>
+                  <button
+                    className="rounded bg-indigo-600 px-6 py-3 font-semibold text-white shadow transition-colors duration-200 hover:bg-indigo-700"
+                    onClick={() => setShowChargerOptions(true)}
+                  >
+                    Reserva un Cargador
+                  </button>
+                </section>
 
-              <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-                <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">Mapa de cargadores</h2>
-                <ChargerMap ref={mapRef} chargers={mappedChargers} userLocation={userLocation} onReserveCharger={handleReserveCharger} />
-              </section>
+                <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+                  <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">Mapa de cargadores</h2>
+                  {/* Aumenta la altura del mapa para que la columna izquierda sea más alta */}
+                  <div className="h-72 md:h-96 rounded overflow-hidden">
+                    <ChargerMap ref={mapRef} chargers={mappedChargers} userLocation={userLocation} onReserveCharger={handleReserveCharger} />
+                  </div>
+                </section>
+              </div>
 
-              <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Próximas reservas</h2>
-                  {reservations.length > 0 && (
-                    <button
-                      className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
-                      onClick={() => setShowAllReservations(true)}
-                    >
-                      Ver todas
-                    </button>
-                  )}
-                </div>
-                {renderReservationCards()}
-              </section>
-            </div>
+              {/* Right column: próximas reservas (ocupa 1/2 en md) - ocupa toda la altura de la fila */}
+              <div className="h-full">
+                <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800 h-full flex flex-col">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Próximas reservas</h2>
+                    {reservations.length > 0 && (
+                      <button
+                        className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
+                        onClick={() => setShowAllReservations(true)}
+                      >
+                        Ver todas
+                      </button>
+                    )}
+                  </div>
+                  {/* Contenedor que hace scroll interno si hay muchas reservas y ocupa el espacio restante */}
+                  <div className="flex-1 overflow-y-auto">
+                    {renderReservationCards()}
+                  </div>
+                </section>
+              </div>
+            </>
           )}
 
           {isHistoryView && (
-            <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+            <section className="md:col-span-3 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
               <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">Historial de carga</h2>
               {renderHistory()}
             </section>
           )}
 
           {vehicles.length > 0 && !selectedVehicle && (
-            <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            <div className="md:col-span-3 rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
               Selecciona un vehículo desde el menú lateral para ver tus reservas e historial.
             </div>
           )}
@@ -385,7 +397,7 @@ const VehicleDashboard: React.FC = () => {
       </main>
 
       {showChargerOptions && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
           <div className="relative w-full max-w-2xl rounded-lg bg-white p-8 shadow-xl dark:bg-gray-900">
             <button
               className="absolute right-4 top-4 text-2xl text-gray-500 transition hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
@@ -405,7 +417,7 @@ const VehicleDashboard: React.FC = () => {
       )}
 
       {showAllReservations && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
           <div className="relative w-full max-w-[82vw] rounded-lg bg-white p-8 shadow-xl dark:bg-gray-900">
             <button
               className="absolute right-4 top-4 text-2xl text-gray-500 transition hover:text-gray-800 dark:hover:text-gray-200"
