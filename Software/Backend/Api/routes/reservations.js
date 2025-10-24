@@ -10,14 +10,16 @@ const { authenticateToken } = require('./auth');
 // POST /api/reservations - Crear una nueva reserva
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { vehicleId, chargerId, startTime, endTime } = req.body;
+    const { vehicleId, chargerId, startTime, endTime, bufferTime } = req.body;
     const userId = req.user.userId;
 
     // Validaciones básicas
     if (!vehicleId || !chargerId || !startTime || !endTime) {
       return res.status(400).json({ error: 'vehicleId, chargerId, startTime y endTime son requeridos' });
     }
-
+    if(!bufferTime){
+      bufferTime = 0;
+    }
     const start = new Date(startTime);
     const end = new Date(endTime);
 
@@ -45,6 +47,9 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Cargador no encontrado' });
     }
 
+    const calculatedEndTime = new Date(endTime);
+    calculatedEndTime.setMinutes(endTime.getMinutes() + bufferTime);
+
     // Verificar disponibilidad del cargador en ese rango de tiempo
     const conflictingReservations = await Reservation.find({
       chargerId: chargerId,
@@ -53,9 +58,9 @@ router.post('/', authenticateToken, async (req, res) => {
         // La nueva reserva comienza durante una reserva existente
         { startTime: { $lte: start }, endTime: { $gt: start } },
         // La nueva reserva termina durante una reserva existente
-        { startTime: { $lt: end }, endTime: { $gte: end } },
+        { startTime: { $lt: calculatedEndTime }, endTime: { $gte: calculatedEndTime } },
         // La nueva reserva engloba completamente una reserva existente
-        { startTime: { $gte: start }, endTime: { $lte: end } }
+        { startTime: { $gte: start }, endTime: { $lte: calculatedEndTime } }
       ]
     });
 
@@ -74,8 +79,9 @@ router.post('/', authenticateToken, async (req, res) => {
       startTime: start,
       endTime: end,
       status: 'upcoming',
+      calculatedEndTime: end,
       estimatedChargeTime: (end - start) / (1000 * 60), // en minutos
-      bufferTime: 0
+      bufferTime: bufferTime || 0
     });
 
     await reservation.save();
