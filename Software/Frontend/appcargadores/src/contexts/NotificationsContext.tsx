@@ -21,6 +21,7 @@ type NotificationsContextType = {
   refresh: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
 };
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
@@ -35,7 +36,9 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!token) return;
     try {
       setLoading(true);
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setItems(res.data || []);
       setError(null);
     } catch (e: any) {
@@ -47,14 +50,32 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const markAsRead = async (id: string) => {
     if (!token) return;
-    await axios.post(`${import.meta.env.VITE_API_URL}/api/notifications/${id}/read`);
+    await axios.post(`${import.meta.env.VITE_API_URL}/api/notifications/${id}/read`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     setItems(prev => prev.map(n => (n._id === id ? { ...n, read: true } : n)));
   };
 
   const markAllAsRead = async () => {
     if (!token) return;
-    await axios.post(`${import.meta.env.VITE_API_URL}/api/notifications/read-all`);
+    await axios.post(`${import.meta.env.VITE_API_URL}/api/notifications/read-all`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     setItems(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const deleteNotification = async (id: string) => {
+    if (!token) return;
+    try {
+      // Eliminar del servidor
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/notifications/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Eliminar del estado local
+      setItems(prev => prev.filter(n => n._id !== id));
+    } catch (error) {
+      console.error('Error al eliminar notificación:', error);
+    }
   };
 
   useEffect(() => {
@@ -87,7 +108,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const unreadCount = items.filter(n => !n.read).length;
 
   return (
-    <NotificationsContext.Provider value={{ items, unreadCount, loading, error, refresh, markAsRead, markAllAsRead }}>
+    <NotificationsContext.Provider value={{ items, unreadCount, loading, error, refresh, markAsRead, markAllAsRead, deleteNotification }}>
       {children}
     </NotificationsContext.Provider>
   );
