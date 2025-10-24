@@ -5,6 +5,10 @@ const { emitToUser } = require('./socket');
 
 async function sendReminder(res, kind) {
   try {
+    // Get charger info first
+    const charger = await Charger.findById(res.chargerId).select('ownerId name');
+    const chargerName = charger?.name || 'Cargador';
+
     // Notify reservation owner (vehicle user)
     const notifUser = await Notification.create({
       user: res.userId,
@@ -13,21 +17,32 @@ async function sendReminder(res, kind) {
         ? 'Faltan ~10 minutos para tu reserva. ¿Deseas confirmar o cancelar?'
         : 'Tu reserva está empezando ahora. ¿Deseas confirmar o cancelar? ',
       type: 'reservation',
-      data: { reservationId: res._id, kind, actions: ['accept', 'cancel'] }
+      data: { 
+        reservationId: res._id, 
+        kind, 
+        actions: ['accept', 'cancel'],
+        chargerName: chargerName,
+        chargerId: res.chargerId
+      }
     });
     try { emitToUser(String(res.userId), 'notification', notifUser); } catch (_) {}
 
     // Notify station owner
-    const charger = await Charger.findById(res.chargerId).select('ownerId name');
     if (charger?.ownerId) {
       const notifOwner = await Notification.create({
         user: charger.ownerId,
         title: kind === 'reminder10' ? 'Reserva próxima en tu cargador' : 'La reserva está comenzando ahora',
         message: kind === 'reminder10'
-          ? `Faltan ~10 minutos para una reserva en ${charger.name}`
-          : `Está comenzando una reserva en ${charger.name}`,
+          ? `Faltan ~10 minutos para una reserva en ${chargerName}`
+          : `Está comenzando una reserva en ${chargerName}`,
         type: 'reservation',
-        data: { reservationId: res._id, kind, actions: ['accept', 'cancel'] }
+        data: { 
+          reservationId: res._id, 
+          kind, 
+          actions: ['accept', 'cancel'],
+          chargerName: chargerName,
+          chargerId: res.chargerId
+        }
       });
       try { emitToUser(String(charger.ownerId), 'notification', notifOwner); } catch (_) {}
     }

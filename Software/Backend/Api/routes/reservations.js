@@ -194,7 +194,11 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
         title: 'Reserva aceptada',
         message: messages.user,
         type: 'success',
-        data: { reservationId: reservation._id }
+        data: { 
+          reservationId: reservation._id,
+          chargerName: charger?.name || 'Cargador',
+          chargerId: reservation.chargerId
+        }
       });
       emitToUser(String(reservation.userId), 'notification', notifUser);
       if (charger?.ownerId) {
@@ -203,7 +207,11 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
           title: 'Reserva aceptada',
           message: messages.owner,
           type: 'success',
-          data: { reservationId: reservation._id }
+          data: { 
+            reservationId: reservation._id,
+            chargerName: charger?.name || 'Cargador',
+            chargerId: reservation.chargerId
+          }
         });
         emitToUser(String(charger.ownerId), 'notification', notifOwner);
       }
@@ -259,7 +267,12 @@ router.post('/:id/cancel', authenticateToken, async (req, res) => {
         title: 'Reserva cancelada',
         message: baseMsg,
         type: 'warning',
-        data: { reservationId: reservation._id, reason }
+        data: { 
+          reservationId: reservation._id, 
+          reason,
+          chargerName: charger?.name || 'Cargador',
+          chargerId: reservation.chargerId
+        }
       });
       emitToUser(String(reservation.userId), 'notification', notifUser);
       if (charger?.ownerId) {
@@ -268,7 +281,12 @@ router.post('/:id/cancel', authenticateToken, async (req, res) => {
           title: 'Reserva cancelada',
           message: baseMsg,
           type: 'warning',
-          data: { reservationId: reservation._id, reason }
+          data: { 
+            reservationId: reservation._id, 
+            reason,
+            chargerName: charger?.name || 'Cargador',
+            chargerId: reservation.chargerId
+          }
         });
         emitToUser(String(charger.ownerId), 'notification', notifOwner);
       }
