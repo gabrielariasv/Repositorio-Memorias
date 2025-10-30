@@ -35,7 +35,6 @@ const VehicleDashboard: React.FC = () => {
   const navigate = useNavigate();
   const evVehicleContext = useEvVehicle();
 
-  const [showChargerOptions, setShowChargerOptions] = useState(false);
   const [allChargers, setAllChargers] = useState<any[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -44,6 +43,7 @@ const VehicleDashboard: React.FC = () => {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showAllReservations, setShowAllReservations] = useState(false);
   const mapRef = useRef<ChargerMapHandle>(null);
+  const optionsPanelRef = useRef<HTMLDivElement | null>(null);
   const isHistoryView = location.pathname === '/charging-history';
 
   // Obtener todos los cargadores para el mapa
@@ -125,7 +125,6 @@ const VehicleDashboard: React.FC = () => {
     if (!evVehicleContext?.selectedVehicle?._id) {
       setReservations([]);
       setChargingHistory([]);
-      setShowChargerOptions(false);
       return;
     }
 
@@ -340,12 +339,18 @@ const VehicleDashboard: React.FC = () => {
                 <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
                   <h1 className="mb-3 text-3xl font-bold text-gray-800 dark:text-gray-100">¡Buenos días! ¿Dónde quieres cargar?</h1>
                   <p className="mb-6 text-gray-600 dark:text-gray-300">Planifica otra carga como encuentres necesario.</p>
-                  <button
-                    className="rounded bg-indigo-600 px-6 py-3 font-semibold text-white shadow transition-colors duration-200 hover:bg-indigo-700"
-                    onClick={() => setShowChargerOptions(true)}
-                  >
-                    Reserva un Cargador
-                  </button>
+                  {/* Modal/Panel de opciones renderizado aquí, justo debajo del mensaje de bienvenida */}
+                  <div ref={optionsPanelRef} className="rounded-lg bg-white p-0 mt-4">
+                    <ChargerOptionsModal
+                      onClose={() => { /* inline: no-op */ }}
+                      user={user}
+                      selectedVehicle={selectedVehicle}
+                      fetchReservations={fetchReservations}
+                      onReserveCharger={handleReserveCharger}
+                      onCenterCharger={handleCenterOnMap}
+                      userLocation={userLocation}
+                    />
+                  </div>
                 </section>
 
                 <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
@@ -391,27 +396,6 @@ const VehicleDashboard: React.FC = () => {
           )}
         </div>
       </main>
-
-      {showChargerOptions && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
-          <div className="relative w-full max-w-2xl rounded-lg bg-white p-8 shadow-xl dark:bg-gray-900">
-            <button
-              className="absolute right-4 top-4 text-2xl text-gray-500 transition hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-              onClick={() => setShowChargerOptions(false)}
-            >
-              &times;
-            </button>
-            <ChargerOptionsModal
-              onClose={() => setShowChargerOptions(false)}
-              user={user}
-              selectedVehicle={selectedVehicle}
-              fetchReservations={fetchReservations}
-              onReserveCharger={handleReserveCharger}
-              userLocation={userLocation}
-            />
-          </div>
-        </div>
-      )}
 
       {showAllReservations && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">

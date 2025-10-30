@@ -7,9 +7,10 @@ interface ChargerOptionsModalProps {
   fetchReservations: (vehicleId: string) => Promise<void>;
   onReserveCharger: (chargerId: string) => void;
   userLocation?: { lat: number; lng: number } | null;
+  onCenterCharger?: (options: { lat: number; lng: number; zoom?: number } | null) => void;
 }
 
-const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user, selectedVehicle, fetchReservations, onReserveCharger, userLocation }) => {
+const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user, selectedVehicle, fetchReservations, onReserveCharger, userLocation, onCenterCharger }) => {
   const [loadingFind, setLoadingFind] = useState(false);
   const [loadingReserve, setLoadingReserve] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -24,6 +25,8 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     tiempoCarga: 0.5,
     demora: 0.5,
   });
+  // Porcentaje de batería objetivo (valor entre 0 y 100)
+  const [targetChargeLevel, setTargetChargeLevel] = useState<number>(80);
   const [showPreferences, setShowPreferences] = useState(false);
 
   // Nuevo estado para ranking y control de "otra recomendación"
@@ -31,8 +34,21 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
   const [currentRankingIndex, setCurrentRankingIndex] = useState<number>(0);
   const [lastRankingIds, setLastRankingIds] = useState<string[] | null>(null);
 
+  const getChargerLatLng = (charger: any) => {
+    if (!charger) return null;
+    if (charger.location?.coordinates && Array.isArray(charger.location.coordinates) && charger.location.coordinates.length >= 2) {
+      return { lat: charger.location.coordinates[1], lng: charger.location.coordinates[0] };
+    }
+    if (charger.location?.lat !== undefined && charger.location?.lng !== undefined) {
+      return { lat: charger.location.lat, lng: charger.location.lng };
+    }
+    if (charger.lat !== undefined && charger.lng !== undefined) {
+      return { lat: charger.lat, lng: charger.lng };
+    }
+    return null;
+  };
+
   // Encuéntrame un cargador automático usando el endpoint de recomendación
-  // Extrae la petición y devuelve el ranking (sin mutar UI)
   const fetchRecommendationData = async () => {
     if (!selectedVehicle || !user) throw new Error('Selecciona un vehículo primero.');
     const batteryCapacity = selectedVehicle.batteryCapacity;
@@ -47,6 +63,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       longitude: longitude.toString(),
       vehicleId: selectedVehicle._id,
       currentChargeLevel: currentChargeLevel.toString(),
+      targetChargeLevel: targetChargeLevel.toString(),
       distancia: preferences.distancia.toString(),
       costo: preferences.costo.toString(),
       tiempoCarga: preferences.tiempoCarga.toString(),
@@ -58,6 +75,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       throw new Error(err.error || 'No se pudo obtener recomendación.');
     }
     const data = await res.json();
+    console.log('Recomendación recibida:', data);
     return data; // { best, ranking }
   };
 
@@ -90,6 +108,11 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
         chargeTimeHours: tCarga / 60
       });
       setShowConfirm(true);
+      // Centrar el mapa en la estación propuesta (si se proporcionó la función)
+      const loc = getChargerLatLng(charger);
+      if (loc && onCenterCharger) {
+        onCenterCharger({ lat: loc.lat, lng: loc.lng, zoom: 17 });
+      }
     } catch (e: any) {
       setFeedback(e.message || 'No se pudo realizar la reserva.');
       setTimeout(() => setFeedback(null), 2500);
@@ -175,6 +198,11 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
         chargeTimeHours: tCarga / 60
       });
       setShowConfirm(true);
+      // Centrar el mapa en la estación propuesta (si se proporcionó la función)
+      const loc = getChargerLatLng(charger);
+      if (loc && onCenterCharger) {
+        onCenterCharger({ lat: loc.lat, lng: loc.lng, zoom: 17 });
+      }
       return;
     }
 
@@ -209,6 +237,10 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           chargeTimeHours: tCarga / 60
         });
         setShowConfirm(true);
+        const loc2 = getChargerLatLng(charger);
+        if (loc2 && onCenterCharger) {
+          onCenterCharger({ lat: loc2.lat, lng: loc2.lng, zoom: 17 });
+        }
       } else {
         // Lista igual: no hay nuevas recomendaciones
         setFeedback('No hay nuevas recomendaciones.');
@@ -224,10 +256,11 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
 
   // Renderizado
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-      <div className="flex justify-between items-center mb-4">
+    // Integrado como bloque: quitar borde/sombra/fondo tipo modal y eliminar la "X"
+    <div className="bg-transparent dark:bg-transparent p-0">
+      <div className="mb-4">
         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Reservar Cargador</h2>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 text-2xl font-bold">&times;</button>
+        {/* botón de cierre eliminado intencionalmente para integración en layout */}
       </div>
       {/* Botones de acción */}
       <div className="flex gap-2 mb-4">
@@ -265,6 +298,31 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
         </div>
         {showPreferences && (
           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="md:col-span-2">
+              <label className="block text-gray-700 dark:text-gray-200 mb-1">Porcentaje objetivo de batería (%)</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min={Math.max(0, selectedVehicle?.currentChargeLevel ?? 0)}
+                  max={100}
+                  step={1}
+                  value={targetChargeLevel}
+                  onChange={e => setTargetChargeLevel(Number(e.target.value))}
+                  className="w-full"
+                />
+                <input
+                  type="number"
+                  min={Math.max(0, selectedVehicle?.currentChargeLevel ?? 0)}
+                  max={100}
+                  value={targetChargeLevel}
+                  onChange={e => {
+                    const v = Number(e.target.value);
+                    if (!isNaN(v)) setTargetChargeLevel(Math.max(0, Math.min(100, v)));
+                  }}
+                  className="w-16 p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100"
+                />
+              </div>
+            </div>
             <div>
               <label className="block text-gray-700 dark:text-gray-200 mb-1">Distancia</label>
               <div className="flex items-center gap-2">
@@ -310,6 +368,13 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
             onChange={e => {
               const charger = chargersList.find(c => c._id === e.target.value);
               setSelectedCharger(charger);
+              // Centrar mapa en la estación seleccionada si la función fue provista
+              if (charger) {
+                const loc = getChargerLatLng(charger);
+                if (loc && onCenterCharger) {
+                  onCenterCharger({ lat: loc.lat, lng: loc.lng, zoom: 17 });
+                }
+              }
             }}
           >
             <option value="">Selecciona una estación...</option>

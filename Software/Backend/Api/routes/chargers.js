@@ -307,9 +307,9 @@ router.get('/:id/usage-stats', async (req, res) => {
 // Requiere: latitude, longitude, vehicleId, distancia, costo, tiempoCarga, demora (pesos)
 router.get('/recommendation', async (req, res) => {
   try {
-    const { latitude, longitude, vehicleId, distancia, costo, tiempoCarga, demora, currentChargeLevel } = req.query;
-    if (!latitude || !longitude || !vehicleId || currentChargeLevel === undefined) {
-      return res.status(400).json({ error: 'Faltan parámetros obligatorios' });
+    const { latitude, longitude, vehicleId, distancia, costo, tiempoCarga, demora, currentChargeLevel, targetChargeLevel } = req.query;
+    if (!latitude || !longitude || !vehicleId || currentChargeLevel === undefined || targetChargeLevel === undefined) {
+      return res.status(400).json({ error: 'Faltan parámetros obligatorios (latitude, longitude, vehicleId, currentChargeLevel, targetChargeLevel)' });
     }
     // Validar pesos
     if (
@@ -319,7 +319,16 @@ router.get('/recommendation', async (req, res) => {
       return res.status(400).json({ error: 'Faltan o son inválidos los parámetros de pesos (distancia, costo, tiempoCarga, demora)' });
     }
 
-    // No considerar cargadores a más de 10 km (10000 metros)
+    const target = Number(targetChargeLevel);
+    const current = Number(currentChargeLevel);
+    if (isNaN(target) || target < 0 || target > 100) {
+      return res.status(400).json({ error: 'targetChargeLevel inválido (0-100)' });
+    }
+    if (isNaN(current) || current < 0 || current > 100) {
+      return res.status(400).json({ error: 'currentChargeLevel inválido (0-100)' });
+    }
+    
+    // No considerar cargadores a más de X metros
     const MAX_DISTANCE_METERS = 30000;
 
     // 1. Obtener cargadores disponibles cerca del usuario (filtrado en BD)
@@ -341,8 +350,13 @@ router.get('/recommendation', async (req, res) => {
       return res.status(404).json({ error: 'Vehículo no encontrado' });
     }
     const batteryCapacity = vehicle.batteryCapacity;
-    const chargeLevel = Number(currentChargeLevel);
-    const energyNeeded = batteryCapacity * (1 - chargeLevel / 100);
+    const chargeLevel = current;
+    // energia necesaria para llegar a target (porcentaje objetivo)
+    const targetLevel = target;
+    const energyNeeded = batteryCapacity * ((targetLevel - chargeLevel) / 100);
+    if (energyNeeded <= 0) {
+      return res.status(400).json({ error: 'El nivel objetivo debe ser mayor al nivel actual' });
+    }
 
     // 3. Calcular variables para cada cargador
     let maxDist = 0, maxCost = 0, maxTime = 0, maxDemora = 0;
@@ -359,9 +373,10 @@ router.get('/recommendation', async (req, res) => {
       );
       // Costo (asumir 1 unidad monetaria si no está definido)
       const cost = charger.cost || 1;
+      // Tiempo de carga necesario para aportar energyNeeded en este cargador (minutos)
       const tCarga = charger.powerOutput ? (energyNeeded / charger.powerOutput) * 60 : null;
-      if (!tCarga) continue;
-
+       if (!tCarga) continue;
+      
       let tDemora = null;
       const reservas = await Reservation.find({
         chargerId: charger._id,
