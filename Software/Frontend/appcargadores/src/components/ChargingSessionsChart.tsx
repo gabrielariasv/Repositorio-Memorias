@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
+import zoomPlugin from 'chartjs-plugin-zoom';
 
 ChartJS.register(
   CategoryScale,
@@ -22,6 +23,7 @@ ChartJS.register(
   Legend,
   TimeScale
 );
+ChartJS.register(zoomPlugin);
 
 interface ChargingSession {
   startTime: Date;
@@ -41,6 +43,7 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
   vehicleId, 
   title = "Historial de Sesiones de Carga" 
 }) => {
+  const [chartKey, setChartKey] = useState(0);
   const [sessions, setSessions] = useState<ChargingSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +62,10 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
           throw new Error('Se requiere chargerId o vehicleId');
         }
         
-        const response = await fetch(url);
+        const token = localStorage.getItem('token');
+        const response = await fetch(url, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+        });
         
         if (!response.ok) {
           const text = await response.text();
@@ -121,40 +127,107 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
 
   const options = {
     responsive: true,
+    maintainAspectRatio: true,
+    aspectRatio: 3,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
     plugins: {
       legend: {
         position: 'top' as const,
+        labels: {
+          padding: 15,
+          font: {
+            size: 12
+          }
+        }
       },
       title: {
         display: true,
         text: title,
+        font: {
+          size: 14,
+          weight: 'bold' as const
+        },
+        padding: 10
       },
+      zoom: {
+        limits: {
+          x: { min: 0, max: sortedDates.length - 1, minRange: 2 }
+        },
+        zoom: {
+          wheel: { enabled: true },
+          pinch: { enabled: true },
+          mode: 'x' as const
+        },
+        pan: {
+          enabled: true,
+          mode: 'x' as const,
+          threshold: 10
+        }
+      }
     },
     scales: {
       y: {
         beginAtZero: true,
         title: {
           display: true,
-          text: 'Energía (kWh)'
+          text: 'Energía (kWh)',
+          font: {
+            size: 12
+          }
+        },
+        ticks: {
+          font: {
+            size: 11
+          }
         }
       },
       x: {
         title: {
           display: true,
-          text: 'Fecha'
+          text: 'Fecha',
+          font: {
+            size: 12
+          }
+        },
+        ticks: {
+          maxRotation: 45,
+          minRotation: 45,
+          autoSkip: true,
+          autoSkipPadding: 10,
+          font: {
+            size: 10
+          }
         }
       }
     }
   };
 
+  const handleResetZoom = () => {
+    // react-chartjs-2 exposes chart instance via ref if needed; simplest is to rely on plugin reset by rerender
+    // as a quick UX, force a key change to remount chart
+    setChartKey(prev => prev + 1);
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 mb-6">
-      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+      <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">
           {title}
         </h2>
+        <button
+          type="button"
+          onClick={handleResetZoom}
+          className="rounded-md bg-gray-100 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-200 active:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:active:bg-gray-500 touch-manipulation"
+        >
+          Restablecer zoom
+        </button>
       </div>
-      <Bar data={chartData} options={options} />
+      <div className="relative" style={{ minHeight: '300px', touchAction: 'pan-x pinch-zoom' }}>
+        <Bar key={chartKey} data={chartData} options={options} />
+      </div>
       
       {/* Estadísticas adicionales */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">

@@ -24,6 +24,9 @@ function DesktopChargerList({
   getStatusClasses,
   getStatusText,
   onRequestRename,
+  chargerRefs,
+  highlightedChargerId,
+  onChargerClickFromMap,
 }) {
   return (
     <div className="flex h-[79vh] min-h-[500px]">
@@ -154,7 +157,10 @@ function DesktopChargerList({
                   return (
                     <div
                       key={charger._id}
-                      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group"
+                      ref={el => { if (el) chargerRefs.current[charger._id] = el; }}
+                      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group ${
+                        highlightedChargerId === charger._id ? 'ring-4 ring-blue-500 dark:ring-blue-400' : ''
+                      }`}
                     >
                       {/* Contenido de cada cargador */}
                       <div
@@ -368,7 +374,7 @@ function DesktopChargerList({
           </p>
         </div>
         <div className="flex-1 rounded-br-2xl overflow-hidden">
-          <ChargerMap ref={mapRef} chargers={filteredChargers} />
+          <ChargerMap ref={mapRef} chargers={filteredChargers} onChargerClick={onChargerClickFromMap} />
         </div>
       </div>
     </div>
@@ -394,6 +400,9 @@ function MobileChargerList({
   getStatusClasses,
   getStatusText,
   onRequestRename,
+  chargerRefs,
+  highlightedChargerId,
+  onChargerClickFromMap,
 }) {
   const [isMapMinimized, setIsMapMinimized] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -509,7 +518,7 @@ function MobileChargerList({
         </button>
         {!isMapMinimized && (
           <div className="h-40">
-            <ChargerMap ref={mapRef} chargers={filteredChargers} />
+            <ChargerMap ref={mapRef} chargers={filteredChargers} onChargerClick={onChargerClickFromMap} />
           </div>
         )}
       </div>
@@ -538,7 +547,10 @@ function MobileChargerList({
                 return (
                   <div
                     key={charger._id}
-                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200"
+                    ref={el => { if (el) chargerRefs.current[charger._id] = el; }}
+                    className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 ${
+                      highlightedChargerId === charger._id ? 'ring-4 ring-blue-500 dark:ring-blue-400' : ''
+                    }`}
                   >
                     <div
                       onClick={() => setExpandedChargerId(expandedChargerId === charger._id ? null : charger._id)}
@@ -705,11 +717,13 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
   const mapRef = useRef<ChargerMapHandle>(null);
+  const chargerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const navigate = useNavigate();
   const [renamingCharger, setRenamingCharger] = useState<Charger | null>(null);
   const [renameName, setRenameName] = useState('');
   const [renameError, setRenameError] = useState<string | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [highlightedChargerId, setHighlightedChargerId] = useState<string | null>(null);
   
   // Detectar si es móvil
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
@@ -841,6 +855,24 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
     }
   };
 
+  const handleChargerClickFromMap = (chargerId: string) => {
+    // Expandir el cargador
+    setExpandedChargerId(chargerId);
+    // Destacarlo temporalmente
+    setHighlightedChargerId(chargerId);
+    // Hacer scroll al elemento
+    setTimeout(() => {
+      const element = chargerRefs.current[chargerId];
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+    // Remover el highlight después de 2 segundos
+    setTimeout(() => {
+      setHighlightedChargerId(null);
+    }, 2000);
+  };
+
   return (
     <>
       {isMobile ? (
@@ -862,6 +894,9 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
           getStatusClasses={getStatusClasses}
           getStatusText={getStatusText}
           onRequestRename={openRenameModal}
+          chargerRefs={chargerRefs}
+          highlightedChargerId={highlightedChargerId}
+          onChargerClickFromMap={handleChargerClickFromMap}
         />
       ) : (
         <DesktopChargerList
@@ -882,6 +917,9 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
           getStatusClasses={getStatusClasses}
           getStatusText={getStatusText}
           onRequestRename={openRenameModal}
+          chargerRefs={chargerRefs}
+          highlightedChargerId={highlightedChargerId}
+          onChargerClickFromMap={handleChargerClickFromMap}
         />
       )}
 

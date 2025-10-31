@@ -134,7 +134,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       const chargers = await chargersRes.json();
       setChargersList(chargers);
       setShowChargerList(true);
-    } catch (e) {
+    } catch {
       setFeedback('No se pudieron cargar los cargadores.');
     } finally {
       setLoadingReserve(false);
@@ -147,7 +147,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     setLoadingReserve(true);
     setFeedback(null);
     try {
-      const { charger, startTime, endTime, chargeTimeHours } = proposal;
+  const { charger, startTime, endTime } = proposal;
       // Usar el endpoint de reservations (backend: routes/reservations.js -> POST /api/reservations)
       const reservationRes = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations`, {
         method: 'POST',
@@ -172,7 +172,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
         const err = await reservationRes.json().catch(() => null);
         setFeedback(err?.error || 'No se pudo realizar la reserva.');
       }
-    } catch (e) {
+    } catch {
       setFeedback('No se pudo realizar la reserva.');
     } finally {
       setLoadingReserve(false);
@@ -270,7 +270,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           disabled={loadingFind}
         >{loadingFind ? 'Buscando...' : 'Reserva Rápida'}</button>
         <button
-          className="flex-1 py-3 px-6 rounded bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold shadow transition-colors duration-200 disabled:opacity-60"
+          className="flex-1 py-3 px-6 rounded bg-indigo-100 hover:bg-indigo-200 text-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600 dark:text-indigo-100 font-semibold shadow transition-colors duration-200 disabled:opacity-60"
           onClick={handleManual}
           disabled={loadingReserve}
         >{loadingReserve ? 'Cargando...' : 'Reserva Específica'}</button>
@@ -308,7 +308,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
                   step={1}
                   value={targetChargeLevel}
                   onChange={e => setTargetChargeLevel(Number(e.target.value))}
-                  className="w-full"
+                  className="w-full accent-indigo-600 dark:accent-indigo-400"
                 />
                 <input
                   type="number"
@@ -327,7 +327,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
               <label className="block text-gray-700 dark:text-gray-200 mb-1">Distancia</label>
               <div className="flex items-center gap-2">
                 <button type="button" className="px-2 py-1 text-lg font-bold text-indigo-600 dark:text-indigo-300" onClick={() => setPreferences(p => ({ ...p, distancia: Math.max(0, +(p.distancia - 0.05).toFixed(2)) }))}>-</button>
-                <input type="range" min={0} max={1} step={0.01} value={preferences.distancia} onChange={e => setPreferences(p => ({ ...p, distancia: Number(e.target.value) }))} className="w-full" />
+                <input type="range" min={0} max={1} step={0.01} value={preferences.distancia} onChange={e => setPreferences(p => ({ ...p, distancia: Number(e.target.value) }))} className="w-full accent-indigo-600 dark:accent-indigo-400" />
                 <button type="button" className="px-2 py-1 text-lg font-bold text-indigo-600 dark:text-indigo-300" onClick={() => setPreferences(p => ({ ...p, distancia: Math.min(1, +(p.distancia + 0.05).toFixed(2)) }))}>+</button>
               </div>
             </div>
@@ -335,7 +335,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
               <label className="block text-gray-700 dark:text-gray-200 mb-1">Costo</label>
               <div className="flex items-center gap-2">
                 <button type="button" className="px-2 py-1 text-lg font-bold text-indigo-600 dark:text-indigo-300" onClick={() => setPreferences(p => ({ ...p, costo: Math.max(0, +(p.costo - 0.05).toFixed(2)) }))}>-</button>
-                <input type="range" min={0} max={1} step={0.01} value={preferences.costo} onChange={e => setPreferences(p => ({ ...p, costo: Number(e.target.value) }))} className="w-full" />
+                <input type="range" min={0} max={1} step={0.01} value={preferences.costo} onChange={e => setPreferences(p => ({ ...p, costo: Number(e.target.value) }))} className="w-full accent-indigo-600 dark:accent-indigo-400" />
                 <button type="button" className="px-2 py-1 text-lg font-bold text-indigo-600 dark:text-indigo-300" onClick={() => setPreferences(p => ({ ...p, costo: Math.min(1, +(p.costo + 0.05).toFixed(2)) }))}>+</button>
               </div>
             </div>
@@ -343,7 +343,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
               <label className="block text-gray-700 dark:text-gray-200 mb-1">Tiempo de carga</label>
               <div className="flex items-center gap-2">
                 <button type="button" className="px-2 py-1 text-lg font-bold text-indigo-600 dark:text-indigo-300" onClick={() => setPreferences(p => ({ ...p, tiempoCarga: Math.max(0, +(p.tiempoCarga - 0.05).toFixed(2)) }))}>-</button>
-                <input type="range" min={0} max={1} step={0.01} value={preferences.tiempoCarga} onChange={e => setPreferences(p => ({ ...p, tiempoCarga: Number(e.target.value) }))} className="w-full" />
+                <input type="range" min={0} max={1} step={0.01} value={preferences.tiempoCarga} onChange={e => setPreferences(p => ({ ...p, tiempoCarga: Number(e.target.value) }))} className="w-full accent-indigo-600 dark:accent-indigo-400" />
                 <button type="button" className="px-2 py-1 text-lg font-bold text-indigo-600 dark:text-indigo-300" onClick={() => setPreferences(p => ({ ...p, tiempoCarga: Math.min(1, +(p.tiempoCarga + 0.05).toFixed(2)) }))}>+</button>
               </div>
             </div>
@@ -351,7 +351,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
               <label className="block text-gray-700 dark:text-gray-200 mb-1">Demora</label>
               <div className="flex items-center gap-2">
                 <button type="button" className="px-2 py-1 text-lg font-bold text-indigo-600 dark:text-indigo-300" onClick={() => setPreferences(p => ({ ...p, demora: Math.max(0, +(p.demora - 0.05).toFixed(2)) }))}>-</button>
-                <input type="range" min={0} max={1} step={0.01} value={preferences.demora} onChange={e => setPreferences(p => ({ ...p, demora: Number(e.target.value) }))} className="w-full" />
+                <input type="range" min={0} max={1} step={0.01} value={preferences.demora} onChange={e => setPreferences(p => ({ ...p, demora: Number(e.target.value) }))} className="w-full accent-indigo-600 dark:accent-indigo-400" />
                 <button type="button" className="px-2 py-1 text-lg font-bold text-indigo-600 dark:text-indigo-300" onClick={() => setPreferences(p => ({ ...p, demora: Math.min(1, +(p.demora + 0.05).toFixed(2)) }))}>+</button>
               </div>
             </div>
@@ -398,7 +398,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
               Ir a calendario de reserva
             </button>
             <button
-              className="flex-1 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold"
+              className="flex-1 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 font-semibold"
               onClick={() => { setShowChargerList(false); setSelectedCharger(null); }}
               disabled={loadingReserve}
             >Cancelar</button>
@@ -416,7 +416,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           <div><b>Tiempo estimado de carga:</b> {Math.round(proposal.chargeTimeHours * 60)} minutos</div>
           <div className="flex gap-2 mt-4">
             <button className="flex-1 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold" onClick={confirmReservation} disabled={loadingReserve}>Aceptar</button>
-            <button className="flex-1 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold" onClick={() => { setProposal(null); setShowConfirm(false); }}>Cancelar</button>
+            <button className="flex-1 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 font-semibold" onClick={() => { setProposal(null); setShowConfirm(false); }}>Cancelar</button>
             <button
               className="flex-1 py-2 rounded bg-yellow-500 hover:bg-yellow-600 text-white font-semibold"
               onClick={handleAnotherRecommendation}

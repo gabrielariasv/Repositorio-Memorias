@@ -340,7 +340,7 @@ const VehicleDashboard: React.FC = () => {
                   <h1 className="mb-3 text-3xl font-bold text-gray-800 dark:text-gray-100">¡Buenos días! ¿Dónde quieres cargar?</h1>
                   <p className="mb-6 text-gray-600 dark:text-gray-300">Planifica otra carga como encuentres necesario.</p>
                   {/* Modal/Panel de opciones renderizado aquí, justo debajo del mensaje de bienvenida */}
-                  <div ref={optionsPanelRef} className="rounded-lg bg-white p-0 mt-4">
+                  <div ref={optionsPanelRef} className="rounded-lg bg-white dark:bg-gray-800 p-0 mt-4">
                     <ChargerOptionsModal
                       onClose={() => { /* inline: no-op */ }}
                       user={user}

@@ -116,6 +116,24 @@ body.dark .iot-header {
   line-height: 1.5;
 }
 
+/* Close button styling to avoid white artifacts in dark mode */
+.dark-popup .leaflet-popup-close-button {
+  color: #e5e7eb; /* text/icon color */
+  background: transparent; /* remove white background */
+  text-shadow: none;
+  opacity: 0.9;
+}
+.dark-popup .leaflet-popup-close-button:hover {
+  opacity: 1;
+}
+
+/* Light mode close button for consistency */
+.light-popup .leaflet-popup-close-button {
+  color: #475569;
+  background: transparent;
+  text-shadow: none;
+}
+
 /* ===========================
    Wheel helpers (scroll hide + gradients)
    =========================== */

@@ -10,7 +10,7 @@ const { authenticateToken } = require('./auth');
 // POST /api/reservations - Crear una nueva reserva
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { vehicleId, chargerId, startTime, endTime, bufferTime } = req.body;
+    let { vehicleId, chargerId, startTime, endTime, bufferTime } = req.body;
     const userId = req.user.userId;
 
     // Validaciones básicas
@@ -47,8 +47,8 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Cargador no encontrado' });
     }
 
-    const calculatedEndTime = new Date(endTime);
-    calculatedEndTime.setMinutes(endTime.getMinutes() + bufferTime);
+    const calculatedEndTime = new Date(end);
+    calculatedEndTime.setMinutes(calculatedEndTime.getMinutes() + bufferTime);
 
     // Verificar disponibilidad del cargador en ese rango de tiempo
     const conflictingReservations = await Reservation.find({

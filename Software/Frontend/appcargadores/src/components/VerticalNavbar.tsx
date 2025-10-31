@@ -14,19 +14,19 @@ const VerticalNavbar: React.FC = () => {
   };
 
   const stationAdminMenu = [
-    { path: '/', label: 'Cargadores', icon: '⚡' },
-    { path: '/profile', label: 'Editar datos de perfil', icon: '👤' },
+    { path: '/', label: 'Cargadores', icon: '' },
+    { path: '/profile', label: 'Editar datos de perfil', icon: '' },
   ];
 
   const evUserMenu = [
-    { path: '/', label: 'Reservar', icon: '🔋' },
-    { path: '/charging-history', label: 'Historial de cargas', icon: '📊' },
-    { path: '/profile', label: 'Editar datos de perfil', icon: '👤' },
+    { path: '/', label: 'Reservar', icon: '' },
+    { path: '/charging-history', label: 'Historial de cargas', icon: '' },
+    { path: '/profile', label: 'Editar datos de perfil', icon: '' },
   ];
 
   const adminMenu = [
-    { path: '/', label: 'Dashboard', icon: '🏠' },
-    { path: '/management', label: 'Gestión', icon: '🧑‍💼' },
+    { path: '/', label: 'Dashboard', icon: '' },
+    { path: '/management', label: 'Gestión', icon: '' },
   ];
 
   const getMenuItems = () => {

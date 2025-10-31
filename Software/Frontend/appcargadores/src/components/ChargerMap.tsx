@@ -66,6 +66,7 @@ interface ChargerMapProps {
   userLocation?: { lat: number, lng: number } | null;
   center?: { lat: number, lng: number } | null;
   onReserveCharger?: (chargerId: string) => void;
+  onChargerClick?: (chargerId: string) => void;
 }
 
 const resolveLatLng = (location: ChargerWithLatLng['location']) => {
@@ -77,7 +78,7 @@ const resolveLatLng = (location: ChargerWithLatLng['location']) => {
   return null;
 };
 
-const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, userLocation, center, onReserveCharger }, ref) => {
+const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, userLocation, center, onReserveCharger, onChargerClick }, ref) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
 
@@ -127,7 +128,7 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
         center={mapCenter}
         zoom={13}
         style={{ height: '100%', width: '100%' }}
-        className="rounded-lg leaflet-container-custom"
+        className={`rounded-lg leaflet-container-custom ${isDarkMode ? 'dark-popup' : 'light-popup'}`}
       >
         <MapInstanceSetter onReady={setMapInstance} />
         <MapCenterer center={center} />
@@ -144,17 +145,8 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
             iconSize: [32, 32],
             iconAnchor: [16, 32],
           })}>
-            <Popup>
-              <div
-                style={{
-                  background: isDarkMode ? '#222' : '#fff',
-                  color: isDarkMode ? '#fff' : '#222',
-                  borderRadius: 8,
-                  padding: 8,
-                  minWidth: 120,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                }}
-              >
+            <Popup className={isDarkMode ? 'dark-popup' : 'light-popup'}>
+              <div>
                 <strong>Tu ubicación</strong>
                 <div className="mt-2 text-sm">
                   {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
@@ -175,17 +167,22 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
               key={charger._id || charger.name}
               position={[resolvedLocation.lat, resolvedLocation.lng]}
               icon={isDarkMode ? darkIcon : lightIcon}
+              eventHandlers={{
+                click: () => {
+                  if (onChargerClick && charger._id) {
+                    onChargerClick(charger._id);
+                  }
+                }
+              }}
             >
-              <Popup>
+              <Popup className={isDarkMode ? 'dark-popup' : 'light-popup'}>
                 <div
-                  style={{
-                    background: isDarkMode ? '#222' : '#fff',
-                    color: isDarkMode ? '#fff' : '#222',
-                    borderRadius: 8,
-                    padding: 8,
-                    minWidth: 120,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                  onClick={() => {
+                    if (onChargerClick && charger._id) {
+                      onChargerClick(charger._id);
+                    }
                   }}
+                  style={{ cursor: 'pointer' }}
                 >
                   <strong>{charger.name}</strong>
                   <br />

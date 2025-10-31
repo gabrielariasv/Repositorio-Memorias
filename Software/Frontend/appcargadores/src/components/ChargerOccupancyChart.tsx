@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
+import zoomPlugin from 'chartjs-plugin-zoom';
 
 ChartJS.register(
   CategoryScale,
@@ -25,6 +26,7 @@ ChartJS.register(
   Legend,
   TimeScale
 );
+ChartJS.register(zoomPlugin);
 
 interface OccupancyData {
   start: Date;
@@ -41,6 +43,7 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
   chargerId, 
   title = "Historial de Ocupación" 
 }) => {
+  const [chartKey, setChartKey] = React.useState(0);
   const [occupancyData, setOccupancyData] = useState<OccupancyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +52,10 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
     const fetchOccupancyData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/${chargerId}/usage-history`);
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/${chargerId}/usage-history`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+        });
         
         if (!response.ok) {
           const text = await response.text();
@@ -139,6 +145,12 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
 
   const steppedPoints = buildSteppedPoints(occupancyData);
 
+  // Calcular los límites de tiempo para zoom y pan
+  const timeMin = steppedPoints.length > 0 ? steppedPoints[0].x.getTime() : 0;
+  const timeMax = steppedPoints.length > 0 ? steppedPoints[steppedPoints.length - 1].x.getTime() : 0;
+  const timeRange = timeMax - timeMin;
+  const minRange = timeRange > 0 ? timeRange * 0.05 : 3600000; // mínimo 5% del rango o 1 hora
+
   const chartData = {
     datasets: [
       {
@@ -155,17 +167,33 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
 
   const options = {
     responsive: true,
+    maintainAspectRatio: true,
+    aspectRatio: 3,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
     scales: {
       x: {
         type: 'time' as const,
         time: {
-          // adapta la unidad según el rango de datos
           tooltipFormat: 'P p'
         },
         title: {
           display: true,
           text: 'Fecha / Hora',
+          font: {
+            size: 12
+          }
         },
+        ticks: {
+          maxRotation: 45,
+          minRotation: 0,
+          autoSkip: true,
+          font: {
+            size: 10
+          }
+        }
       },
       y: {
         min: 0,
@@ -175,20 +203,37 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
           callback: function(value: any) {
             return value === 1 ? 'Ocupado' : 'Disponible';
           },
+          font: {
+            size: 11
+          }
         },
         title: {
           display: true,
           text: 'Estado',
+          font: {
+            size: 12
+          }
         },
       },
     },
     plugins: {
       legend: {
         position: 'top' as const,
+        labels: {
+          padding: 15,
+          font: {
+            size: 12
+          }
+        }
       },
       title: {
         display: true,
         text: title,
+        font: {
+          size: 14,
+          weight: 'bold' as const
+        },
+        padding: 10
       },
       tooltip: {
         callbacks: {
@@ -197,17 +242,45 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
           },
         },
       },
+      zoom: {
+        limits: {
+          x: { min: timeMin, max: timeMax, minRange: minRange }
+        },
+        zoom: {
+          wheel: { enabled: true },
+          pinch: { enabled: true },
+          mode: 'x' as const
+        },
+        pan: {
+          enabled: true,
+          mode: 'x' as const,
+          threshold: 10
+        }
+      }
     },
+  };
+
+  const handleResetZoom = () => {
+    setChartKey(prev => prev + 1);
   };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 mb-6">
-      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+      <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">
           {title}
         </h2>
+        <button
+          type="button"
+          onClick={handleResetZoom}
+          className="rounded-md bg-gray-100 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-200 active:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:active:bg-gray-500 touch-manipulation"
+        >
+          Restablecer zoom
+        </button>
       </div>
-      <Line data={chartData} options={options} />
+      <div className="relative" style={{ minHeight: '300px', touchAction: 'pan-x pinch-zoom' }}>
+        <Line key={chartKey} data={chartData} options={options} />
+      </div>
     </div>
   );
 };

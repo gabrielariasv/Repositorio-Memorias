@@ -94,7 +94,8 @@ const StationAdminDashboard: React.FC = () => {
             Volver a cargadores
           </button>
         </div>
-        <div className="grid flex-1 gap-6 lg:grid-cols-2">
+        {/* Siempre vertical (como en móvil) */}
+        <div className="grid flex-1 gap-6 grid-cols-1">
           <div className="rounded-2xl bg-white p-6 shadow dark:bg-gray-800">
             <ChargerOccupancyChart chargerId={chargerId} />
           </div>
@@ -147,7 +148,7 @@ const StationAdminDashboard: React.FC = () => {
 
   return (
     <Router>
-      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 lg:pl-64">
         <VerticalNavbar />
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* top right header */}
@@ -174,7 +175,7 @@ const StationAdminDashboard: React.FC = () => {
 const EVUserDashboard: React.FC = () => (
   <Router>
     <EvVehicleProvider>
-      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 lg:pl-64">
         <VerticalNavbar />
         <div className="flex-1">
           <div className="flex items-center justify-end px-4 pt-4 sm:px-6">
