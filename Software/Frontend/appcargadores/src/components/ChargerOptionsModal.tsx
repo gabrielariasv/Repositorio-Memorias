@@ -69,7 +69,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       tiempoCarga: preferences.tiempoCarga.toString(),
       demora: preferences.demora.toString()
     });
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/recommendation?${params}`);
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/recommendation?${params}`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: 'No se pudo obtener recomendación.' }));
       throw new Error(err.error || 'No se pudo obtener recomendación.');
@@ -425,8 +425,8 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
             {proposal.cost !== undefined
               ? `CLP$ ${Math.ceil(Number(proposal.cost)).toLocaleString()}`
               : proposal.unitCost !== undefined
-              ? `CLP$ ${Math.ceil(Number(proposal.unitCost)).toLocaleString()} / kWh`
-              : 'N/A'}
+                ? `CLP$ ${Math.ceil(Number(proposal.unitCost)).toLocaleString()} / kWh`
+                : 'N/A'}
           </div>
           <div className="flex gap-2 mt-4">
             <button className="flex-1 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold" onClick={confirmReservation} disabled={loadingReserve}>Aceptar</button>
