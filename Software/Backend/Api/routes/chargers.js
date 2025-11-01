@@ -14,14 +14,14 @@ router.get('/', async (req, res) => {
   try {
     const { status, chargerType } = req.query;
     let filter = {};
-    
+
     if (status) filter.status = status;
     if (chargerType) filter.chargerType = chargerType;
-    
+
     const chargers = await Charger.find(filter)
       .populate('ownerId', 'name email')
       .populate('reservations');
-    
+
     // Calcular estado en tiempo real basándose en reservas activas
     const now = new Date();
     const chargersWithRealTimeStatus = await Promise.all(chargers.map(async (charger) => {
@@ -32,17 +32,17 @@ router.get('/', async (req, res) => {
         status: { $in: ['active', 'upcoming'] },
         calculatedEndTime: { $gt: now }
       });
-      
+
       // Si hay una reserva activa, marcar como ocupado
       const realTimeStatus = activeReservation ? 'occupied' : charger.status;
-      
+
       return {
         ...charger.toObject(),
         status: realTimeStatus,
         hasActiveReservation: !!activeReservation
       };
     }));
-    
+
     res.json(chargersWithRealTimeStatus);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -105,11 +105,11 @@ router.post('/', authenticateToken, async (req, res) => {
 router.get('/nearby', async (req, res) => {
   try {
     const { longitude, latitude, maxDistance = 5000 } = req.query;
-    
+
     if (!longitude || !latitude) {
       return res.status(400).json({ error: 'Se requieren longitud y latitud' });
     }
-    
+
     const chargers = await Charger.find({
       location: {
         $near: {
@@ -122,7 +122,7 @@ router.get('/nearby', async (req, res) => {
       },
       status: 'available'
     });
-    
+
     res.json(chargers);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -200,18 +200,18 @@ router.get('/:id/usage-history', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     let filter = { chargerId: req.params.id };
-    
+
     if (startDate && endDate) {
       filter.startTime = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
     }
-    
+
     const sessions = await ChargingSession.find(filter)
       .populate('vehicleId', 'model')
       .sort({ startTime: -1 });
-    
+
     res.json(sessions);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -222,7 +222,7 @@ router.get('/:id/usage-history', async (req, res) => {
 router.get('/:id/usage-stats', async (req, res) => {
   try {
     const { period } = req.query; // 'day', 'week', 'month', 'year'
-    
+
     let groupFormat = {};
     switch (period) {
       case 'day':
@@ -255,7 +255,7 @@ router.get('/:id/usage-stats', async (req, res) => {
           month: { $month: '$startTime' }
         };
     }
-    
+
     const usageStats = await ChargingSession.aggregate([
       { $match: { chargerId: mongoose.Types.ObjectId(req.params.id) } },
       {
@@ -270,11 +270,11 @@ router.get('/:id/usage-stats', async (req, res) => {
       },
       { $sort: { '_id.year': 1, '_id.month': 1 } }
     ]);
-    
+
     // Calcular porcentaje de ocupación
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-    
+
     const occupancyStats = await ChargingSession.aggregate([
       {
         $match: {
@@ -290,11 +290,11 @@ router.get('/:id/usage-stats', async (req, res) => {
         }
       }
     ]);
-    
-    const occupancyRate = occupancyStats.length > 0 
-      ? (occupancyStats[0].totalOccupiedTime / (30 * 24 * 60)) * 100 
+
+    const occupancyRate = occupancyStats.length > 0
+      ? (occupancyStats[0].totalOccupiedTime / (30 * 24 * 60)) * 100
       : 0;
-    
+
     res.json({
       usageStats,
       occupancyRate: Math.min(100, Math.round(occupancyRate)) // Asegurar que no supere 100%
@@ -327,7 +327,7 @@ router.get('/recommendation', async (req, res) => {
     if (isNaN(current) || current < 0 || current > 100) {
       return res.status(400).json({ error: 'currentChargeLevel inválido (0-100)' });
     }
-    
+
     // No considerar cargadores a más de X metros
     const MAX_DISTANCE_METERS = 30000;
 
@@ -363,6 +363,14 @@ router.get('/recommendation', async (req, res) => {
     const now = new Date();
     const results = [];
     const daysThreshold = 2 * 24 * 60 * 60 * 1000; // 2 días en milisegundos
+    // Obtener una vez las reservas del vehículo (son las mismas para todos los cargadores)
+    // Proyectar solo los campos necesarios para la búsqueda de huecos
+    const vehicleReservations = await Reservation.find({
+      vehicleId: vehicleId,
+      status: { $in: ['upcoming', 'active'] },
+      calculatedEndTime: { $gt: now }
+    }, 'startTime calculatedEndTime').sort({ startTime: 1 });
+
     for (const charger of chargers) {
       // Distancia
       const dist = calcularDistancia(
@@ -371,57 +379,88 @@ router.get('/recommendation', async (req, res) => {
         charger.location.coordinates[1],
         charger.location.coordinates[0]
       );
-  // Costo por kWh (asumir 1 unidad monetaria si no está definido)
-  const unitCost = charger.energy_cost || 1;
-  // Costo total para aportar la energía necesaria (kWh * precio por kWh)
-  const totalCost = unitCost * energyNeeded;
+      // Costo por kWh (asumir 1 unidad monetaria si no está definido)
+      const unitCost = charger.energy_cost || 1;
+      // Costo total para aportar la energía necesaria (kWh * precio por kWh)
+      const totalCost = unitCost * energyNeeded;
       // Tiempo de carga necesario para aportar energyNeeded en este cargador (minutos)
       const tCarga = charger.powerOutput ? (energyNeeded / charger.powerOutput) * 60 : null;
-       if (!tCarga) continue;
-      
+      if (!tCarga) continue;
+
       let tDemora = null;
-      const reservas = await Reservation.find({
+
+      // Obtener reservas del cargador y del vehículo, ya que ambos deben estar libres
+      // Proyectar solo los campos necesarios para la búsqueda de huecos
+      const chargerReservations = await Reservation.find({
         chargerId: charger._id,
         status: { $in: ['upcoming', 'active'] },
         calculatedEndTime: { $gt: now }
-      }).sort({ startTime: 1 });
+      }, 'startTime calculatedEndTime').sort({ startTime: 1 });
 
-      let cursor = new Date(now);
+      // Construir intervalos ocupados (por cargador O por vehículo)
+      const intervals = [];
+      const pushInterval = (r) => {
+        const s = new Date(r.startTime);
+        const e = new Date(r.calculatedEndTime);
+        if (e <= now) return;
+        intervals.push({ start: s < now ? new Date(now) : s, end: e });
+      };
+      chargerReservations.forEach(pushInterval);
+      vehicleReservations.forEach(pushInterval);
+
+      // Ordenar e unir intervalos solapados
+      intervals.sort((a, b) => a.start - b.start);
+      const merged = [];
+      for (const iv of intervals) {
+        if (!merged.length) {
+          merged.push({ ...iv });
+          continue;
+        }
+        const last = merged[merged.length - 1];
+        if (iv.start <= last.end) {
+          if (iv.end > last.end) last.end = iv.end;
+        } else {
+          merged.push({ ...iv });
+        }
+      }
+
+      // Buscar huecos libres donde tanto el cargador como el vehículo estén disponibles
+      const tCargaMs = tCarga * 60 * 1000;
+      const limit = new Date(now.getTime() + daysThreshold);
+      let gapStart = new Date(now);
       let found = false;
-      for (let i = 0; i <= reservas.length; i++) {
-        const nextReserveStart = reservas[i]?.startTime ? new Date(reservas[i].startTime) : null;
-        const nextReserveEnd = reservas[i]?.calculatedEndTime ? new Date(reservas[i].calculatedEndTime) : null;
-        if(reservas[i]){
-          if(cursor > nextReserveStart){
-            cursor = new Date(reservas[i].calculatedEndTime);
-            continue; 
-          }
-          const nextBlockEnd = nextReserveStart || new Date(now.getTime() + daysThreshold);
-          const blockDuration = (nextBlockEnd - cursor) / (60 * 1000);
-          if (blockDuration >= tCarga) {
-            tDemora = (cursor - now) / (60 * 1000);
+
+      if (merged.length === 0) {
+        // No hay bloqueos, verificar si podemos cargar antes del límite
+        if ((limit - gapStart) >= tCargaMs) {
+          tDemora = 0;
+          found = true;
+        }
+      } else {
+        for (let i = 0; i <= merged.length; i++) {
+          const gapEnd = merged[i] ? merged[i].start : limit;
+          const gapDurationMs = gapEnd - gapStart;
+          if (gapDurationMs >= tCargaMs) {
+            tDemora = (gapStart - now) / (60 * 1000);
             found = true;
             break;
           }
-          cursor = new Date(reservas[i].calculatedEndTime);
-          if(cursor > new Date(now.getTime() + daysThreshold)) {
-            break;
+          if (merged[i]) {
+            gapStart = merged[i].end;
+            if (gapStart > limit) break;
           }
-        } else {
-          tDemora = (cursor - new Date(now.getTime())) / (60 * 1000);
-          found = true;
-          break;
         }
       }
+
       // Si nunca encontró un bloque, o el primer bloque disponible es después del limite de tiempo
       if (!found || (tDemora !== null && tDemora > (daysThreshold / (60 * 1000)))) continue;
 
       maxDist = Math.max(maxDist, dist);
-  maxCost = Math.max(maxCost, totalCost);
+      maxCost = Math.max(maxCost, totalCost);
       maxTime = Math.max(maxTime, tCarga);
       maxDemora = Math.max(maxDemora, tDemora);
 
-  results.push({ charger, dist, cost: totalCost, unitCost, tCarga, tDemora });
+      results.push({ charger, dist, cost: totalCost, unitCost, tCarga, tDemora });
     }
 
     // 4. Calcular performance solo para los reservables
@@ -452,11 +491,11 @@ router.get('/:id', async (req, res) => {
       .populate('ownerId', 'name email')
       .populate('chargingHistory.vehicleId', 'model chargerType')
       .populate('reservations');
-    
+
     if (!charger) {
       return res.status(404).json({ error: 'Cargador no encontrado' });
     }
-    
+
     // Calcular estado en tiempo real basándose en reservas activas
     const now = new Date();
     const activeReservation = await Reservation.findOne({
@@ -465,16 +504,16 @@ router.get('/:id', async (req, res) => {
       status: { $in: ['active', 'upcoming'] },
       calculatedEndTime: { $gt: now }
     });
-    
+
     // Si hay una reserva activa, marcar como ocupado
     const realTimeStatus = activeReservation ? 'occupied' : charger.status;
-    
+
     const chargerWithRealTimeStatus = {
       ...charger.toObject(),
       status: realTimeStatus,
       hasActiveReservation: !!activeReservation
     };
-    
+
     res.json(chargerWithRealTimeStatus);
   } catch (error) {
     res.status(500).json({ error: error.message });

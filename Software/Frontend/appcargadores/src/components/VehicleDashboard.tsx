@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ChargerOptionsModal from './ChargerOptionsModal';
+import ConfirmCancelModal from './ConfirmCancelModal';
 import ChargerMap, { ChargerMapHandle, FlyToOptions } from './ChargerMap';
 import { getTravelTimeORS } from '../utils/getTravelTimeORS';
 import { useAuth } from '../contexts/useAuth';
@@ -42,6 +43,8 @@ const VehicleDashboard: React.FC = () => {
   const [loadingReservations, setLoadingReservations] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showAllReservations, setShowAllReservations] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
   const mapRef = useRef<ChargerMapHandle>(null);
   const optionsPanelRef = useRef<HTMLDivElement | null>(null);
   const isHistoryView = location.pathname === '/charging-history';
@@ -120,6 +123,7 @@ const VehicleDashboard: React.FC = () => {
   const handleReserveCharger = useCallback((chargerId: string) => {
     navigate(`/chargers/${chargerId}/reserve`);
   }, [navigate]);
+ 
 
   useEffect(() => {
     if (!evVehicleContext?.selectedVehicle?._id) {
@@ -136,6 +140,35 @@ const VehicleDashboard: React.FC = () => {
   const selectedVehicle = evVehicleContext?.selectedVehicle ?? null;
   const vehiclesLoading = evVehicleContext?.loading ?? false;
   const vehiclesError = evVehicleContext?.error ?? null;
+
+  const handleConfirmCancel = useCallback(async (reason: 'indisponibilidad' | 'mantenimiento' | 'falta_tiempo' | 'otro') => {
+    if (!cancelTargetId) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/${cancelTargetId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ reason })
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        alert(err.error || 'No se pudo cancelar la reserva');
+        return;
+      }
+      // cerrar modal y refrescar reservas
+      setCancelModalOpen(false);
+      setCancelTargetId(null);
+      if (selectedVehicle?._id) {
+        fetchReservations(selectedVehicle._id);
+      }
+    } catch (error) {
+      console.error('Error cancelling reservation:', error);
+      alert('Ocurrió un error al cancelar la reserva');
+    }
+  }, [cancelTargetId, fetchReservations, selectedVehicle]);
 
   const mappedChargers = useMemo(() =>
     allChargers.map((charger) => ({
@@ -208,14 +241,16 @@ const VehicleDashboard: React.FC = () => {
         </div>
       );
     }
+    // Excluir reservas canceladas de la lista de "Próximas reservas"
+    const upcomingReservations = reservations.filter(r => String(r.status).toLowerCase() !== 'cancelled');
 
-    if (!reservations.length) {
+    if (!upcomingReservations.length) {
       return <p className="text-gray-600 dark:text-gray-300">No hay reservas actuales para este vehículo.</p>;
     }
 
     return (
       <div className="flex flex-col gap-4">
-        {reservations.slice(0, 4).map((res) => {
+        {upcomingReservations.slice(0, 4).map((res) => {
           const start = new Date(res.startTime);
           const end = new Date(res.endTime);
           const now = new Date();
@@ -259,12 +294,23 @@ const VehicleDashboard: React.FC = () => {
                 </div>
                 <div className="mt-1 text-xs text-gray-500 dark:text-gray-300">Duración estimada: {durationStr}</div>
                 {chargerLocation && (
-                  <button
-                    className="mt-1 rounded bg-indigo-200 px-2 py-1 text-xs text-indigo-800 transition hover:bg-indigo-300 dark:bg-indigo-700 dark:text-indigo-100 dark:hover:bg-indigo-600"
-                    onClick={() => handleCenterOnMap({ ...chargerLocation, zoom: 17 })}
-                  >
-                    Centrar en mapa
-                  </button>
+                  <div className="mt-1 flex items-center gap-2">
+                    <button
+                      className="rounded bg-indigo-200 px-2 py-1 text-xs text-indigo-800 transition hover:bg-indigo-300 dark:bg-indigo-700 dark:text-indigo-100 dark:hover:bg-indigo-600"
+                      onClick={() => handleCenterOnMap({ ...chargerLocation, zoom: 17 })}
+                    >
+                      Centrar en mapa
+                    </button>
+                    <button
+                      className="rounded bg-red-500 px-2 py-1 text-xs font-medium text-white transition hover:bg-red-600"
+                      onClick={() => {
+                        setCancelTargetId(res._id);
+                        setCancelModalOpen(true);
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -434,6 +480,12 @@ const VehicleDashboard: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmCancelModal
+        isOpen={cancelModalOpen}
+        onClose={() => { setCancelModalOpen(false); setCancelTargetId(null); }}
+        onConfirm={handleConfirmCancel}
+        title="Confirmar cancelación de reserva"
+      />
     </div>
   );
 };

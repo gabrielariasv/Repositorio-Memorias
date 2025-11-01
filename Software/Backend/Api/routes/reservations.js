@@ -71,6 +71,27 @@ router.post('/', authenticateToken, async (req, res) => {
       });
     }
 
+    // Verificar que el vehículo no tenga otra reserva en ese rango de tiempo
+    const vehicleConflictingReservations = await Reservation.find({
+      vehicleId: vehicleId,
+      status: { $in: ['upcoming', 'active'] },
+      $or: [
+        // La nueva reserva comienza durante una reserva existente
+        { startTime: { $lte: start }, endTime: { $gt: start } },
+        // La nueva reserva termina durante una reserva existente
+        { startTime: { $lt: calculatedEndTime }, endTime: { $gte: calculatedEndTime } },
+        // La nueva reserva engloba completamente una reserva existente
+        { startTime: { $gte: start }, endTime: { $lte: calculatedEndTime } }
+      ]
+    });
+
+    if (vehicleConflictingReservations.length > 0) {
+      return res.status(409).json({ 
+        error: 'El vehículo ya tiene otra reserva en ese horario',
+        conflicts: vehicleConflictingReservations 
+      });
+    }
+
     // Crear la reserva
     const reservation = new Reservation({
       vehicleId,
