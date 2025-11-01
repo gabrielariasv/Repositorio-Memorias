@@ -23,6 +23,8 @@ type ChargerDto = {
   location?: any;
   chargerType?: string;
   powerOutput?: number;
+  energy_cost?: number; // CLP$ por kWh
+  parking_cost?: number; // CLP$ por minuto
 };
 
 export default function ChargerReservationPage() {
@@ -489,6 +491,8 @@ export default function ChargerReservationPage() {
                   <div><strong>Nombre:</strong> {charger.name || '—'}</div>
                   <div><strong>Tipo:</strong> {charger.chargerType || '—'}</div>
                   <div><strong>Potencia:</strong> {charger.powerOutput ? `${charger.powerOutput} kW` : '—'}</div>
+                  <div><strong>Costo energía:</strong> { (charger as any).energy_cost ? `CLP$ ${Math.ceil(Number((charger as any).energy_cost)).toLocaleString()} / kWh` : '—' }</div>
+                  <div><strong>Costo estacionamiento:</strong> { (charger as any).parking_cost ? `CLP$ ${Math.ceil(Number((charger as any).parking_cost)).toLocaleString()} / min` : '—' }</div>
                   {charger.location && (
                     <div>
                       <strong>Ubicación:</strong> {`${charger.location.lat?.toFixed?.(4) ?? '-'}, ${charger.location.lng?.toFixed?.(4) ?? '-'}`}
@@ -510,6 +514,7 @@ export default function ChargerReservationPage() {
                 <li>Verás tu reserva en color ámbar</li>
                 <li>También puedes editar las horas manualmente</li>
                 <li>Confirma para crear la reserva</li>
+                <div>*Se aplica el costo de estacionamiento, por cada minuto extra sobre la demora de la carga.</div>
               </ul>
             </div>
           </aside>
