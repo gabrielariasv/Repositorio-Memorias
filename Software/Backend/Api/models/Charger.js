@@ -10,6 +10,7 @@ const ChargerSchema = new mongoose.Schema({
   },
   chargerType: { type: String, enum: ['Type1', 'Type2', 'CCS', 'CHAdeMO', 'Tesla'] },
   powerOutput: Number,
+  energy_cost: { type: Number, min: 0 },
   status: { type: String, enum: ['available', 'occupied', 'maintenance'], default: 'available' },
   occupancyHistory: [{
     start: Date,

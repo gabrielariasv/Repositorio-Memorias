@@ -371,8 +371,10 @@ router.get('/recommendation', async (req, res) => {
         charger.location.coordinates[1],
         charger.location.coordinates[0]
       );
-      // Costo (asumir 1 unidad monetaria si no está definido)
-      const cost = charger.cost || 1;
+  // Costo por kWh (asumir 1 unidad monetaria si no está definido)
+  const unitCost = charger.energy_cost || 1;
+  // Costo total para aportar la energía necesaria (kWh * precio por kWh)
+  const totalCost = unitCost * energyNeeded;
       // Tiempo de carga necesario para aportar energyNeeded en este cargador (minutos)
       const tCarga = charger.powerOutput ? (energyNeeded / charger.powerOutput) * 60 : null;
        if (!tCarga) continue;
@@ -415,11 +417,11 @@ router.get('/recommendation', async (req, res) => {
       if (!found || (tDemora !== null && tDemora > (daysThreshold / (60 * 1000)))) continue;
 
       maxDist = Math.max(maxDist, dist);
-      maxCost = Math.max(maxCost, cost);
+  maxCost = Math.max(maxCost, totalCost);
       maxTime = Math.max(maxTime, tCarga);
       maxDemora = Math.max(maxDemora, tDemora);
 
-      results.push({ charger, dist, cost, tCarga, tDemora });
+  results.push({ charger, dist, cost: totalCost, unitCost, tCarga, tDemora });
     }
 
     // 4. Calcular performance solo para los reservables

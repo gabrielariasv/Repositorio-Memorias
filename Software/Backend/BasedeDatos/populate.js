@@ -75,6 +75,32 @@ function generateRandomName() {
   return names[Math.floor(Math.random() * names.length)];
 }
 
+// Generar costo de energía (media ~340, rango 300-500)
+function randomNormal(mean, std) {
+  // Box-Muller
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  const num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+  return mean + std * num;
+}
+
+function generateEnergyCost() {
+  const min = 300;
+  const max = 500;
+  const mean = 340;
+  const std = 40; // desviación típica razonable
+
+  // Intentar muestrear una normal truncada; si no entra en rango en varios intentos, usar uniforme de fallback
+  for (let i = 0; i < 10; i++) {
+    const v = Math.round(randomNormal(mean, std));
+    if (v >= min && v <= max) return v;
+  }
+
+  // Fallback: uniforme en rango
+  return Math.round(min + Math.random() * (max - min));
+}
+
 // Esquemas
 const UserSchema = new mongoose.Schema({
   originalId: Number,
@@ -114,6 +140,7 @@ const ChargerSchema = new mongoose.Schema({
   },
   chargerType: { type: String, enum: ['Type1', 'Type2', 'CCS', 'CHAdeMO', 'Tesla'] },
   powerOutput: Number,
+  energy_cost: Number,
   status: { type: String, enum: ['available', 'occupied', 'maintenance'], default: 'available' },
   occupancyHistory: [{
     start: Date,
@@ -395,6 +422,7 @@ async function importCSVData(filePath) {
             },
             chargerType: vehicle.chargerType, // Mismo tipo que el vehículo
             powerOutput: avgPower,
+            energy_cost: generateEnergyCost(),
             status: 'available'
           });
           await charger.save();
