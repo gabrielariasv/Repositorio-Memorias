@@ -101,6 +101,20 @@ function generateEnergyCost() {
   return Math.round(min + Math.random() * (max - min));
 }
 
+// Generar costo de estacionamiento (por minuto) — media 28, rango 22-30
+function generateParkingCost() {
+  const min = 22;
+  const max = 30;
+  const mean = 28;
+  const std = 2; // pequeña desviación
+
+  for (let i = 0; i < 10; i++) {
+    const v = Math.round(randomNormal(mean, std));
+    if (v >= min && v <= max) return v;
+  }
+  return Math.round(min + Math.random() * (max - min));
+}
+
 // Esquemas
 const UserSchema = new mongoose.Schema({
   originalId: Number,
@@ -141,6 +155,7 @@ const ChargerSchema = new mongoose.Schema({
   chargerType: { type: String, enum: ['Type1', 'Type2', 'CCS', 'CHAdeMO', 'Tesla'] },
   powerOutput: Number,
   energy_cost: Number,
+  parking_cost: Number,
   status: { type: String, enum: ['available', 'occupied', 'maintenance'], default: 'available' },
   occupancyHistory: [{
     start: Date,
@@ -423,6 +438,7 @@ async function importCSVData(filePath) {
             chargerType: vehicle.chargerType, // Mismo tipo que el vehículo
             powerOutput: avgPower,
             energy_cost: generateEnergyCost(),
+            parking_cost: generateParkingCost(),
             status: 'available'
           });
           await charger.save();

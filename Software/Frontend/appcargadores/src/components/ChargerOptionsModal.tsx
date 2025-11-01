@@ -96,7 +96,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       setLastRankingIds(rankingList.map((r: any) => r.charger?._id || r.chargerId || ''));
       setCurrentRankingIndex(0);
       const best = data.best;
-      const { charger, tCarga, tDemora } = best;
+      const { charger, tCarga, tDemora, cost, unitCost } = best;
       const now = new Date();
       const startTime = new Date(now.getTime() + (tDemora * 60 * 1000));
       const endTime = new Date(startTime.getTime() + (tCarga * 60 * 1000));
@@ -105,7 +105,9 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
         startTime,
         endTime,
         power: charger.powerOutput,
-        chargeTimeHours: tCarga / 60
+        chargeTimeHours: tCarga / 60,
+        cost, // costo total de la carga (moneda local)
+        unitCost // precio por kWh
       });
       setShowConfirm(true);
       // Centrar el mapa en la estación propuesta (si se proporcionó la función)
@@ -147,7 +149,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     setLoadingReserve(true);
     setFeedback(null);
     try {
-  const { charger, startTime, endTime } = proposal;
+      const { charger, startTime, endTime } = proposal;
       // Usar el endpoint de reservations (backend: routes/reservations.js -> POST /api/reservations)
       const reservationRes = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations`, {
         method: 'POST',
@@ -186,7 +188,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       const nextIndex = currentRankingIndex + 1;
       const next = ranking[nextIndex];
       setCurrentRankingIndex(nextIndex);
-      const { charger, tCarga, tDemora } = next;
+      const { charger, tCarga, tDemora, cost, unitCost } = next;
       const now = new Date();
       const startTime = new Date(now.getTime() + (tDemora * 60 * 1000));
       const endTime = new Date(startTime.getTime() + (tCarga * 60 * 1000));
@@ -195,7 +197,9 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
         startTime,
         endTime,
         power: charger.powerOutput,
-        chargeTimeHours: tCarga / 60
+        chargeTimeHours: tCarga / 60,
+        cost,
+        unitCost
       });
       setShowConfirm(true);
       // Centrar el mapa en la estación propuesta (si se proporcionó la función)
@@ -225,7 +229,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
         setLastRankingIds(newIds);
         setCurrentRankingIndex(0);
         const first = newRanking[0];
-        const { charger, tCarga, tDemora } = first;
+        const { charger, tCarga, tDemora, cost, unitCost } = first;
         const now = new Date();
         const startTime = new Date(now.getTime() + (tDemora * 60 * 1000));
         const endTime = new Date(startTime.getTime() + (tCarga * 60 * 1000));
@@ -234,7 +238,9 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           startTime,
           endTime,
           power: charger.powerOutput,
-          chargeTimeHours: tCarga / 60
+          chargeTimeHours: tCarga / 60,
+          cost,
+          unitCost
         });
         setShowConfirm(true);
         const loc2 = getChargerLatLng(charger);
@@ -284,7 +290,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           <div className="relative group">
             <span className="inline-block w-5 h-5 rounded-full bg-indigo-200 text-indigo-700 dark:bg-indigo-700 dark:text-indigo-100 text-center cursor-pointer select-none" style={{ fontSize: '16px', lineHeight: '20px' }}>?</span>
             <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 text-xs rounded shadow-lg p-3 z-50 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-200">
-              <b>¿Qué son las preferencias?</b><br/>
+              <b>¿Qué son las preferencias?</b><br />
               Ajusta la importancia relativa de cada factor en la recomendación automática:
               <ul className="list-disc ml-4 mt-1">
                 <li><b>Distancia</b>: Cuánto te importa la distancia hacia el cargador.</li>
@@ -414,6 +420,14 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           <div><b>Inicio:</b> {proposal.startTime.toLocaleString()}</div>
           <div><b>Fin:</b> {proposal.endTime.toLocaleString()}</div>
           <div><b>Tiempo estimado de carga:</b> {Math.round(proposal.chargeTimeHours * 60)} minutos</div>
+          <div>
+            <b>Costo estimado de la carga:</b>{' '}
+            {proposal.cost !== undefined
+              ? `CLP$ ${Math.ceil(Number(proposal.cost)).toLocaleString()}`
+              : proposal.unitCost !== undefined
+              ? `CLP$ ${Math.ceil(Number(proposal.unitCost)).toLocaleString()} / kWh`
+              : 'N/A'}
+          </div>
           <div className="flex gap-2 mt-4">
             <button className="flex-1 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold" onClick={confirmReservation} disabled={loadingReserve}>Aceptar</button>
             <button className="flex-1 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 font-semibold" onClick={() => { setProposal(null); setShowConfirm(false); }}>Cancelar</button>

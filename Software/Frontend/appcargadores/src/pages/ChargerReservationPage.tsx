@@ -270,6 +270,61 @@ export default function ChargerReservationPage() {
     return baseEvents;
   }, [events, selectionStart, selectionEnd]);
 
+  // Calcular porcentaje alcanzable durante la duración seleccionada (solo para reservas manuales)
+  const reachableInfo = useMemo(() => {
+    if (!selectionStart || !selectionEnd) return null;
+    if (!selectedVehicle) return null;
+    if (!charger || !charger.powerOutput) return null;
+
+    const batteryCapacity = Number(selectedVehicle.batteryCapacity || 0);
+    const currentLevel = Number(selectedVehicle.currentChargeLevel ?? 0);
+    if (!batteryCapacity || batteryCapacity <= 0) return null;
+
+    const durationHours = (selectionEnd.getTime() - selectionStart.getTime()) / (1000 * 60 * 60);
+    if (durationHours <= 0) return null;
+
+    // energía aproximada que entregará el cargador en kWh
+    const energyDelivered = Number(charger.powerOutput) * durationHours;
+    const percentGain = (energyDelivered / batteryCapacity) * 100;
+    const reachablePercent = Math.min(100, currentLevel + percentGain);
+
+    // Tiempo necesario para alcanzar el porcentaje calculado usando la potencia del cargador
+    let timeToReachHours = 0;
+    if (reachablePercent > currentLevel && Number(charger.powerOutput) > 0) {
+      const energyNeededToReach = batteryCapacity * ((reachablePercent - currentLevel) / 100);
+      const hoursNeeded = energyNeededToReach / Number(charger.powerOutput);
+      timeToReachHours = Math.min(durationHours, hoursNeeded);
+    }
+
+    // Energía necesaria para alcanzar ese porcentaje
+    const energyNeededToReach = batteryCapacity * ((reachablePercent - currentLevel) / 100);
+
+  // Precio por kWh del cargador (soporta varios nombres posibles)
+  const unitCost = Number((charger as any).energy_cost ?? (charger as any).energyCost ?? (charger as any).unitCost ?? 0);
+    const costEstimate = unitCost > 0 ? Math.ceil(energyNeededToReach * unitCost) : null;
+
+  // Cálculo de tiempo y costo de estacionamiento (solo cuando no se esté cargando)
+  const chargerParkingRatePerMin = Number((charger as any).parking_cost ?? 0); // CLP$ por minuto
+  const parkingTimeHours = Math.max(0, durationHours - timeToReachHours);
+  const parkingMinutes = Math.round(parkingTimeHours * 60);
+  const parkingCostEstimate = chargerParkingRatePerMin > 0 && parkingMinutes > 0 ? Math.ceil(parkingMinutes * chargerParkingRatePerMin) : null;
+
+    return {
+      durationHours,
+      energyDelivered,
+      percentGain,
+      reachablePercent,
+      timeToReachHours,
+      energyNeededToReach,
+      unitCost,
+      costEstimate
+      ,
+      parkingTimeHours,
+      parkingMinutes,
+      parkingCostEstimate
+    };
+  }, [selectionStart, selectionEnd, selectedVehicle, charger]);
+
   if (!chargerId) {
     return <div className="p-6 text-red-600 dark:text-red-400">Charger ID no especificado.</div>;
   }
@@ -383,7 +438,21 @@ export default function ChargerReservationPage() {
                       Duración de la reserva
                     </div>
                     <div className="text-sm text-amber-900 dark:text-amber-100">
-                      {Math.round((selectionEnd.getTime() - selectionStart.getTime()) / (1000 * 60 * 60) * 10) / 10} horas
+                          {Math.round((selectionEnd.getTime() - selectionStart.getTime()) / (1000 * 60 * 60) * 10) / 10} horas
+                        {reachableInfo && (
+                          <div className="mt-2 text-sm text-amber-900 dark:text-amber-100">
+                            <strong>Porcentaje alcanzable:</strong>{' '}
+                            {`${Math.round(reachableInfo.reachablePercent)}%`} en {Math.round(reachableInfo.timeToReachHours)} horas con
+                            {` ${Math.round(reachableInfo.timeToReachHours*60-Math.floor(reachableInfo.timeToReachHours*60))} minutos`}.
+                            {reachableInfo.costEstimate !== null && reachableInfo.costEstimate !== undefined && (
+                              <div className="mt-1"><strong>Costo estimado de la carga:</strong> CLP$ {Number(reachableInfo.costEstimate).toLocaleString()}</div>
+                            )}
+                            {reachableInfo.parkingMinutes !== null && reachableInfo.parkingMinutes !== undefined && reachableInfo.parkingMinutes > 0 && (
+                              <div className="mt-1"><strong>Tiempo de estacionamiento:</strong> {reachableInfo.parkingMinutes} minutos  <strong>Costo de estacionamiento:</strong> CLP$ {Number(reachableInfo.parkingCostEstimate).toLocaleString()}</div>
+                            )}
+                              <div><strong>Costo Total:</strong> CLP$ {Number(reachableInfo.costEstimate + reachableInfo.parkingCostEstimate).toLocaleString()}</div>
+                          </div>
+                        )}
                     </div>
                   </div>
                 )}
