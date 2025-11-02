@@ -548,14 +548,14 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       {proposal && showConfirm && (
         <div className="mt-6 w-full bg-indigo-50 dark:bg-indigo-800 rounded p-4 text-gray-800 dark:text-gray-100">
           <div className="mb-2 font-semibold">Propuesta de reserva:</div>
-          <div><b>Estación:</b> {proposal.charger.name}</div>
           {proposal.expectedChargePercent !== undefined && (
             <div><b>Carga hasta:</b> {proposal.expectedChargePercent}%</div>
           )}
-          <div><b>Potencia:</b> {Math.floor(proposal.power * 100)/100} kW</div>
           <div><b>Inicio:</b> {proposal.startTime.toLocaleString()}</div>
           <div><b>Fin:</b> {proposal.endTime.toLocaleString()}</div>
           <div><b>Tiempo estimado de carga:</b> {Math.round(proposal.chargeTimeHours * 60)} minutos</div>
+          <div><b>Estación:</b> {proposal.charger.name}</div>
+          <div><b>Potencia:</b> {Math.floor(proposal.power * 100)/100} kW</div>
           <div>
             <b>Costo estimado de la carga:</b>{' '}
             {proposal.cost !== undefined
