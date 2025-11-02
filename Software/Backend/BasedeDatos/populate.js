@@ -124,6 +124,8 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ['app_admin', 'station_admin', 'ev_user'] },
   ownedStations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Charger' }],
   vehicles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' }],
+  // Lista de estaciones favoritas (inicialmente vacía)
+  favoriteStations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Charger' }],
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -336,7 +338,8 @@ async function importCSVData(filePath) {
       name: 'Administrador Principal',
       email: 'admin@evcharging.com',
       password: adminPassword,
-      role: 'app_admin'
+      role: 'app_admin',
+      favoriteStations: []
     });
     await appAdmin.save();
     
@@ -346,7 +349,8 @@ async function importCSVData(filePath) {
       name: 'Administrador de Estaciones',
       email: 'stationadmin@evcharging.com',
       password: stationAdminPassword,
-      role: 'station_admin'
+      role: 'station_admin',
+      favoriteStations: []
     });
     await stationAdmin.save();
     
@@ -382,7 +386,8 @@ async function importCSVData(filePath) {
             name: generateRandomName(),
             email: `user${row.userId}@evcharging.com`,
             password: hashedPassword,
-            role: 'ev_user'
+            role: 'ev_user',
+            favoriteStations: []
           });
           await user.save();
           usersMap.set(row.userId, user);

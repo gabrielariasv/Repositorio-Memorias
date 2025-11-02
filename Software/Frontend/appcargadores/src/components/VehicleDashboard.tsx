@@ -6,6 +6,7 @@ import ChargerMap, { ChargerMapHandle, FlyToOptions } from './ChargerMap';
 import { getTravelTimeORS } from '../utils/getTravelTimeORS';
 import { useAuth } from '../contexts/useAuth';
 import { useEvVehicle } from '../contexts/useEvVehicle';
+import MyFavourites from './MyFavourites';
 
 interface Reservation {
   _id: string;
@@ -43,8 +44,10 @@ const VehicleDashboard: React.FC = () => {
   const [loadingReservations, setLoadingReservations] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showAllReservations, setShowAllReservations] = useState(false);
+  const [selectedTab, setSelectedTab] = useState<'reservations' | 'favourites'>('reservations');
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
+  const [favoriteRefreshKey, setFavoriteRefreshKey] = useState(0);
   const mapRef = useRef<ChargerMapHandle>(null);
   const optionsPanelRef = useRef<HTMLDivElement | null>(null);
   const isHistoryView = location.pathname === '/charging-history';
@@ -206,6 +209,12 @@ const VehicleDashboard: React.FC = () => {
       }
     }
   }, [userLocation]);
+
+  // callback para recibir actualización de favoritos desde ChargerMap
+  const handleFavoritesChange = useCallback((newFavIds: string[]) => {
+    // incrementar la key para forzar refresh en MyFavourites
+    setFavoriteRefreshKey(k => k + 1);
+  }, []);
 
   if (!evVehicleContext) {
     return (
@@ -402,7 +411,14 @@ const VehicleDashboard: React.FC = () => {
                 <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
                   <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">Mapa de cargadores</h2>
                   <div className="h-72 md:h-80 rounded overflow-hidden">
-                    <ChargerMap ref={mapRef} chargers={mappedChargers} userLocation={userLocation} onReserveCharger={handleReserveCharger} />
+                    <ChargerMap
+                      ref={mapRef}
+                      chargers={mappedChargers}
+                      userLocation={userLocation}
+                      onReserveCharger={handleReserveCharger}
+                      currentUser={user}
+                      onFavoritesChange={handleFavoritesChange}
+                    />
                   </div>
                 </section>
               </div>
@@ -410,8 +426,21 @@ const VehicleDashboard: React.FC = () => {
               <div className="h-full">
                 <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800 h-full flex flex-col">
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Próximas reservas</h2>
-                    {reservations.length > 0 && (
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setSelectedTab('reservations')}
+                        className={`px-3 py-1 rounded ${selectedTab === 'reservations' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'}`}
+                      >
+                        Próximas reservas
+                      </button>
+                      <button
+                        onClick={() => setSelectedTab('favourites')}
+                        className={`px-3 py-1 rounded ${selectedTab === 'favourites' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'}`}
+                      >
+                        Mis Favoritos
+                      </button>
+                    </div>
+                    {selectedTab === 'reservations' && reservations.length > 0 && (
                       <button
                         className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
                         onClick={() => setShowAllReservations(true)}
@@ -421,7 +450,12 @@ const VehicleDashboard: React.FC = () => {
                     )}
                   </div>
                   <div className="flex-1 overflow-y-auto">
-                    {renderReservationCards()}
+                    {selectedTab === 'reservations' && renderReservationCards()}
+                    {selectedTab === 'favourites' && user?._id && (
+                      <div className="p-2">
+                        <MyFavourites userId={user._id} onGoToReserve={handleReserveCharger} refreshKey={favoriteRefreshKey} />
+                      </div>
+                    )}
                   </div>
                 </section>
               </div>

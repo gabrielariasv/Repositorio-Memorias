@@ -30,10 +30,13 @@ type ChargerDto = {
 export default function ChargerReservationPage() {
   const { chargerId } = useParams<{ chargerId: string }>();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const evVehicleContext = useEvVehicle();
 
   const [charger, setCharger] = useState<ChargerDto | null>(null);
+  // favoritos
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [favLoading, setFavLoading] = useState<boolean>(false);
   const [events, setEvents] = useState<CalendarEventType[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +109,61 @@ export default function ChargerReservationPage() {
   useEffect(() => {
     fetchCalendar(currentDate);
   }, [chargerId, currentDate, fetchCalendar]);
+
+  // Comprobar si el cargador está en favoritos del usuario
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (!user?._id || !token || !chargerId) {
+        setIsFavorite(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/favourites/${user._id}`, {
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+        });
+        if (!res.ok) {
+          setIsFavorite(false);
+          return;
+        }
+        const data = await res.json();
+        const favs = Array.isArray(data.favoriteStations) ? data.favoriteStations.map((s:any) => (s._id ? String(s._id) : String(s))) : [];
+        setIsFavorite(favs.includes(String(chargerId)));
+      } catch (err) {
+        console.error('Error checking favorites:', err);
+        setIsFavorite(false);
+      }
+    };
+    checkFavorite();
+  }, [user, token, chargerId]);
+
+  // Alternar favorito (optimista)
+  const toggleFavorite = async () => {
+    if (!user?._id || !token) {
+      alert('Debes iniciar sesión para gestionar favoritos.');
+      return;
+    }
+    if (!chargerId) return;
+    setFavLoading(true);
+    const prev = isFavorite;
+    setIsFavorite(!prev); // optimista
+    try {
+      const method = prev ? 'DELETE' : 'POST';
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/favourites/${user._id}/${chargerId}`, {
+        method,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Error actualizando favoritos');
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+      setIsFavorite(prev); // revertir
+      alert('No se pudo actualizar favoritos. Intenta de nuevo.');
+    } finally {
+      setFavLoading(false);
+    }
+  };
 
   const handleDateChange = (newDate: Date) => {
     setCurrentDate(newDate);
@@ -337,24 +395,46 @@ export default function ChargerReservationPage() {
         <header className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Reservar cargador</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {charger ? charger.name : `Cargador ID: ${chargerId}`}
-            </p>
-            {selectedVehicle && (
-              <p className="text-sm text-indigo-600 dark:text-indigo-300 mt-1">
-                Vehículo: {selectedVehicle.model} ({selectedVehicle.chargerType})
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {charger ? charger.name : `Cargador ID: ${chargerId}`}
               </p>
-            )}
-          </div>
-
+              {/* Estrella favoritos junto al nombre */}
+              {user && (
+                <button
+                  onClick={toggleFavorite}
+                  disabled={favLoading}
+                  aria-label={isFavorite ? 'Quitar favorito' : 'Agregar favorito'}
+                  title={isFavorite ? 'Quitar favorito' : 'Agregar favorito'}
+                  className="inline-flex items-center justify-center p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  {isFavorite ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.97a1 1 0 00.95.69h4.178c.969 0 1.371 1.24.588 1.81l-3.385 2.46a1 1 0 00-.364 1.118l1.286 3.97c.3.92-.755 1.688-1.538 1.118l-3.385-2.46a1 1 0 00-1.176 0l-3.385 2.46c-.783.57-1.838-.197-1.538-1.118l1.286-3.97a1 1 0 00-.364-1.118L2.05 9.397c-.783-.57-.38-1.81.588-1.81h4.178a1 1 0 00.95-.69l1.286-3.97z" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.97a1 1 0 00.95.69h4.178c.969 0 1.371 1.24.588 1.81l-3.385 2.46a1 1 0 00-.364 1.118l1.286 3.97c.3.92-.755 1.688-1.538 1.118l-3.385-2.46a1 1 0 00-1.176 0l-3.385 2.46c-.783.57-1.838-.197-1.538-1.118l1.286-3.97a1 1 0 00-.364-1.118L2.05 9.397c-.783-.57-.38-1.81.588-1.81h4.178a1 1 0 00.95-.69l1.286-3.97z" />
+                    </svg>
+                  )}
+                </button>
+              )}
+            </div>
+           {selectedVehicle && (
+             <p className="text-sm text-indigo-600 dark:text-indigo-300 mt-1">
+               Vehículo: {selectedVehicle.model} ({selectedVehicle.chargerType})
+             </p>
+           )}
+           </div>
+ 
           <button
             onClick={() => navigate('/')}
-            className="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 dark:text-gray-100 text-gray-800 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors shadow-md"
           >
             Volver
           </button>
-        </header>
-
+         </header>
+ 
         {error && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded">
             {error}

@@ -181,7 +181,33 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       const longitude = userLocation?.lng ?? -70.6693;
       const chargersRes = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/nearby?latitude=${latitude}&longitude=${longitude}&maxDistance=100000`);
       const chargers = await chargersRes.json();
-      setChargersList(chargers);
+
+      // Obtener favoritos del usuario (si está autenticado) para marcar y ordenar
+      let favIds: string[] = [];
+      try {
+        const token = localStorage.getItem('token');
+        if (user && user._id && token) {
+          const favRes = await fetch(`${import.meta.env.VITE_API_URL}/api/favourites/${user._id}`, {
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+          });
+          if (favRes.ok) {
+            const favData = await favRes.json();
+            favIds = Array.isArray(favData.favoriteStations) ? favData.favoriteStations.map((s:any) => String(s._id || s)) : [];
+          }
+        }
+      } catch (e) {
+        // no bloquear si falla obtener favoritos
+        console.warn('No se pudieron obtener favoritos al listar cargadores:', e);
+        favIds = [];
+      }
+
+      // marcar isFavorite y ordenar (favoritas al inicio)
+      const mapped = Array.isArray(chargers) ? chargers.map((c:any) => ({
+        ...c,
+        isFavorite: favIds.includes(String(c._id))
+      })).sort((a:any,b:any) => (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0)) : [];
+
+      setChargersList(mapped);
       setShowChargerList(true);
     } catch {
       setFeedback('No se pudieron cargar los cargadores.');
@@ -517,9 +543,9 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
             }}
           >
             <option value="">Selecciona una estación...</option>
-            {chargersList.map(charger => (
+            {chargersList.map((charger:any) => (
               <option key={charger._id} value={charger._id}>
-                {charger.name} ({charger.powerOutput || charger.power} kW)
+                {charger.isFavorite ? '★ ' : ''}{charger.name} ({charger.powerOutput || charger.power} kW)
               </option>
             ))}
           </select>

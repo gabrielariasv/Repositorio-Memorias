@@ -8,6 +8,7 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ['app_admin', 'station_admin', 'ev_user'] },
   ownedStations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Charger' }],
   vehicles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' }],
+  favoriteStations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Charger' }],
   createdAt: { type: Date, default: Date.now }
 });
 

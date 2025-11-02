@@ -15,6 +15,7 @@ const usersRoutes = require('./routes/users');
 const notificationsRoutes = require('./routes/notifications');
 const reservationsRoutes = require('./routes/reservations');
 const recommendationsRoutes = require('./routes/recommendations');
+const favouritesRoutes = require('./routes/favourites');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,6 +48,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reservations', reservationsRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
+app.use('/api/favourites', favouritesRoutes);
 
 // Ruta de bienvenida
 app.get('/', (req, res) => {
