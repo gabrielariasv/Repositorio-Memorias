@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.app.cargadores',
-  appName: 'CargadoresApp',
+  appName: 'ECCODe',
   webDir: 'dist',
   server: {
     url: 'https://repositorio-memorias.onrender.com', // URL de tu app en Render

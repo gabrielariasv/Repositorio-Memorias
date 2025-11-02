@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "set:icon": "node scripts/use-eccode-icon.js",
+    "gen:assets": "npx @capacitor/assets generate --android --ios false",
+    "apply:icon": "npm run set:icon && npm run gen:assets && npx cap sync android"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.0",
@@ -37,6 +40,7 @@
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^9.25.0",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.2",
