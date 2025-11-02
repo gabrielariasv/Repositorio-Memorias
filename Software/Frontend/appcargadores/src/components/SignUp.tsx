@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/useAuth';
 
+// Tipos de cargador soportados por la plataforma
+const CHARGER_TYPES = ['CCS', 'CHAdeMO', 'Type2', 'Tesla'];
+
 interface SignUpProps {
   onCancel: () => void;
   onRegistered?: (email: string, password: string) => void;
@@ -26,8 +29,6 @@ const SignUp: React.FC<SignUpProps> = ({ onCancel, onRegistered }) => {
   // mostrar/ocultar contraseñas
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  // Tipos de cargador soportados por la plataforma
-  const CHARGER_TYPES = ['CCS', 'CHAdeMO', 'Type2', 'Tesla'];
 
   useEffect(() => {
     // Intentar cargar lista de vehículos (endpoint puede ajustarse)
@@ -247,10 +248,9 @@ const SignUp: React.FC<SignUpProps> = ({ onCancel, onRegistered }) => {
                 <div className="col-span-8">
                   <select value={manualChargerType} onChange={e => setManualChargerType(e.target.value)} className="w-full p-2 border rounded">
                     <option value="">Selecciona tipo...</option>
-                    <option value="CCS">CCS</option>
-                    <option value="CHAdeMO">CHAdeMO</option>
-                    <option value="Type2">Type2</option>
-                    <option value="Tesla">Tesla</option>
+                    {CHARGER_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
                     <option value="Other">Otro</option>
                   </select>
                   {manualChargerType === 'Other' && (
