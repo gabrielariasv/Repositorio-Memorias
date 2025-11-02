@@ -162,6 +162,12 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
             return null;
           }
 
+          // Obtener y formatear costo por kWh si existe
+          const rawUnitCost = (charger as any).energy_cost ?? (charger as any).unitCost ?? (charger as any).cost ?? undefined;
+          const unitCostStr = rawUnitCost !== undefined && rawUnitCost !== null
+            ? `CLP$ ${Math.ceil(Number(rawUnitCost)).toLocaleString()} / kWh`
+            : 'N/A';
+
           return (
             <Marker
               key={charger._id || charger.name}
@@ -188,7 +194,7 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
                   <br />
                   <div className="mt-1">
                     <span className="inline-block w-3 h-3 rounded-full mr-1 bg-green-500"></span>
-                    {(charger.type ?? charger.chargerType) ?? 'Tipo desconocido'} - {(charger.power ?? charger.powerOutput) ?? 'N/D'} kW
+                    {(charger.type ?? charger.chargerType) ?? 'Tipo desconocido'} - {(charger.power ?? charger.powerOutput) ?? 'N/D'} kW · <span className="font-medium">{unitCostStr}</span>
                   </div>
                   <div className="mt-2 text-sm">
                     {resolvedLocation.lat.toFixed(4)}, {resolvedLocation.lng.toFixed(4)}
