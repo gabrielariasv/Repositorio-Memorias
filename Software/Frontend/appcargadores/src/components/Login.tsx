@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/useAuth';
+import SignUp from './SignUp';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -7,6 +8,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const [showSignUp, setShowSignUp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +32,27 @@ const Login: React.FC = () => {
     
     setIsLoading(false);
   };
+
+  // Si el usuario abre el registro, mostrar el componente SignUp
+  if (showSignUp) {
+    return (
+      <SignUp
+        onCancel={() => setShowSignUp(false)}
+        onRegistered={async (registeredEmail: string, registeredPassword: string) => {
+          // intentar login automático después del registro
+          const ok = await login(registeredEmail, registeredPassword);
+          if (!ok) {
+            // si falla, volver al login con mensaje (usar setError que sí existe)
+            setError('Registro exitoso. Por favor inicia sesión.');
+            setShowSignUp(false);
+          } else {
+            // login exitoso, cerrar modal / vista
+            setShowSignUp(false);
+          }
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -89,20 +112,18 @@ const Login: React.FC = () => {
               {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </button>
           </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Credenciales de prueba:
-            </p>
-            <p className="text-xs text-gray-500">
-              Admin: admin@evcharging.com / admin123
-            </p>
-            <p className="text-xs text-gray-500">
-              Station Admin: stationadmin@evcharging.com / stationadmin123
-            </p>
-            <p className="text-xs text-gray-500">
-              Usuario: user[ID]@evcharging.com / user123
-            </p>
+          <div className="text-sm">
+              <button type="button" onClick={() => setShowSignUp(true)} className="font-medium text-indigo-600 hover:text-indigo-500">
+                Registrarse
+              </button>
+            </div>
+          <div className="flex items-center justify-between">
+            <div className="text-center">
+              <p className="text-sm text-gray-600">Credenciales de prueba:</p>
+              <p className="text-xs text-gray-500">Admin: admin@evcharging.com / admin123</p>
+              <p className="text-xs text-gray-500">Station Admin: stationadmin@evcharging.com / stationadmin123</p>
+              <p className="text-xs text-gray-500">Usuario: user[ID]@evcharging.com / user123</p>
+            </div>
           </div>
         </form>
       </div>
