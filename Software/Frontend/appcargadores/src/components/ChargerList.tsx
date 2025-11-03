@@ -308,6 +308,18 @@ function DesktopChargerList({
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
+                                  <span className="text-gray-600 dark:text-gray-400">Precio energía</span>
+                                  <span className="font-medium text-gray-800 dark:text-white">
+                                    {charger.energy_cost != null ? `${Number(charger.energy_cost)} CLP$/kWh` : 'No establecido'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
+                                  <span className="text-gray-600 dark:text-gray-400">Precio estacionamiento</span>
+                                  <span className="font-medium text-gray-800 dark:text-white">
+                                    {charger.parking_cost != null ? `${Number(charger.parking_cost)} CLP$/min` : 'No establecido'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
                                   <span className="text-gray-600 dark:text-gray-400">Estado actual</span>
                                   <span className={`font-medium ${status.text}`}>
                                     {getStatusText(charger.status)}
@@ -346,7 +358,7 @@ function DesktopChargerList({
                               className="px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-200 flex items-center gap-2 shadow-sm"
                             >
                               <i className="fas fa-edit"></i>
-                              Cambiar nombre
+                              Cambiar detalles
                             </button>
                           </div>
                         </div>
@@ -667,6 +679,16 @@ function MobileChargerList({
                               <p className="font-medium text-gray-800 dark:text-white">{powerOutput} kW</p>
                             </div>
                           </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-gray-500 dark:text-gray-400 mb-1">Precio energía</p>
+                              <p className="font-medium text-gray-800 dark:text-white">{charger.energy_cost != null ? `$${Number(charger.energy_cost).toFixed(2)} /kWh` : 'No establecido'}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 dark:text-gray-400 mb-1">Precio estacionamiento</p>
+                              <p className="font-medium text-gray-800 dark:text-white">{charger.parking_cost != null ? `$${Number(charger.parking_cost).toFixed(2)} /hr` : 'No establecido'}</p>
+                            </div>
+                          </div>
                           <div>
                             <p className="text-gray-500 dark:text-gray-400 mb-1">Coordenadas</p>
                             <div className="space-y-1 font-mono text-gray-800 dark:text-white">
@@ -723,6 +745,9 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
   const [renameName, setRenameName] = useState('');
   const [renameError, setRenameError] = useState<string | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
+  // Nuevos estados para costos editables
+  const [renameEnergyCost, setRenameEnergyCost] = useState<string>('');
+  const [renameParkingCost, setRenameParkingCost] = useState<string>('');
   const [highlightedChargerId, setHighlightedChargerId] = useState<string | null>(null);
   
   // Detectar si es móvil
@@ -788,6 +813,9 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
     setRenamingCharger(charger);
     setRenameName(charger.name ?? '');
     setRenameError(null);
+    // Inicializar los campos de costo (mostrar como string para input)
+    setRenameEnergyCost(charger.energy_cost != null ? String(charger.energy_cost) : '');
+    setRenameParkingCost(charger.parking_cost != null ? String(charger.parking_cost) : '');
   };
 
   const closeRenameModal = () => {
@@ -795,6 +823,8 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
     setRenamingCharger(null);
     setRenameName('');
     setRenameError(null);
+    setRenameEnergyCost('');
+    setRenameParkingCost('');
   };
 
   const handleRenameSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -813,6 +843,21 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
       return;
     }
 
+    // Validar valores numéricos de costos
+    const energyTrim = renameEnergyCost.trim();
+    const parkingTrim = renameParkingCost.trim();
+    const energyVal = energyTrim === '' ? null : parseFloat(energyTrim);
+    const parkingVal = parkingTrim === '' ? null : parseFloat(parkingTrim);
+    
+    if (energyVal !== null && (!isFinite(energyVal) || energyVal < 0 || energyVal > 10000)) {
+      setRenameError('El precio de energía debe ser un número válido >= 0.');
+      return;
+    }
+    if (parkingVal !== null && (!isFinite(parkingVal) || parkingVal < 0 || parkingVal > 10000)) {
+      setRenameError('El precio de estacionamiento debe ser un número válido >= 0.');
+      return;
+    }
+
     try {
       setIsRenaming(true);
       setRenameError(null);
@@ -825,10 +870,17 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
         headers.Authorization = `Bearer ${token}`;
       }
 
+      // Enviar nombre y costos (si están presentes enviar null o número)
+      const bodyPayload: Record<string, any> = {
+        name: trimmedName,
+        energy_cost: energyVal,
+        parking_cost: parkingVal
+      };
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/${renamingCharger._id}/name`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ name: trimmedName }),
+        body: JSON.stringify(bodyPayload),
       });
 
       if (!response.ok) {
@@ -845,7 +897,7 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
       }
 
       const result = await response.json();
-      const updatedCharger: Charger = result?.charger ?? { ...renamingCharger, name: trimmedName };
+      const updatedCharger: Charger = result?.charger ?? { ...renamingCharger, name: trimmedName, energy_cost: energyVal, parking_cost: parkingVal };
       applyChargerUpdate(updatedCharger);
       closeRenameModal();
     } catch (error: any) {
@@ -938,10 +990,10 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Renombrar cargador
+                  Cambiar detalles del cargador
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Actualiza el nombre para mejor identificación
+                  Actualiza el nombre y los precios para mejor identificación
                 </p>
               </div>
             </div>
@@ -950,6 +1002,21 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 Cargador actual: <span className="font-medium text-gray-800 dark:text-white">{renamingCharger.name}</span>
               </p>
+              {/* Precios apilados: cada uno en su fila */}
+              <div className="mt-2 text-sm text-gray-600 dark:text-gray-300 space-y-2">
+                <div>
+                  <div className="text-gray-600 text-sm">Precio energía</div>
+                  <div className="font-medium text-gray-800 dark:text-white">
+                    {renamingCharger.energy_cost != null ? `${Math.round(Number(renamingCharger.energy_cost))} CLP$/kWh` : 'No establecido'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-600 text-sm">Precio estacionamiento</div>
+                  <div className="font-medium text-gray-800 dark:text-white">
+                    {renamingCharger.parking_cost != null ? `${Math.round(Number(renamingCharger.parking_cost))} CLP$/min` : 'No establecido'}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <form onSubmit={handleRenameSubmit} className="space-y-4">
@@ -974,6 +1041,36 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
                     {renameError}
                   </div>
                 )}
+              </div>
+
+              {/* Campos para precios */}
+              <div className="grid grid-rows-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Precio energía (CLP$/kWh)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={renameEnergyCost}
+                    onChange={e => setRenameEnergyCost(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                    placeholder="Ej. 365"
+                    disabled={isRenaming}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Precio estacionamiento (CLP$/min)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={renameParkingCost}
+                    onChange={e => setRenameParkingCost(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                    placeholder="Ej. 29"
+                    disabled={isRenaming}
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
