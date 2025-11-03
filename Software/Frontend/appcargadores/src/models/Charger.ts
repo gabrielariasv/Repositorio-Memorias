@@ -32,5 +32,7 @@ export interface Charger {
     type: string;
     coordinates: [number, number]; // [longitude, latitude]
   };
+  energy_cost?: number;
+  parking_cost?: number;
   createdAt?: Date;
 }

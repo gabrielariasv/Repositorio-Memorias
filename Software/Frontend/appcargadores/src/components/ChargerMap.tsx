@@ -109,7 +109,7 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
       }
     };
     fetchFavorites();
-  }, [currentUser]);
+  }, [currentUser, onFavoritesChange]);
 
   // Toggle favorito (agregar/quitar)
   const toggleFavorite = async (chargerId: string) => {

@@ -211,7 +211,7 @@ const VehicleDashboard: React.FC = () => {
   }, [userLocation]);
 
   // callback para recibir actualización de favoritos desde ChargerMap
-  const handleFavoritesChange = useCallback((newFavIds: string[]) => {
+  const handleFavoritesChange = useCallback(() => {
     // incrementar la key para forzar refresh en MyFavourites
     setFavoriteRefreshKey(k => k + 1);
   }, []);
