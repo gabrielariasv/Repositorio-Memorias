@@ -7,6 +7,7 @@ interface MyFavouritesProps {
   refreshKey?: number;
 }
 
+// Componente: muestra y gestiona la lista de cargadores favoritos del usuario
 const MyFavourites: React.FC<MyFavouritesProps> = ({ userId, onGoToReserve, refreshKey }) => {
   const { token: authTokenFromContext } = useAuth() as any;
   const [favorites, setFavorites] = useState<any[]>([]);
@@ -14,7 +15,7 @@ const MyFavourites: React.FC<MyFavouritesProps> = ({ userId, onGoToReserve, refr
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const getToken = () => {
-    // prefer context token if available, fallback to localStorage
+    // Preferir token del contexto si está disponible, sino usar localStorage
     return authTokenFromContext ?? localStorage.getItem('token');
   };
 
@@ -60,7 +61,7 @@ const MyFavourites: React.FC<MyFavouritesProps> = ({ userId, onGoToReserve, refr
         alert(body.error || 'No se pudo eliminar de favoritos');
         return;
       }
-      // refrescar lista local
+      // Refrescar lista local
       await fetchFavorites();
     } catch (err) {
       console.error('Error removing favourite:', err);

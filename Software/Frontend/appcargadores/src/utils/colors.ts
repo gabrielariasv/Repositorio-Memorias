@@ -10,7 +10,7 @@ export function colorFromString(key: string, s = 64, l = 50): string {
   let hash = 0;
   for (let i = 0; i < key.length; i++) {
     hash = ((hash << 5) - hash) + key.charCodeAt(i);
-    hash |= 0; // convert to 32bit int
+    hash |= 0; // Convertir a entero de 32 bits
   }
   const hue = Math.abs(hash) % 360;
   // Usamos la notación HSL con espacios (soportada en CSS moderno)

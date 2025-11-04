@@ -9,12 +9,18 @@ const calcularDistancia = require('../utils/calcularDistancia');
 const Reservation = require('../models/Reservation');
 const { authenticateToken } = require('./auth');
 
-// Obtener todos los cargadores
+/**
+ * GET /api/chargers
+ * Obtener lista de cargadores con filtros opcionales y estado en tiempo real
+ * Los filtros permiten búsqueda por status y chargerType
+ * El estado se calcula dinámicamente según reservas activas
+ */
 router.get('/', async (req, res) => {
   try {
     const { status, chargerType } = req.query;
     let filter = {};
 
+    // Aplicar filtros si se proporcionan
     if (status) filter.status = status;
     if (chargerType) filter.chargerType = chargerType;
 
@@ -22,7 +28,7 @@ router.get('/', async (req, res) => {
       .populate('ownerId', 'name email')
       .populate('reservations');
 
-    // Calcular estado en tiempo real basándose en reservas activas
+    // PASO 1: Calcular estado en tiempo real basándose en reservas activas
     const now = new Date();
     const chargersWithRealTimeStatus = await Promise.all(chargers.map(async (charger) => {
       // Buscar si hay una reserva activa en este momento (usar calculatedEndTime)
@@ -49,7 +55,14 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Crear un nuevo cargador
+/**
+ * POST /api/chargers
+ * Crear un nuevo cargador (requiere autenticación)
+ * Validaciones:
+ * - Datos completos (nombre, tipo, potencia, ubicación)
+ * - Coordenadas en formato GeoJSON [longitud, latitud]
+ * - Permisos según rol (app_admin puede crear para cualquiera)
+ */
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const {
@@ -61,34 +74,41 @@ router.post('/', authenticateToken, async (req, res) => {
       ownerId: requestedOwnerId
     } = req.body;
 
+    // VALIDACIÓN 1: Datos completos
     if (!name || !chargerType || !powerOutput || !location?.coordinates || location.coordinates.length !== 2) {
       return res.status(400).json({ error: 'Datos del cargador incompletos' });
     }
 
+    // PASO 1: Determinar propietario (usa userId del token si no se especifica)
     const ownerId = requestedOwnerId || req.user.userId;
 
     if (!ownerId) {
       return res.status(400).json({ error: 'Se requiere un propietario para el cargador' });
     }
 
+    // VALIDACIÓN 2: Control de permisos
+    // Solo app_admin puede crear cargadores para otros usuarios
     if (req.user.role !== 'app_admin' && ownerId !== req.user.userId) {
       return res.status(403).json({ error: 'No tienes permiso para crear cargadores para este usuario' });
     }
 
+    // VALIDACIÓN 3: Verificar que el propietario existe
     const owner = await User.findById(ownerId);
     if (!owner) {
       return res.status(404).json({ error: 'Propietario no encontrado' });
     }
 
+    // PASO 2: Crear cargador
     const charger = await Charger.create({
       name: name.trim(),
       chargerType,
       powerOutput,
       status,
-      location,
+      location, // Formato GeoJSON: { type: 'Point', coordinates: [lng, lat] }
       ownerId
     });
 
+    // PASO 3: Agregar cargador a la lista de estaciones del propietario
     if (!owner.ownedStations.includes(charger._id)) {
       owner.ownedStations.push(charger._id);
       await owner.save();
@@ -101,7 +121,14 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Obtener cargadores cercanos a una ubicación
+/**
+ * GET /api/chargers/nearby
+ * Buscar cargadores cercanos usando consulta geoespacial
+ * Parámetros:
+ * - longitude, latitude: Ubicación de referencia (requeridos)
+ * - maxDistance: Distancia máxima en metros (default: 5000m = 5km)
+ * Solo retorna cargadores con status 'available'
+ */
 router.get('/nearby', async (req, res) => {
   try {
     const { longitude, latitude, maxDistance = 5000 } = req.query;
@@ -110,6 +137,8 @@ router.get('/nearby', async (req, res) => {
       return res.status(400).json({ error: 'Se requieren longitud y latitud' });
     }
 
+    // Usar índice geoespacial 2dsphere de MongoDB
+    // Consulta $near ordena resultados por distancia automáticamente
     const chargers = await Charger.find({
       location: {
         $near: {

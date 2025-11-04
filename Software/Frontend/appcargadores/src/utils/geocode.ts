@@ -5,7 +5,7 @@ const CACHE_KEY = 'geocode_cache_v1';
 const ROUND_DECIMALS = 4;
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/reverse';
 
-// helper: cache en localStorage (simple)
+// Lee caché de geocodificación desde localStorage
 function readCache(): Record<string, string> {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -14,6 +14,8 @@ function readCache(): Record<string, string> {
     return {};
   }
 }
+
+// Escribe caché de geocodificación a localStorage
 function writeCache(cache: Record<string, string>) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
@@ -21,6 +23,8 @@ function writeCache(cache: Record<string, string>) {
     // ignore
   }
 }
+
+// Genera clave de caché redondeando coordenadas a 4 decimales
 function coordKey(lat: number, lon: number) {
   return `${lat.toFixed(ROUND_DECIMALS)},${lon.toFixed(ROUND_DECIMALS)}`;
 }
@@ -46,7 +50,7 @@ export async function reverseGeocode(lat: number, lon: number, forceRefresh = fa
       lat: lat.toString(),
       lon: lon.toString(),
       addressdetails: '1',
-      'accept-language': 'es' // pedir resultados en español si están disponibles
+      'accept-language': 'es' // Pedir resultados en español si están disponibles
     };
 
     const headers: Record<string, string> = {
@@ -96,7 +100,7 @@ export async function reverseGeocode(lat: number, lon: number, forceRefresh = fa
     }
 
     return null;
-  } catch (err) {
+  } catch {
     // console.warn('reverseGeocode error', err);
     return null;
   }

@@ -14,12 +14,26 @@ export default function ChargerForm({ onSubmit, onCancel }: ChargerFormProps) {
   const [power, setPower] = useState<number>(50);
   const [position, setPosition] = useState<[number, number]>([40.416775, -3.703790]);
 
+  /**
+   * Handler: Enviar formulario de nuevo cargador
+   * 
+   * Proceso:
+   * 1. Prevenir recarga de página (preventDefault)
+   * 2. Construir objeto cargador con datos del form
+   * 3. Convertir coordenadas [lat, lng] a GeoJSON [lng, lat]
+   * 4. Llamar callback onSubmit del padre
+   * 
+   * Nota: GeoJSON usa [longitude, latitude], invertido del estándar [lat, lng]
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Construir objeto con formato esperado por backend
     onSubmit({
       name,
       chargerType: type,
       powerOutput: power,
+      // GeoJSON requiere [lng, lat] (invertido)
       location: { type: 'Point', coordinates: [position[1], position[0]] },
       status: 'available'
     });

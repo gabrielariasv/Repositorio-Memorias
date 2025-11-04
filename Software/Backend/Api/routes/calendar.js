@@ -6,19 +6,23 @@ const ChargingSession = require('../models/ChargingSession');
 const Reservation = require('../models/Reservation');
 const moment = require('moment');
 
-// Calendario para un vehículo específico
+/**
+ * GET /api/calendar/vehicle/:vehicleId
+ * Obtener calendario de un vehículo específico
+ * Combina sesiones de carga y reservas en formato de eventos
+ */
 router.get('/vehicle/:vehicleId', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     const vehicleId = req.params.vehicleId;
     
-    // Verificar que el vehículo existe
+    // VALIDACIÓN: Verificar que el vehículo existe
     const vehicle = await Vehicle.findById(vehicleId);
     if (!vehicle) {
       return res.status(404).json({ error: 'Vehículo no encontrado' });
     }
     
-    // Construir filtro de fecha
+    // PASO 1: Construir filtro de rango de fechas
     let dateFilter = {};
     if (startDate && endDate) {
       dateFilter = {
@@ -33,7 +37,7 @@ router.get('/vehicle/:vehicleId', async (req, res) => {
       };
     }
     
-    // Obtener sesiones de carga
+    // PASO 2: Obtener sesiones de carga del vehículo
     const sessions = await ChargingSession.find({
       vehicleId,
       ...dateFilter
@@ -41,7 +45,7 @@ router.get('/vehicle/:vehicleId', async (req, res) => {
     .populate('chargerId', 'name location')
     .sort({ startTime: 1 });
     
-    // Obtener reservaciones
+    // PASO 3: Obtener reservaciones del vehículo
     const reservations = await Reservation.find({
       vehicleId,
       ...dateFilter
@@ -49,7 +53,7 @@ router.get('/vehicle/:vehicleId', async (req, res) => {
     .populate('chargerId', 'name location')
     .sort({ startTime: 1 });
     
-    // Combinar y formatear eventos para el calendario
+    // PASO 4: Combinar y formatear eventos para el calendario
     const events = [
       ...sessions.map(session => ({
         id: session._id,
@@ -81,19 +85,23 @@ router.get('/vehicle/:vehicleId', async (req, res) => {
   }
 });
 
-// Calendario para un cargador específico
+/**
+ * GET /api/calendar/charger/:chargerId
+ * Obtener calendario completo de un cargador específico
+ * Incluye eventos (sesiones + reservas) y disponibilidad para próximos 7 días
+ */
 router.get('/charger/:chargerId', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     const chargerId = req.params.chargerId;
     
-    // Verificar que el cargador existe
+    // VALIDACIÓN: Verificar que el cargador existe
     const charger = await Charger.findById(chargerId);
     if (!charger) {
       return res.status(404).json({ error: 'Cargador no encontrado' });
     }
     
-    // Construir filtro de fecha
+    // PASO 1: Construir filtro de rango de fechas
     let dateFilter = {};
     if (startDate && endDate) {
       dateFilter = {
@@ -108,7 +116,7 @@ router.get('/charger/:chargerId', async (req, res) => {
       };
     }
     
-    // Obtener sesiones de carga
+    // PASO 2: Obtener sesiones de carga del cargador
     const sessions = await ChargingSession.find({
       chargerId,
       ...dateFilter
@@ -116,7 +124,7 @@ router.get('/charger/:chargerId', async (req, res) => {
     .populate('vehicleId', 'model chargerType')
     .sort({ startTime: 1 });
     
-    // Obtener reservaciones
+    // PASO 3: Obtener reservaciones del cargador
     const reservations = await Reservation.find({
       chargerId,
       ...dateFilter
@@ -125,7 +133,7 @@ router.get('/charger/:chargerId', async (req, res) => {
     .populate('userId', 'name')
     .sort({ startTime: 1 });
     
-    // Combinar y formatear eventos para el calendario
+    // PASO 4: Combinar y formatear eventos para el calendario
     const events = [
       ...sessions.map(session => ({
         id: session._id,
@@ -149,12 +157,12 @@ router.get('/charger/:chargerId', async (req, res) => {
       }))
     ].sort((a, b) => a.start - b.start);
     
-    // Calcular disponibilidad futura
+    // PASO 5: Calcular disponibilidad futura (próximos 7 días)
     const availability = [];
     const now = new Date();
-    const futureEnd = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 días en el futuro
+    const futureEnd = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
     
-    // Agrupar eventos por día
+    // Agrupar eventos por día usando moment
     const eventsByDay = {};
     events.forEach(event => {
       const day = moment(event.start).format('YYYY-MM-DD');
@@ -164,13 +172,13 @@ router.get('/charger/:chargerId', async (req, res) => {
       eventsByDay[day].push(event);
     });
     
-    // Generar disponibilidad para los próximos 7 días
+    // PASO 6: Generar disponibilidad para cada uno de los próximos 7 días
     for (let i = 0; i < 7; i++) {
       const date = new Date(now.getTime() + (i * 24 * 60 * 60 * 1000));
       const dayStr = moment(date).format('YYYY-MM-DD');
       const dayEvents = eventsByDay[dayStr] || [];
       
-      // Calcular horas ocupadas
+      // Calcular franjas horarias ocupadas
       const busySlots = [];
       dayEvents.forEach(event => {
         busySlots.push({
@@ -179,6 +187,7 @@ router.get('/charger/:chargerId', async (req, res) => {
         });
       });
       
+      // Calcular horas disponibles (24h - horas ocupadas)
       availability.push({
         date: dayStr,
         busySlots,
@@ -200,12 +209,17 @@ router.get('/charger/:chargerId', async (req, res) => {
   }
 });
 
-// Disponibilidad de un cargador para reservación
+/**
+ * GET /api/calendar/charger/:chargerId/availability
+ * Verificar disponibilidad de un cargador en un rango de tiempo específico
+ * Chequea solapamiento con reservas y sesiones existentes
+ */
 router.get('/charger/:chargerId/availability', async (req, res) => {
   try {
     const { startTime, endTime } = req.query;
     const chargerId = req.params.chargerId;
 
+    // VALIDACIÓN: Verificar parámetros requeridos
     if (!startTime || !endTime) {
       return res.status(400).json({ error: 'Se requieren los parámetros startTime y endTime' });
     }
@@ -213,7 +227,7 @@ router.get('/charger/:chargerId/availability', async (req, res) => {
     const start = new Date(startTime);
     const end = new Date(endTime);
 
-    // Buscar reservas existentes que se solapen
+    // PASO 1: Buscar reservas existentes que se solapen con el rango solicitado
     const overlappingReservations = await Reservation.findOne({
       chargerId,
       $or: [
@@ -223,13 +237,14 @@ router.get('/charger/:chargerId/availability', async (req, res) => {
       status: { $in: ['upcoming', 'active'] }
     });
 
-    // Buscar sesiones de carga existentes que se solapen
+    // PASO 2: Buscar sesiones de carga existentes que se solapen
     const overlappingSessions = await ChargingSession.findOne({
       chargerId,
       startTime: { $lt: end },
       endTime: { $gt: start }
     });
 
+    // PASO 3: Determinar disponibilidad (disponible solo si no hay solapamientos)
     const available = !overlappingReservations && !overlappingSessions;
 
     res.json({ available });
@@ -238,7 +253,11 @@ router.get('/charger/:chargerId/availability', async (req, res) => {
   }
 });
 
-// Crear una nueva reserva
+/**
+ * POST /api/calendar/reservation
+ * Crear una nueva reserva validando disponibilidad del cargador
+ * Previene conflictos con reservas y sesiones existentes
+ */
 router.post('/reservation', async (req, res) => {
   try {
     const {
@@ -253,16 +272,17 @@ router.post('/reservation', async (req, res) => {
       bufferTime
     } = req.body;
 
-    // Validar campos requeridos
+    // VALIDACIÓN: Verificar campos requeridos
     if (!vehicleId || !chargerId || !userId || !startTime || !endTime || !calculatedEndTime) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
     }
 
-    // Validar solapamiento de reservas y sesiones de carga
+    // PASO 1: Preparar rango de tiempo para validación de conflictos
     const start = new Date(startTime);
     const end = new Date(calculatedEndTime);
 
-    // Buscar reservas existentes que se solapen
+    // PASO 2: Buscar reservas existentes que se solapen con el rango solicitado
+    // Usa $or para detectar cualquier tipo de solapamiento
     const overlappingReservations = await Reservation.findOne({
       chargerId,
       $or: [
@@ -272,18 +292,19 @@ router.post('/reservation', async (req, res) => {
       status: { $in: ['upcoming', 'active'] }
     });
 
-    // Buscar sesiones de carga existentes que se solapen
+    // PASO 3: Buscar sesiones de carga existentes que se solapen
     const overlappingSessions = await ChargingSession.findOne({
       chargerId,
       startTime: { $lt: end },
       endTime: { $gt: start }
     });
 
+    // VALIDACIÓN: Rechazar si hay conflictos
     if (overlappingReservations || overlappingSessions) {
       return res.status(409).json({ error: 'El cargador ya está reservado u ocupado en ese horario.' });
     }
 
-    // Crear la reserva
+    // PASO 4: Crear la nueva reserva
     const reservation = new Reservation({
       vehicleId,
       chargerId,

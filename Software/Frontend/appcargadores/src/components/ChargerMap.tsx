@@ -4,10 +4,10 @@ import L from 'leaflet';
 import { Charger } from '../models/Charger';
 
 interface MapCentererProps {
-  center?: { lat: number; lng: number } | null;
+  center?: { lat: number, lng: number } | null;
 }
 
-// Componente auxiliar para centrar el mapa cuando cambie la prop center
+// Componente auxiliar: centrar el mapa cuando cambie la prop center
 function MapCenterer({ center }: MapCentererProps) {
   const map = useMap();
   useEffect(() => {
@@ -18,6 +18,7 @@ function MapCenterer({ center }: MapCentererProps) {
   return null;
 }
 
+// Componente auxiliar: proporciona instancia del mapa a callbacks externos
 function MapInstanceSetter({ onReady }: { onReady: (map: L.Map) => void }) {
   const map = useMap();
 
@@ -28,7 +29,7 @@ function MapInstanceSetter({ onReady }: { onReady: (map: L.Map) => void }) {
   return null;
 }
 
-// Crea íconos para modo claro y oscuro
+// Iconos de marcador para modo claro y oscuro
 const lightIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -67,10 +68,11 @@ interface ChargerMapProps {
   center?: { lat: number, lng: number } | null;
   onReserveCharger?: (chargerId: string) => void;
   onChargerClick?: (chargerId: string) => void;
-  currentUser?: any; // objeto usuario proveniente del contexto (contiene _id)
+  currentUser?: any; // Objeto usuario proveniente del contexto (contiene _id)
   onFavoritesChange?: (favoriteIds: string[]) => void;
 }
 
+// Extrae coordenadas lat/lng de la ubicación del cargador (soporta ambos formatos)
 const resolveLatLng = (location: ChargerWithLatLng['location']) => {
   const lat = typeof location.lat === 'number' ? location.lat : location.coordinates?.[1];
   const lng = typeof location.lng === 'number' ? location.lng : location.coordinates?.[0];
@@ -102,7 +104,7 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
         const data = await res.json();
         const favs = Array.isArray(data.favoriteStations) ? data.favoriteStations.map((s:any) => s._id) : [];
         setFavoriteIds(new Set(favs));
-        // notificar al padre (si se proporcionó)
+        // Notificar al componente padre (si se proporcionó)
         if (typeof onFavoritesChange === 'function') onFavoritesChange(favs);
       } catch (err) {
         console.error('No se pudieron obtener favoritos del usuario:', err);
@@ -234,7 +236,7 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
         {/* Marcador de usuario */}
         {userLocation && (
           <Marker position={[userLocation.lat, userLocation.lng]} icon={L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/64/64113.png', // icono azul
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/64/64113.png', // Icono azul
             iconSize: [32, 32],
             iconAnchor: [16, 32],
           })}>
@@ -297,10 +299,10 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
                         {favoriteIds.has(charger._id) ? (
                           // estrella amarilla llena
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.97a1 1 0 00.95.69h4.178c.969 0 1.371 1.24.588 1.81l-3.385 2.46a1 1 0 00-.364 1.118l1.286 3.97c.3.92-.755 1.688-1.538 1.118l-3.385-2.46a1 1 0 00-1.176 0l-3.385 2.46c-.783.57-1.838-.197-1.538-1.118l1.286-3.97a1 1 0 00-.364-1.118L2.05 9.397c-.783-.57-.38-1.81.588-1.81h4.178a1 1 0 00.95-.69l1.286-3.97z" />
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
                         ) : (
-                          // estrella vacía
+                          // Estrella vacía
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.97a1 1 0 00.95.69h4.178c.969 0 1.371 1.24.588 1.81l-3.385 2.46a1 1 0 00-.364 1.118l1.286 3.97c.3.92-.755 1.688-1.538 1.118l-3.385-2.46a1 1 0 00-1.176 0l-3.385 2.46c-.783.57-1.838-.197-1.538-1.118l1.286-3.97a1 1 0 00-.364-1.118L2.05 9.397c-.783-.57-.38-1.81.588-1.81h4.178a1 1 0 00.95-.69l1.286-3.97z" />
                           </svg>

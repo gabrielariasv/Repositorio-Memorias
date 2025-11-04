@@ -52,10 +52,12 @@ const VehicleDashboard: React.FC = () => {
   const optionsPanelRef = useRef<HTMLDivElement | null>(null);
   const isHistoryView = location.pathname === '/charging-history';
 
-  // Obtener todos los cargadores para el mapa
+  // Efecto: Obtener todos los cargadores disponibles para mostrar en el mapa
   useEffect(() => {
     const fetchNearbyChargers = async () => {
       try {
+        // Llamar API con un radio muy amplio para obtener todos los cargadores
+        // Coordenadas de Santiago, Chile como centro de referencia
         const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/nearby?latitude=-33.4489&longitude=-70.6693&maxDistance=1000000`);
         if (!response.ok) {
           throw new Error('No se pudieron obtener los cargadores cercanos');
@@ -71,27 +73,34 @@ const VehicleDashboard: React.FC = () => {
     fetchNearbyChargers();
   }, []);
 
-  // Obtener ubicación del usuario (geolocalización)
+  // Efecto: Obtener ubicación actual del usuario mediante Geolocation API
   useEffect(() => {
+    // 1. Verificar disponibilidad de geolocalización en el navegador
     if (!('geolocation' in navigator)) {
+      // Alternativa: usar coordenadas de Santiago como predeterminadas
       setUserLocation({ lat: -33.4489, lng: -70.6693 });
       return;
     }
 
+    // 2. Callback exitoso: guardar coordenadas del usuario
     const handleSuccess = (pos: GeolocationPosition) => {
       setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     };
 
+    // 3. Callback de error: usar ubicación default
     const handleError = () => {
       setUserLocation({ lat: -33.4489, lng: -70.6693 });
     };
 
+    // 4. Solicitar ubicación actual
     navigator.geolocation.getCurrentPosition(handleSuccess, handleError);
   }, []);
 
+  // Función: Obtener reservas activas del vehículo seleccionado
   const fetchReservations = useCallback(async (vehicleId: string) => {
     setLoadingReservations(true);
     try {
+      // Llamar endpoint de reservas actuales/futuras
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/vehicles/${vehicleId}/actual`);
       if (!response.ok) {
         throw new Error('No se pudieron obtener las reservas');
@@ -106,9 +115,11 @@ const VehicleDashboard: React.FC = () => {
     }
   }, []);
 
+  // Función: Obtener historial completo de sesiones de carga
   const fetchChargingHistory = useCallback(async (vehicleId: string) => {
     setLoadingHistory(true);
     try {
+      // Llamar endpoint de historial de cargas
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/vehicles/${vehicleId}/charging-history`);
       if (!response.ok) {
         throw new Error('No se pudo obtener el historial de carga');
@@ -123,31 +134,48 @@ const VehicleDashboard: React.FC = () => {
     }
   }, []);
 
+  // Callback: Navegar a página de reserva de un cargador específico
   const handleReserveCharger = useCallback((chargerId: string) => {
     navigate(`/chargers/${chargerId}/reserve`);
   }, [navigate]);
  
-
+  // Efecto: Recargar datos cuando cambia el vehículo seleccionado
   useEffect(() => {
+    // Si no hay vehículo seleccionado, limpiar datos
     if (!evVehicleContext?.selectedVehicle?._id) {
       setReservations([]);
       setChargingHistory([]);
       return;
     }
 
+    // Cargar reservas e historial del vehículo actual
     fetchReservations(evVehicleContext.selectedVehicle._id);
     fetchChargingHistory(evVehicleContext.selectedVehicle._id);
   }, [evVehicleContext?.selectedVehicle?._id, fetchReservations, fetchChargingHistory]);
 
+  // Extraer datos del contexto de vehículos con valores default
   const vehicles = evVehicleContext?.vehicles ?? [];
   const selectedVehicle = evVehicleContext?.selectedVehicle ?? null;
   const vehiclesLoading = evVehicleContext?.loading ?? false;
   const vehiclesError = evVehicleContext?.error ?? null;
 
+  /**
+   * Función: Confirmar cancelación de reserva con motivo específico
+   * 
+   * Proceso:
+   * 1. Validar que hay una reserva seleccionada para cancelar
+   * 2. Enviar solicitud POST a API con motivo de cancelación
+   * 3. Manejar errores y mostrar mensajes al usuario
+   * 4. Refrescar lista de reservas tras cancelación exitosa
+   */
   const handleConfirmCancel = useCallback(async (reason: 'indisponibilidad' | 'mantenimiento' | 'falta_tiempo' | 'otro') => {
     if (!cancelTargetId) return;
+    
     try {
+      // 1. Preparar autenticación
       const token = localStorage.getItem('token');
+      
+      // 2. Enviar solicitud de cancelación con motivo
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations/${cancelTargetId}/cancel`, {
         method: 'POST',
         headers: {
@@ -156,12 +184,15 @@ const VehicleDashboard: React.FC = () => {
         },
         body: JSON.stringify({ reason })
       });
+      
+      // 3. Manejar errores de la API
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         alert(err.error || 'No se pudo cancelar la reserva');
         return;
       }
-      // cerrar modal y refrescar reservas
+      
+      // 4. Cerrar modal y refrescar datos
       setCancelModalOpen(false);
       setCancelTargetId(null);
       if (selectedVehicle?._id) {
@@ -173,12 +204,22 @@ const VehicleDashboard: React.FC = () => {
     }
   }, [cancelTargetId, fetchReservations, selectedVehicle]);
 
+  /**
+   * Memo: Transformar cargadores a formato consistente para el mapa
+   * 
+   * Normaliza estructura de datos para compatibilidad con ChargerMap:
+   * - Unifica 'power' y 'powerOutput' a un solo campo 'power'
+   * - Convierte coordenadas GeoJSON a formato lat/lng
+   * - Redondea valores numéricos a 2 decimales
+   */
   const mappedChargers = useMemo(() =>
     allChargers.map((charger) => ({
       ...charger,
+      // Normalizar campo de potencia
       power: typeof (charger.power ?? charger.powerOutput) === 'number'
         ? Number((charger.power ?? charger.powerOutput).toFixed(2))
         : charger.power ?? charger.powerOutput,
+      // Normalizar ubicación: GeoJSON [lng, lat] -> {lat, lng}
       location: {
         ...charger.location,
         lat: charger.location?.coordinates?.[1] ?? charger.location?.lat ?? 0,
@@ -187,14 +228,26 @@ const VehicleDashboard: React.FC = () => {
     })),
   [allChargers]);
 
+  /**
+   * Callback: Centrar mapa en un cargador y calcular tiempo de viaje
+   * 
+   * Proceso:
+   * 1. Validar que hay coordenadas válidas
+   * 2. Usar mapRef para hacer flyTo (animación suave)
+   * 3. Si hay ubicación del usuario, calcular tiempo de viaje con ORS
+   * 4. Mostrar notificación con tiempo estimado
+   */
   const handleCenterOnMap = useCallback(async (options: FlyToOptions | null) => {
     if (!options) {
       return;
     }
+    
+    // 1. Centrar mapa en el cargador seleccionado
     if (mapRef.current) {
       mapRef.current.flyTo({ lat: options.lat, lng: options.lng, zoom: options.zoom ?? 17 });
     }
 
+    // 2. Calcular tiempo de viaje si hay ubicación del usuario
     if (userLocation) {
       const apiKey = import.meta.env.VITE_ORS_API_KEY;
       if (apiKey) {

@@ -30,7 +30,7 @@ export interface Charger {
   status: 'available' | 'occupied' | 'maintenance';
   location: {
     type: string;
-    coordinates: [number, number]; // [longitude, latitude]
+    coordinates: [number, number]; // [longitud, latitud]
   };
   energy_cost?: number;
   parking_cost?: number;

@@ -101,7 +101,22 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
     return <div className="text-center py-4 text-red-500">Error: {error}</div>;
   }
 
-  // Agrupar por día usando YYYY-MM-DD (ordenable lexicográficamente)
+  /**
+   * Procesamiento de datos para Chart.js
+   * 
+   * Objetivo: Agrupar sesiones de carga por día y calcular energía total entregada.
+   * 
+   * Pasos:
+   * 1. Iterar sesiones y extraer fecha en formato 'YYYY-MM-DD' (ISO slice)
+   * 2. Acumular energyDelivered por cada fecha única
+   * 3. Ordenar fechas ascendentemente (orden lexicográfico funciona con YYYY-MM-DD)
+   * 4. Crear labels legibles con toLocaleDateString()
+   * 
+   * Razón del formato YYYY-MM-DD:
+   * - Ordenable como string sin parsear fechas
+   * - Compatible con múltiples zonas horarias
+   * - Evita duplicados por diferencias de hora
+   */
   const energyByDay: { [key: string]: number } = {};
   sessions.forEach(session => {
     const key = session.startTime.toISOString().slice(0, 10); // 'YYYY-MM-DD'
@@ -152,6 +167,25 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
         },
         padding: 10
       },
+      /**
+       * Configuración de zoom/pan para UX optimizada
+       * 
+       * Características:
+       * - limits: Previene zoom/pan más allá de los datos
+       *   - min: 0 (primer dato)
+       *   - max: sortedDates.length - 1 (último dato)
+       *   - minRange: 2 (siempre mostrar al menos 2 barras)
+       * 
+       * - zoom: Rueda del mouse y pinch en touch
+       *   - mode: 'x' (solo zoom horizontal, no vertical)
+       * 
+       * - pan: Arrastrar para desplazar
+       *   - threshold: 10px (evita clicks accidentales como pan)
+       * 
+       * Optimización móvil:
+       * - touch-manipulation CSS class (en contenedor)
+       * - touchAction: 'pan-x pinch-zoom' (permite gestos nativos)
+       */
       zoom: {
         limits: {
           x: { min: 0, max: sortedDates.length - 1, minRange: 2 }
@@ -206,9 +240,9 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
   };
 
   const handleResetZoom = () => {
-    // react-chartjs-2 exposes chart instance via ref if needed; simplest is to rely on plugin reset by rerender
-    // as a quick UX, force a key change to remount chart
-    setChartKey(prev => prev + 1);
+    // react-chartjs-2 expone la instancia del gráfico vía ref si es necesario; lo más simple es confiar en el reinicio del plugin mediante re-renderizado
+    // como una UX rápida, forzar un cambio de key para remontar el gráfico
+    setChartKey((prevKey) => prevKey + 1);
   };
 
   return (

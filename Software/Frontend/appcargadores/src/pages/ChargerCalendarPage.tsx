@@ -45,12 +45,14 @@ const COLORS_BY_TYPE: Record<string, string> = {
   default: '#9e9e9e'
 };
 
+// Asigna color según tipo de evento (sesión, reserva, etc.)
 function colorForApiEvent(e: ApiEvent) {
   if (e.type === 'session') return COLORS_BY_TYPE.session;
   if (e.type === 'reservation') return COLORS_BY_TYPE.reservation;
   return COLORS_BY_TYPE.default;
 }
 
+// Calcula disponibilidad horaria por día fusionando eventos ocupados
 function computeAvailabilityFromCalEvents(events: CalEvent[], daysAhead = 7): AvailabilityDay[] {
   const grouped = groupEventsByDay(events);
   const now = new Date();

@@ -17,6 +17,7 @@ import {
 import { es } from 'date-fns/locale';
 import { MonthlyCalendarProps } from '../../types';
 
+// Componente: calendario mensual con selector de fecha y eventos
 const MonthlyCalendar = ({ currentDate, onDateChange, events }: MonthlyCalendarProps) => {
   const [month, setMonth] = useState<Date[][]>([]);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
@@ -128,7 +129,7 @@ const MonthlyCalendar = ({ currentDate, onDateChange, events }: MonthlyCalendarP
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 21 }, (_, i) => currentYear - 10 + i);
 
-  // helper para dot classes según tipo
+  // Auxiliar para clases CSS de puntos según tipo
   const dotClassFor = (type: string) => {
     if (type === 'future') return 'bg-[#2196f3] dark:bg-[#1e88e5]';
     if (type === 'past') return 'bg-gray-500 dark:bg-gray-600';
@@ -251,7 +252,7 @@ const MonthlyCalendar = ({ currentDate, onDateChange, events }: MonthlyCalendarP
   );
 };
 
-// WheelPicker - mantiene comportamiento, con clases dark
+// WheelPicker - Mantiene comportamiento, con clases dark
 interface WheelPickerProps {
   currentDate: Date;
   onDateChange: (day: number, month: number, year: number) => void;

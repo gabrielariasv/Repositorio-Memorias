@@ -7,6 +7,7 @@ interface ConfirmCancelModalProps {
   title?: string;
 }
 
+// Modal de confirmación para cancelación de reservas con selección de motivo
 const ConfirmCancelModal: React.FC<ConfirmCancelModalProps> = ({
   isOpen,
   onClose,

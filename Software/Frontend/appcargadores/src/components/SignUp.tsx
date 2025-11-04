@@ -9,6 +9,7 @@ interface SignUpProps {
   onRegistered?: (email: string, password: string) => void;
 }
 
+// Componente: formulario de registro de nuevos usuarios con selección de vehículo
 const SignUp: React.FC<SignUpProps> = ({ onCancel, onRegistered }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -39,7 +40,7 @@ const SignUp: React.FC<SignUpProps> = ({ onCancel, onRegistered }) => {
         const data = await res.json();
         if (Array.isArray(data)) setVehicleOptions(data);
       } catch {
-        // ignore errors silently
+        // Ignorar errores silenciosamente
       }
     };
     fetchVehicles();
@@ -110,7 +111,7 @@ const SignUp: React.FC<SignUpProps> = ({ onCancel, onRegistered }) => {
         try {
           await login(em, pw);
         } catch {
-          // ignore
+          // Ignorar errores
         }
         onCancel();
       }

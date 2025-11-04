@@ -8,8 +8,9 @@ import { Capacitor } from '@capacitor/core';
 import { checkCriticalPermissions } from './utils/permissions';
 import { useNotificationListeners } from './hooks/useNotificationListeners';
 import './index.css';
-import 'leaflet/dist/leaflet.css'; // Importar correctamente el CSS de Leaflet
+import 'leaflet/dist/leaflet.css'; // Importar CSS de Leaflet
 
+// Componente raíz: inicializa providers, permisos y listeners de notificaciones
 export const Root: React.FC = () => {
   const [showPermissions, setShowPermissions] = useState(false);
   const [permissionsChecked, setPermissionsChecked] = useState(false);

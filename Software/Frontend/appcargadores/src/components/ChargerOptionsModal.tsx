@@ -52,7 +52,30 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     return null;
   };
 
-  // Encuéntrame un cargador automático usando el endpoint de recomendación
+  /**
+   * Función compleja: fetchRecommendationData
+   * 
+   * Propósito: Obtener recomendación inteligente de cargador desde el backend
+   * usando un algoritmo multi-criterio que considera distancia, costo, tiempo
+   * de carga y demoras por reservas futuras.
+   * 
+   * Modos:
+   * - 'charge': Busca cargador para alcanzar un % de batería objetivo
+   * - 'time': Busca cargador óptimo dado un tiempo disponible (minutos)
+   * 
+   * Flujo:
+   * 1. Validar vehículo seleccionado y usuario autenticado
+   * 2. Validar según modo (energía necesaria > 0 o tiempo > 0)
+   * 3. Construir parámetros de query con ubicación, vehículo y preferencias
+   * 4. Llamar API /api/recommendations/recommend
+   * 5. Retornar { best, ranking } donde:
+   *    - best: cargador recomendado con tiempos y costos
+   *    - ranking: array de alternativas ordenadas por puntaje
+   * 
+   * @param mode - 'charge' para búsqueda por % objetivo, 'time' para tiempo disponible
+   * @returns Promise<{best, ranking}> - Mejor opción y lista ranking
+   * @throws Error si no hay vehículo, validación falla, o API falla
+   */
   const fetchRecommendationData = async (mode: 'charge' | 'time' = 'charge') => {
     if (!selectedVehicle || !user) throw new Error('Selecciona un vehículo primero.');
     const batteryCapacity = selectedVehicle.batteryCapacity;
@@ -104,37 +127,59 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     return data; // { best, ranking }
   };
 
+  /**
+   * Handler: Buscar cargador automático (recomendación inteligente)
+   * 
+   * Proceso:
+   * 1. Llamar fetchRecommendationData según modo seleccionado
+   * 2. Procesar respuesta {best, ranking} del backend
+   * 3. Normalizar datos (diferentes formatos del API)
+   * 4. Calcular tiempos de inicio/fin de la reserva
+   * 5. Si modo 'time': calcular % de carga esperado
+   * 6. Mostrar propuesta al usuario
+   * 7. Centrar mapa en cargador recomendado
+   */
   const handleFind = async () => {
      setLoadingFind(true);
      setFeedback(null);
      setProposal(null);
      setShowConfirm(false);
      setShowChargerList(false);
+     
      try {
-      // Usar el modo seleccionado en las preferencias
+      // PASO 1: Obtener recomendación del backend
       const mode = (preferences as any).searchMode ?? 'charge';
       const data = await fetchRecommendationData(mode);
+      
       if (!data?.best) {
         throw new Error('No se encontró un cargador disponible para recomendar.');
       }
-      // Guardar ranking e índice
+      
+      // PASO 2: Guardar ranking completo e índice actual
       const rankingList = Array.isArray(data.ranking) ? data.ranking : [];
       setRanking(rankingList);
       setLastRankingIds(rankingList.map((r: any) => r.charger?._id || r.chargerId || ''));
       setCurrentRankingIndex(0);
+      
       const best = data.best;
-      // Normalizar campos que puede devolver el backend (tCarga vs windowMinutes, powerOutput vs power)
+      
+      // PASO 3: Normalizar campos (backend puede retornar nombres diferentes)
       const charger = best.charger || best.chargerId || null;
       const tCargaMinutes = (best.tCarga ?? best.windowMinutes ?? 0);
       const tDemoraMinutes = (best.tDemora ?? best.tDemora ?? 0);
+      
+      // PASO 4: Calcular horarios de la reserva
       const now = new Date();
       const startTime = new Date(now.getTime() + (tDemoraMinutes * 60 * 1000));
       const endTime = new Date(startTime.getTime() + (tCargaMinutes * 60 * 1000));
+      
+      // PASO 5: Extraer datos de costo y potencia
       const powerVal = charger?.powerOutput ?? charger?.power ?? undefined;
       const costVal = best.cost ?? undefined;
       const unitCostVal = best.unitCost ?? undefined;
-      // Calcular porcentaje estimado alcanzado si el backend entrega energyGiven (modo time)
-      const energyGiven = best.energyGiven ?? best.energy_given ?? best.energy ?? undefined; // kWh
+      
+      // PASO 6: Calcular % de carga esperado (solo modo 'time')
+      const energyGiven = best.energyGiven ?? best.energy_given ?? best.energy ?? undefined;
       let expectedChargePercent: number | undefined = undefined;
       try {
         const batteryCapacity = Number(selectedVehicle?.batteryCapacity ?? 0);
@@ -146,6 +191,8 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       } catch {
         expectedChargePercent = undefined;
       }
+      
+      // PASO 7: Guardar propuesta y mostrar confirmación
       setProposal({
         charger,
         startTime,
@@ -157,7 +204,8 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
         expectedChargePercent
       });
       setShowConfirm(true);
-      // Centrar el mapa en la estación propuesta (si se proporcionó la función)
+      
+      // PASO 8: Centrar mapa en el cargador recomendado
       const loc = getChargerLatLng(charger);
       if (loc && onCenterCharger) {
         onCenterCharger({ lat: loc.lat, lng: loc.lng, zoom: 17 });
@@ -170,19 +218,30 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     }
   };
 
-  // Reservar manualmente
+  /**
+   * Handler: Mostrar lista completa de cargadores para selección manual
+   * 
+   * Proceso:
+   * 1. Obtener cargadores cercanos según ubicación del usuario
+   * 2. Cargar favoritos del usuario desde API
+   * 3. Marcar cargadores favoritos en la lista
+   * 4. Ordenar: favoritos primero, luego resto
+   * 5. Mostrar lista al usuario
+   */
   const handleManual = async () => {
     setLoadingReserve(true);
     setProposal(null);
     setShowConfirm(false);
     setFeedback(null);
+    
     try {
+      // PASO 1: Obtener cargadores cercanos (radio amplio: 100km)
       const latitude = userLocation?.lat ?? -33.4489;
       const longitude = userLocation?.lng ?? -70.6693;
       const chargersRes = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/nearby?latitude=${latitude}&longitude=${longitude}&maxDistance=100000`);
       const chargers = await chargersRes.json();
 
-      // Obtener favoritos del usuario (si está autenticado) para marcar y ordenar
+      // PASO 2: Obtener favoritos del usuario para marcarlos
       let favIds: string[] = [];
       try {
         const token = localStorage.getItem('token');
@@ -196,17 +255,18 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           }
         }
       } catch (e) {
-        // no bloquear si falla obtener favoritos
+        // No bloquear si falla obtener favoritos
         console.warn('No se pudieron obtener favoritos al listar cargadores:', e);
         favIds = [];
       }
 
-      // marcar isFavorite y ordenar (favoritas al inicio)
+      // PASO 3 y 4: Marcar favoritos y ordenar (favoritos al inicio)
       const mapped = Array.isArray(chargers) ? chargers.map((c:any) => ({
         ...c,
         isFavorite: favIds.includes(String(c._id))
       })).sort((a:any,b:any) => (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0)) : [];
 
+      // PASO 5: Mostrar lista
       setChargersList(mapped);
       setShowChargerList(true);
     } catch {
@@ -216,14 +276,26 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     }
   };
 
-  // Confirmar reserva
+  /**
+   * Handler: Confirmar y crear reserva en el backend
+   * 
+   * Proceso:
+   * 1. Validar que hay propuesta activa
+   * 2. Extraer datos de cargador y horarios
+   * 3. Enviar POST a /api/reservations
+   * 4. Actualizar lista de reservas del vehículo
+   * 5. Mostrar feedback y cerrar modal
+   */
   const confirmReservation = async () => {
     if (!proposal) return;
     setLoadingReserve(true);
     setFeedback(null);
+    
     try {
+      // PASO 1: Extraer datos de la propuesta
       const { charger, startTime, endTime } = proposal;
-      // Usar el endpoint de reservations (backend: routes/reservations.js -> POST /api/reservations)
+      
+      // PASO 2: Crear reserva en el backend
       const reservationRes = await fetch(`${import.meta.env.VITE_API_URL}/api/reservations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -234,11 +306,16 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           endTime
         })
       });
+      
+      // PASO 3: Manejar respuesta
       if (reservationRes.ok) {
+        // Actualizar lista de reservas
         await fetchReservations(selectedVehicle._id);
         setFeedback('¡Reserva realizada exitosamente!');
         setShowConfirm(false);
         setProposal(null);
+        
+        // PASO 4: Cerrar modal después de mostrar mensaje
         setTimeout(() => {
           setFeedback(null);
           onClose();
@@ -254,14 +331,24 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
     }
   };
 
-  // Maneja "Otra Recomendación"
+  /**
+   * Handler: Obtener siguiente recomendación del ranking
+   * 
+   * Estrategia de 2 niveles:
+   * 1. Si hay más opciones en ranking local: usar siguiente
+   * 2. Si ranking agotado: pedir nueva recomendación excluyendo ya mostrados
+   * 
+   * Esto evita mostrar la misma opción repetidamente y mejora la experiencia
+   * cuando el usuario quiere explorar alternativas.
+   */
   const handleAnotherRecommendation = async () => {
-    // Si hay siguiente en ranking local, usarla
+    // NIVEL 1: Si hay siguiente opción en ranking local, usarla
     if (ranking && currentRankingIndex + 1 < ranking.length) {
       const nextIndex = currentRankingIndex + 1;
       const next = ranking[nextIndex];
       setCurrentRankingIndex(nextIndex);
-      // Normalizar los campos de la entrada del ranking
+      
+      // Normalizar campos del ranking (mismo proceso que handleFind)
       const charger = next.charger || next.chargerId || null;
       const tCargaMinutes = (next.tCarga ?? next.windowMinutes ?? 0);
       const tDemoraMinutes = (next.tDemora ?? next.tDemora ?? 0);
@@ -271,7 +358,8 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
       const powerVal = charger?.powerOutput ?? charger?.power ?? undefined;
       const costVal = next.cost ?? undefined;
       const unitCostVal = next.unitCost ?? undefined;
-      // calcular expectedChargePercent si viene energyGiven
+      
+      // Calcular expectedChargePercent si viene energyGiven
       const energyGivenNext = next.energyGiven ?? next.energy_given ?? next.energy ?? undefined;
       let expectedChargePercentNext: number | undefined = undefined;
       try {

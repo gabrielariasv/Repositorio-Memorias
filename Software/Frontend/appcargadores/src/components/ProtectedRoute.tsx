@@ -7,6 +7,7 @@ interface ProtectedRouteProps {
   requiredRole?: string | string[];
 }
 
+// Componente que protege rutas requiriendo autenticación y opcionalmente roles específicos
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
   const { user, isLoading } = useAuth();
 

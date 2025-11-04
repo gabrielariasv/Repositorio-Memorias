@@ -22,8 +22,8 @@ export type EventFragment = {
 
 const TZ = 'America/Santiago';
 
+// Extrae componentes de fecha en zona horaria de Santiago
 function getPartsInTZ(date: Date) {
-  // Retorna partes { year, month, day, hour, minute } en la zona TZ
   const parts = new Intl.DateTimeFormat('en', {
     timeZone: TZ,
     year: 'numeric',
@@ -46,6 +46,7 @@ function getPartsInTZ(date: Date) {
   };
 }
 
+// Retorna fecha en formato 'YYYY-MM-DD' según zona horaria de Santiago
 export function getDateKeyInTZ(date: Date) {
   const p = getPartsInTZ(date);
   const mm = String(p.month).padStart(2, '0');
@@ -53,6 +54,7 @@ export function getDateKeyInTZ(date: Date) {
   return `${p.year}-${mm}-${dd}`;
 }
 
+// Extrae hora y minuto de una fecha según zona horaria de Santiago
 export function getHourMinuteInTZ(date: Date) {
   const p = getPartsInTZ(date);
   return { hour: p.hour, minute: p.minute };
@@ -128,9 +130,7 @@ export function splitEventIntoDayFragments(ev: CalEvent): EventFragment[] {
   return fragments;
 }
 
-/**
- * groupEventsByDay
- */
+// Agrupa eventos por día, retornando un mapa de 'YYYY-MM-DD' -> fragmentos ordenados
 export function groupEventsByDay(events: CalEvent[]): Record<string, EventFragment[]> {
   const map: Record<string, EventFragment[]> = {};
   events.forEach(ev => {
@@ -152,9 +152,7 @@ export function groupEventsByDay(events: CalEvent[]): Record<string, EventFragme
   return map;
 }
 
-/**
- * computeDailyBusyHours
- */
+// Calcula total de horas ocupadas en un día fusionando intervalos solapados
 export function computeDailyBusyHours(fragments: EventFragment[]): number {
   if (!fragments || fragments.length === 0) return 0;
 

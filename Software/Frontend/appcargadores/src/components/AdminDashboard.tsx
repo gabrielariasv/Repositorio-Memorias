@@ -85,6 +85,7 @@ type SectionKey = 'userData' | 'stations' | 'vehicles' | 'reservations' | 'histo
 
 type SectionExpansionState = Record<SectionKey, boolean>;
 
+// Crea estado inicial con todas las secciones colapsadas
 const createDefaultExpandedSections = (): SectionExpansionState => ({
   userData: false,
   stations: false,
@@ -93,6 +94,7 @@ const createDefaultExpandedSections = (): SectionExpansionState => ({
   history: false
 });
 
+// Mapeo de claves de sección a IDs de contenido DOM para accesibilidad
 const sectionContentIds: Record<SectionKey, string> = {
   userData: 'admin-section-user-data',
   stations: 'admin-section-stations',
@@ -101,6 +103,7 @@ const sectionContentIds: Record<SectionKey, string> = {
   history: 'admin-section-history'
 };
 
+// Icono de chevron animado para secciones expandibles
 const ChevronIcon: React.FC<{ expanded: boolean }> = ({ expanded }) => (
   <svg
     viewBox="0 0 20 20"
@@ -158,6 +161,7 @@ interface UsageByHourStat {
   totalEnergy: number;
 }
 
+// Componente: panel de estadísticas generales para administradores
 const AdminOverview: React.FC = () => {
   const [overviewStats, setOverviewStats] = useState<OverviewStats | null>(null);
   const [chargerTypeStats, setChargerTypeStats] = useState<ChargerTypeStat[]>([]);
@@ -415,6 +419,7 @@ const AdminOverview: React.FC = () => {
   );
 };
 
+// Componente: panel de gestión de usuarios, cargadores, vehículos y reservas
 const AdminManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -461,10 +466,20 @@ const AdminManagement: React.FC = () => {
     setFeedback(null);
   }, []);
 
+  /**
+   * Función: Obtener lista de usuarios con filtros opcionales
+   * 
+   * Permite búsqueda por:
+   * - Término de búsqueda (nombre o email)
+   * - Filtro por rol (app_admin, station_admin, ev_user)
+   * 
+   * Actualiza estado de usuarios para mostrar en tabla.
+   */
   const fetchUsers = useCallback(async () => {
     setUsersLoading(true);
     setUsersError(null);
     try {
+      // Construir parámetros de consulta según filtros activos
       const params: Record<string, string> = {};
       if (searchTerm.trim()) {
         params.search = searchTerm.trim();
@@ -582,15 +597,32 @@ const AdminManagement: React.FC = () => {
     setEditForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  /**
+   * Handler: Guardar cambios de usuario editado
+   * 
+   * Proceso:
+   * 1. Validar que hay usuario seleccionado
+   * 2. Construir payload (name, email, password opcional)
+   * 3. Enviar PUT a /api/users/:id
+   * 4. Actualizar estado local (selectedUser + lista)
+   * 5. Limpiar campo password por seguridad
+   * 6. Mostrar feedback de éxito/error
+   * 
+   * Permite editar datos básicos de cualquier usuario desde admin.
+   */
   const handleSaveUser = async (event: React.FormEvent) => {
     event.preventDefault();
+    
+    // VALIDACIÓN: Usuario debe estar seleccionado
     if (!selectedUser) {
       return;
     }
 
     setSavingUser(true);
     resetFeedback();
+    
     try {
+      // PASO 1: Construir payload (password solo si se ingresó)
       const payload: Record<string, string> = {
         name: editForm.name.trim(),
         email: editForm.email.trim()
@@ -599,15 +631,20 @@ const AdminManagement: React.FC = () => {
         payload.password = editForm.password;
       }
 
+      // PASO 2: Actualizar en backend
       const response = await axios.put<{ user: AdminUser }>(
         `${import.meta.env.VITE_API_URL}/api/users/${selectedUser._id}`,
         payload
       );
 
       const updated = response.data.user;
+      
+      // PASO 3 y 4: Actualizar estados locales
       setSelectedUser(updated);
-      setEditForm((prev) => ({ ...prev, password: '' }));
+      setEditForm((prev) => ({ ...prev, password: '' })); // Limpiar password
       setUsers((prev) => prev.map((user) => (user._id === updated._id ? updated : user)));
+      
+      // PASO 5: Feedback visual
       setFeedback({ type: 'success', text: 'Usuario actualizado correctamente.' });
     } catch (error: any) {
       const message = error?.response?.data?.error ?? error.message ?? 'No se pudo actualizar el usuario';
@@ -617,6 +654,16 @@ const AdminManagement: React.FC = () => {
     }
   };
 
+  /**
+   * Handler: Eliminar cargador del usuario actual
+   * 
+   * Proceso:
+   * 1. Enviar DELETE a /api/chargers/:id
+   * 2. Recargar datos del usuario para actualizar lista
+   * 3. Mostrar feedback de confirmación
+   * 
+   * Elimina cargador de la base de datos y actualiza UI.
+   */
   const handleDeleteCharger = async (chargerId: string) => {
     if (!selectedUser) {
       return;
@@ -624,8 +671,12 @@ const AdminManagement: React.FC = () => {
     setDeletingId(chargerId);
     resetFeedback();
     try {
+      // PASO 1: Eliminar del backend
       await axios.delete(`${import.meta.env.VITE_API_URL}/api/chargers/${chargerId}`);
+      
+      // PASO 2: Refrescar lista de cargadores del usuario
       await fetchUserDetail(selectedUser._id);
+      
       setFeedback({ type: 'success', text: 'Cargador eliminado correctamente.' });
     } catch (error: any) {
       const message = error?.response?.data?.error ?? error.message ?? 'No se pudo eliminar el cargador';
@@ -635,6 +686,18 @@ const AdminManagement: React.FC = () => {
     }
   };
 
+  /**
+   * Handler: Crear nuevo cargador para el usuario actual
+   * 
+   * Proceso:
+   * 1. Agregar ownerId del usuario al objeto cargador
+   * 2. Enviar POST a /api/chargers
+   * 3. Refrescar datos del usuario (incluye nuevo cargador)
+   * 4. Cerrar formulario de creación
+   * 5. Mostrar feedback de éxito
+   * 
+   * Permite agregar cargadores a station_admin desde panel de admin.
+   */
   const handleCreateCharger = async (charger: Omit<Charger, '_id' | 'createdAt'>) => {
     if (!selectedUser) {
       return;
@@ -644,11 +707,16 @@ const AdminManagement: React.FC = () => {
     resetFeedback();
 
     try {
+      // PASO 1 y 2: Crear cargador con ownerId
       await axios.post(`${import.meta.env.VITE_API_URL}/api/chargers`, {
         ...charger,
         ownerId: selectedUser._id
       });
+      
+      // PASO 3: Refrescar usuario para ver nuevo cargador
       await fetchUserDetail(selectedUser._id);
+      
+      // PASO 4 y 5: Cerrar form y feedback
       setShowChargerForm(false);
       setFeedback({ type: 'success', text: 'Cargador agregado correctamente.' });
     } catch (error: any) {
@@ -2030,6 +2098,7 @@ const AdminManagement: React.FC = () => {
   );
 };
 
+// Componente: layout principal del dashboard de administrador con navegación
 const AdminDashboardLayout: React.FC = () => (
   <div className="min-h-screen bg-gray-100 dark:bg-gray-900 lg:pl-64">
     <VerticalNavbar />
@@ -2049,6 +2118,7 @@ const AdminDashboardLayout: React.FC = () => (
   </div>
 );
 
+// Componente raíz: dashboard de administrador con enrutador
 const AdminDashboard: React.FC = () => (
   <Router>
     <AdminDashboardLayout />

@@ -24,16 +24,20 @@ const server = http.createServer(app);
 const { init: initSocket } = require('./utils/socket');
 const { startReservationScheduler } = require('./utils/reservationScheduler');
 
-// Middleware
+// Middleware para habilitar CORS (Cross-Origin Resource Sharing)
+// Permite que el frontend se comunique con el backend desde diferentes orígenes
 app.use(cors());
+
+// Middleware para parsear cuerpos de peticiones JSON
 app.use(express.json());
 
 // Conexión a MongoDB
+// Usa la URI de la variable de entorno o localhost como alternativa
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ev_charging_db')
   .then(() => console.log('Conectado a MongoDB'))
   .catch(err => {
     console.error('Error conectando a MongoDB:', err);
-    process.exit(1); // Salir si no puede conectar a la BD
+    process.exit(1); // Salir si no puede conectar a la BD (crítico)
   });
 
 // Rutas
@@ -65,24 +69,28 @@ app.get('/', (req, res) => {
 });
 
 
-// Manejo de errores
+// Middleware de manejo de errores global
+// Captura errores no controlados en las rutas
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Algo salió mal!' });
 });
 
-// Manejo de rutas no encontradas
+// Middleware para rutas no encontradas (404)
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
-// Init Socket.IO
+// Inicializar Socket.IO para comunicación en tiempo real
+// Permite notificaciones push y actualizaciones instantáneas
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
 initSocket(server, FRONTEND_ORIGIN);
-// Start reservation reminder scheduler
+
+// Iniciar el scheduler de recordatorios de reservas
+// Envía notificaciones automáticas 15 minutos antes de cada reserva
 startReservationScheduler();
 
-// Iniciar servidor
+// Iniciar servidor HTTP
 server.listen(PORT, () => {
   console.log(`Servidor ejecutándose en puerto ${PORT}`);
 });

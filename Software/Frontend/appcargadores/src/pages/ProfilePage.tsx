@@ -2,8 +2,10 @@ import { FormEvent, useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/useAuth';
 
+// Política de contraseña: mínimo 8 caracteres, mayúscula, minúscula, número y especial
 const PASSWORD_POLICY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
+// Sugerencias de contraseña mostradas al usuario
 const passwordHints = [
   'Al menos 8 caracteres',
   'Incluye una letra mayúscula y una minúscula',
@@ -11,6 +13,7 @@ const passwordHints = [
   'Incluye un carácter especial (por ejemplo !, @, #, $)'
 ];
 
+// Componente: página de perfil de usuario con edición de nombre y contraseña
 const ProfilePage = () => {
   const { user, updateUser } = useAuth();
   const [name, setName] = useState(user?.name ?? '');

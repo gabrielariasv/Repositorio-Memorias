@@ -29,6 +29,16 @@ const VerticalNavbar: React.FC = () => {
     { path: '/management', label: 'Gestión', icon: '' },
   ];
 
+  /**
+   * Función: Obtener elementos de menú según rol del usuario
+   * 
+   * Roles y sus menús:
+   * - station_admin: Cargadores, Perfil
+   * - ev_user: Reservar, Historial, Perfil
+   * - app_admin: Dashboard, Gestión
+   * 
+   * @returns Array de items con path, label e icon
+   */
   const getMenuItems = () => {
     switch (user?.role) {
       case 'station_admin':
@@ -43,11 +53,13 @@ const VerticalNavbar: React.FC = () => {
   };
 
   const menuItems = getMenuItems();
+  
+  // Mostrar selector de vehículo solo para usuarios EV con vehículos registrados
   const showVehicleSelector = user?.role === 'ev_user' && evVehicleContext;
 
   return (
     <>
-      {/* Mobile menu button - Aumentado z-index */}
+      {/* Botón hamburguesa para móvil - z-index alto para estar sobre mapa */}
       <button
         className="lg:hidden fixed top-4 left-4 z-[60] p-2 rounded-md bg-white dark:bg-gray-800 shadow-md"
         onClick={() => setIsOpen(!isOpen)}
@@ -57,7 +69,7 @@ const VerticalNavbar: React.FC = () => {
         </svg>
       </button>
 
-      {/* Overlay */}
+      {/* Overlay oscuro al abrir menú móvil */}
       {isOpen && (
         <div 
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[55]"
@@ -65,7 +77,12 @@ const VerticalNavbar: React.FC = () => {
         />
       )}
 
-      {/* Sidebar - siempre fijo */}
+      {/* 
+        Sidebar principal
+        - Móvil: se desliza desde la izquierda al abrir
+        - Desktop: siempre visible, fijo
+        - Layout: flex column con header, nav y footer
+      */}
       <aside className={`
         fixed inset-y-0 left-0 z-[60]
         w-64 bg-white dark:bg-gray-800 shadow-lg transform
@@ -89,6 +106,7 @@ const VerticalNavbar: React.FC = () => {
             </div>
           </div>
 
+          {/* Selector de vehículo para usuarios EV */}
           {showVehicleSelector && (
             <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
               <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
@@ -101,6 +119,7 @@ const VerticalNavbar: React.FC = () => {
                 </div>
               ) : evVehicleContext.vehicles.length > 0 ? (
                 <>
+                  {/* Dropdown para cambiar vehículo activo */}
                   <select
                     value={evVehicleContext.selectedVehicle?._id ?? ''}
                     onChange={event => evVehicleContext.selectVehicle(event.target.value)}
@@ -113,6 +132,7 @@ const VerticalNavbar: React.FC = () => {
                     ))}
                   </select>
 
+                  {/* Grid con detalles del vehículo seleccionado (2x2) */}
                   {evVehicleContext.selectedVehicle ? (
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-300">
                       <div className="rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-gray-800/70">
@@ -168,7 +188,7 @@ const VerticalNavbar: React.FC = () => {
           )}
         </div>
 
-        {/* Navigation */}
+        {/* Navegación principal - items dinámicos según rol */}
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
             {menuItems.map((item) => (
@@ -180,7 +200,7 @@ const VerticalNavbar: React.FC = () => {
                       ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'
                       : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => setIsOpen(false)} // Cerrar menú móvil al navegar
                 >
                   <span className="text-lg">{item.icon}</span>
                   <span className="font-medium">{item.label}</span>
@@ -190,7 +210,7 @@ const VerticalNavbar: React.FC = () => {
           </ul>
         </nav>
 
-        {/* Logout Button */}
+        {/* Footer con botón de logout */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={handleLogout}

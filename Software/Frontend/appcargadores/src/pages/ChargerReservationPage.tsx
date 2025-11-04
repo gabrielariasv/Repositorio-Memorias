@@ -145,7 +145,7 @@ export default function ChargerReservationPage() {
     if (!chargerId) return;
     setFavLoading(true);
     const prev = isFavorite;
-    setIsFavorite(!prev); // optimista
+    setIsFavorite(!prev); // Actualización optimista
     try {
       const method = prev ? 'DELETE' : 'POST';
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/favourites/${user._id}/${chargerId}`, {
@@ -158,7 +158,7 @@ export default function ChargerReservationPage() {
       }
     } catch (err) {
       console.error('Error toggling favorite:', err);
-      setIsFavorite(prev); // revertir
+      setIsFavorite(prev); // Revertir cambio
       alert('No se pudo actualizar favoritos. Intenta de nuevo.');
     } finally {
       setFavLoading(false);

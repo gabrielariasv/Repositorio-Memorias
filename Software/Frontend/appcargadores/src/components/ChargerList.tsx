@@ -5,7 +5,20 @@ import { useNavigate } from 'react-router-dom';
 import { Charger } from '../models/Charger';
 import ChargerMap, { ChargerMapHandle } from './ChargerMap';
 
-// --- Desktop Layout ---
+/**
+ * Componente Desktop: Lista de cargadores con filtros y búsqueda
+ * 
+ * Layout de 2 columnas:
+ * - Izquierda: Lista scrollable con filtros y búsqueda
+ * - Derecha: Mapa interactivo con marcadores
+ * 
+ * Features:
+ * - Filtros por estado (disponible/ocupado/mantenimiento)
+ * - Filtros por tipo de conector
+ * - Búsqueda por nombre o ubicación
+ * - Expansión de detalles inline
+ * - Sincronización bidireccional con mapa
+ */
 function DesktopChargerList({
   chargers,
   filteredChargers,
@@ -393,7 +406,7 @@ function DesktopChargerList({
   );
 }
 
-// --- Mobile Layout ---
+// --- Layout Móvil ---
 function MobileChargerList({
   chargers,
   filteredChargers,
@@ -768,6 +781,7 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
     );
   }, [chargers, statusFilter, typeFilter]);
 
+  // Función: Obtener texto legible del estado del cargador
   const getStatusText = (status: string) => {
     switch (status) {
       case 'available': return 'Disponible';
@@ -777,6 +791,15 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
     }
   };
 
+  /**
+   * Función: Obtener clases CSS según estado del cargador
+   * 
+   * Retorna objeto con clases para:
+   * - dot: indicador circular de color
+   * - text: color del texto
+   * 
+   * Soporte para modo claro/oscuro con prefijo dark:
+   */
   const getStatusClasses = (status: string) => {
     switch (status) {
       case 'available':
@@ -802,24 +825,36 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
     }
   };
 
+  // Callback: Aplicar actualización de cargador a la lista local
   const applyChargerUpdate = (updated: Charger) => {
+    // Actualizar en la lista filtrada
     setFilteredChargers(prev => prev.map(charger => (charger._id === updated._id ? { ...charger, ...updated } : charger)));
+    // Propagar cambio al componente padre si existe callback
     if (onChargerRename) {
       onChargerRename(updated);
     }
   };
 
+  /**
+   * Función: Abrir modal de edición de cargador
+   * 
+   * Inicializa el formulario con valores actuales:
+   * - Nombre del cargador
+   * - Costo de energía ($/kWh)
+   * - Costo de estacionamiento ($/hora)
+   */
   const openRenameModal = (charger: Charger) => {
     setRenamingCharger(charger);
     setRenameName(charger.name ?? '');
     setRenameError(null);
-    // Inicializar los campos de costo (mostrar como string para input)
+    // Convertir valores numéricos a string para inputs
     setRenameEnergyCost(charger.energy_cost != null ? String(charger.energy_cost) : '');
     setRenameParkingCost(charger.parking_cost != null ? String(charger.parking_cost) : '');
   };
 
+  // Función: Cerrar modal de edición y limpiar estado
   const closeRenameModal = () => {
-    if (isRenaming) return;
+    if (isRenaming) return; // Prevenir cierre durante guardado
     setRenamingCharger(null);
     setRenameName('');
     setRenameError(null);
@@ -827,23 +862,37 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
     setRenameParkingCost('');
   };
 
+  /**
+   * Handler: Guardar cambios del cargador (nombre y costos)
+   * 
+   * Validaciones:
+   * 1. Nombre: mínimo 3 caracteres, solo alfanuméricos y básicos
+   * 2. Costos: números >= 0, máximo 10000
+   * 
+   * Proceso:
+   * 1. Validar inputs
+   * 2. Enviar PATCH a /api/chargers/:id/name
+   * 3. Actualizar lista local con respuesta
+   * 4. Cerrar modal
+   */
   const handleRenameSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!renamingCharger) return;
 
+    // VALIDACIÓN 1: Nombre debe tener al menos 3 caracteres
     const trimmedName = renameName.trim();
-
     if (trimmedName.length < 3) {
       setRenameError('El nombre debe tener al menos 3 caracteres.');
       return;
     }
 
+    // VALIDACIÓN 2: Solo caracteres alfanuméricos y símbolos básicos
     if (!/^[\p{L}0-9 .,'"-]+$/u.test(trimmedName)) {
       setRenameError('Utiliza solo letras, números y caracteres básicos.');
       return;
     }
 
-    // Validar valores numéricos de costos
+    // VALIDACIÓN 3: Convertir y validar costos numéricos
     const energyTrim = renameEnergyCost.trim();
     const parkingTrim = renameParkingCost.trim();
     const energyVal = energyTrim === '' ? null : parseFloat(energyTrim);
@@ -862,6 +911,7 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
       setIsRenaming(true);
       setRenameError(null);
 
+      // PASO 1: Preparar headers con autenticación
       const token = localStorage.getItem('token');
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -870,19 +920,21 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
         headers.Authorization = `Bearer ${token}`;
       }
 
-      // Enviar nombre y costos (si están presentes enviar null o número)
+      // PASO 2: Construir payload con nombre y costos
       const bodyPayload: Record<string, any> = {
         name: trimmedName,
         energy_cost: energyVal,
         parking_cost: parkingVal
       };
 
+      // PASO 3: Enviar solicitud PATCH al backend
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/${renamingCharger._id}/name`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify(bodyPayload),
       });
 
+      // PASO 4: Manejar errores HTTP
       if (!response.ok) {
         let message = 'No se pudo actualizar el nombre del cargador.';
         try {
@@ -891,11 +943,12 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
             message = data.error;
           }
         } catch {
-          // Ignorar error de parseo
+          // Ignorar error de parseo JSON
         }
         throw new Error(message);
       }
 
+      // PASO 5: Aplicar cambios a la lista local
       const result = await response.json();
       const updatedCharger: Charger = result?.charger ?? { ...renamingCharger, name: trimmedName, energy_cost: energyVal, parking_cost: parkingVal };
       applyChargerUpdate(updatedCharger);
@@ -907,6 +960,29 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
     }
   };
 
+  /**
+   * Función compleja: handleChargerClickFromMap
+   * 
+   * Propósito: Sincronizar interacción entre mapa y lista de cargadores.
+   * Cuando el usuario hace clic en un marcador del mapa o en su popup,
+   * esta función centra la vista en el cargador correspondiente en la lista
+   * y lo destaca visualmente para mejorar la UX.
+   * 
+   * Flujo:
+   * 1. Expande el cargador en la lista (muestra sus detalles)
+   * 2. Aplica highlight visual (anillo azul) temporalmente
+   * 3. Hace scroll suave para centrar el cargador en la pantalla
+   * 4. Remueve el highlight después de 2 segundos
+   * 
+   * Técnicas utilizadas:
+   * - useRef para obtener referencia al elemento DOM del cargador
+   * - scrollIntoView con behavior:'smooth' para UX suave
+   * - Timeout de 100ms para dar tiempo al DOM a expandirse antes de scroll
+   * - Highlight temporal de 2s para feedback visual claro
+   * - Clases Tailwind 'ring-4 ring-blue-500' para el highlight
+   * 
+   * @param chargerId - ID del cargador a centrar y destacar
+   */
   const handleChargerClickFromMap = (chargerId: string) => {
     // Expandir el cargador
     setExpandedChargerId(chargerId);

@@ -48,11 +48,16 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Efecto: Cargar datos de ocupación desde API
   useEffect(() => {
     const fetchOccupancyData = async () => {
       try {
         setLoading(true);
+        
+        // 1. Obtener token de autenticación
         const token = localStorage.getItem('token');
+        
+        // 2. Llamar API de historial de uso del cargador
         const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chargers/${chargerId}/usage-history`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
@@ -64,16 +69,18 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
         
         const sessions = await response.json();
         
-        // Transformar sesiones a occupancyData (ocupado = true)
+        // 3. Transformar sesiones a formato de ocupación
+        // - Cada sesión representa un intervalo "ocupado"
+        // - Convertir strings de fecha a objetos Date
         const occupancy: OccupancyData[] = sessions
           .map((s: any) => ({
             start: s.startTime ? new Date(s.startTime) : null,
             end: s.endTime ? new Date(s.endTime) : null,
             occupied: true
           }))
-          // Filtrar intervalos inválidos
+          // 4. Filtrar intervalos inválidos (sin fechas)
           .filter((it: any) => it.start && it.end)
-          // Ordenar asc por start
+          // 5. Ordenar cronológicamente por fecha de inicio
           .sort((a: OccupancyData, b: OccupancyData) => a.start.getTime() - b.start.getTime());
 
         setOccupancyData(occupancy);
@@ -145,11 +152,13 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
 
   const steppedPoints = buildSteppedPoints(occupancyData);
 
-  // Calcular los límites de tiempo para zoom y pan
+  // Calcular límites de tiempo para restricciones de zoom/pan
+  // - timeMin/Max: rango completo de datos
+  // - minRange: mínimo 5% del rango total o 1 hora (evita zoom excesivo)
   const timeMin = steppedPoints.length > 0 ? steppedPoints[0].x.getTime() : 0;
   const timeMax = steppedPoints.length > 0 ? steppedPoints[steppedPoints.length - 1].x.getTime() : 0;
   const timeRange = timeMax - timeMin;
-  const minRange = timeRange > 0 ? timeRange * 0.05 : 3600000; // mínimo 5% del rango o 1 hora
+  const minRange = timeRange > 0 ? timeRange * 0.05 : 3600000; // Mínimo 5% del rango o 1 hora
 
   const chartData = {
     datasets: [
@@ -242,24 +251,26 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
           },
         },
       },
+      // Configuración de zoom/pan similar a ChargingSessionsChart
       zoom: {
         limits: {
           x: { min: timeMin, max: timeMax, minRange: minRange }
         },
         zoom: {
-          wheel: { enabled: true },
-          pinch: { enabled: true },
-          mode: 'x' as const
+          wheel: { enabled: true },  // Zoom con rueda del mouse
+          pinch: { enabled: true },  // Zoom con pellizco en móvil
+          mode: 'x' as const         // Solo zoom horizontal
         },
         pan: {
-          enabled: true,
-          mode: 'x' as const,
-          threshold: 10
+          enabled: true,             // Arrastre para desplazar
+          mode: 'x' as const,        // Solo pan horizontal
+          threshold: 10              // 10px mínimo para distinguir de clicks
         }
       }
     },
   };
 
+  // Resetear zoom forzando re-renderizado completo del gráfico
   const handleResetZoom = () => {
     setChartKey(prev => prev + 1);
   };

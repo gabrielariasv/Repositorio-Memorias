@@ -13,11 +13,13 @@ interface ChargerSearchProps {
   onResults: (results: Charger[]) => void;
 }
 
+// Configuración de búsqueda fuzzy con Fuse.js
 const fuseOptions = {
   keys: ['name'],
   threshold: 0.4,
 };
 
+// Calcula distancia entre dos coordenadas usando fórmula de Haversine
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -68,7 +70,7 @@ const ChargerSearch: React.FC<ChargerSearchProps> = ({ chargers, mode, onResults
           setSuggestions(results);
           onResults(results);
         } else if (mode === 'location') {
-          // Geocode location and sort chargers by distance
+          // Geocodificar ubicación y ordenar cargadores por distancia
           try {
             const response = await fetch(
               `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(search)}`

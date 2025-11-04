@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './components/Dashboard';
 import Login from './components/Login';
 
+// Componente raíz de la aplicación con detección automática de modo oscuro
 function App() {
     // Detectar preferencia de color del navegador y aplicar modo oscuro automáticamente
   useEffect(() => {

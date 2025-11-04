@@ -7,6 +7,7 @@ interface ToastProps {
   onClose: () => void;
 }
 
+// Componente de notificación toast que se auto-cierra después de un tiempo
 const Toast: React.FC<ToastProps> = ({ message, type = 'info', duration = 3000, onClose }) => {
   useEffect(() => {
     const timer = setTimeout(() => {

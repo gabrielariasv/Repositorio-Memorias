@@ -80,11 +80,21 @@ const NotificationsPanel: React.FC<{
 
   const actionable = useMemo(() => new Set(['reservation','reservation-reminder','reservation-start']), []);
 
-  // Marcar automáticamente como leídas las notificaciones no leídas cuando se abre el panel
+  /**
+   * Effect: Auto-marcar notificaciones como leídas al abrir panel
+   * 
+   * Proceso:
+   * 1. Detectar notificaciones no leídas (read=false)
+   * 2. Esperar 500ms para que usuario las vea
+   * 3. Marcar cada una como leída vía API
+   * 4. Limpiar timer al desmontar componente
+   * 
+   * Esto mejora UX: reduce contador automáticamente sin requerir acción manual.
+   */
   useEffect(() => {
     const unreadNotifications = items.filter(n => !n.read);
     if (unreadNotifications.length > 0) {
-      // Marcar como leídas después de un pequeño delay para que el usuario las vea
+      // Delay de 500ms: permite visualización antes de marcar
       const timer = setTimeout(() => {
         unreadNotifications.forEach(n => {
           markAsRead(n._id);
@@ -94,19 +104,35 @@ const NotificationsPanel: React.FC<{
     }
   }, [items, markAsRead]);
 
+  /**
+   * Handler: Aceptar reserva desde notificación
+   * 
+   * Proceso:
+   * 1. Enviar POST a /api/reservations/:id/accept
+   * 2. Eliminar notificación del panel (ya procesada)
+   * 3. Mostrar toast con nombre del cargador
+   * 4. Refrescar lista de notificaciones
+   * 
+   * Permite a admins confirmar reservas directamente desde campanita.
+   */
   const acceptReservation = async (reservationId: string, notifId: string, chargerName?: string) => {
     if (!token) return;
     try {
+      // PASO 1: Aceptar reserva en backend
       await axios.post(`${import.meta.env.VITE_API_URL}/api/reservations/${reservationId}/accept`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      // Eliminar la notificación después de aceptar
+      
+      // PASO 2: Eliminar notificación procesada
       await deleteNotification(notifId);
-      // Mostrar toast con el nombre del cargador
+      
+      // PASO 3: Feedback visual con nombre del cargador
       const message = chargerName 
         ? `Reserva aceptada para el cargador "${chargerName}"`
         : 'Reserva aceptada exitosamente';
       onShowToast(message, 'success');
+      
+      // PASO 4: Actualizar lista
       refresh();
     } catch (error) {
       console.error('Error al aceptar la reservación:', error);
@@ -119,20 +145,37 @@ const NotificationsPanel: React.FC<{
     setCancelModalOpen(true);
   };
 
+  /**
+   * Handler: Cancelar reserva con motivo específico
+   * 
+   * Proceso:
+   * 1. Enviar POST a /api/reservations/:id/cancel con motivo
+   * 2. Eliminar notificación del panel
+   * 3. Mostrar toast warning con nombre del cargador
+   * 4. Cerrar modal de confirmación
+   * 5. Limpiar estado y refrescar lista
+   * 
+   * Motivos válidos: indisponibilidad, mantenimiento, falta_tiempo, otro
+   */
   const cancelReservation = async (reason: 'indisponibilidad' | 'mantenimiento' | 'falta_tiempo' | 'otro') => {
     if (!token || !selectedNotification) return;
     try {
+      // PASO 1: Enviar cancelación con motivo al backend
       await axios.post(`${import.meta.env.VITE_API_URL}/api/reservations/${selectedNotification.reservationId}/cancel`, 
         { reason }, 
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      // Eliminar la notificación después de cancelar
+      
+      // PASO 2: Eliminar notificación procesada
       await deleteNotification(selectedNotification.notifId);
-      // Mostrar toast con el nombre del cargador
+      
+      // PASO 3: Feedback visual tipo warning
       const message = selectedNotification.chargerName
         ? `Reserva cancelada para el cargador "${selectedNotification.chargerName}"`
         : 'Reserva cancelada exitosamente';
       onShowToast(message, 'warning');
+      
+      // PASO 4 y 5: Limpiar estado y actualizar
       setCancelModalOpen(false);
       setSelectedNotification(null);
       refresh();

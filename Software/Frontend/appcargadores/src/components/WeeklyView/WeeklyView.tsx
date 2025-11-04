@@ -6,6 +6,7 @@ import { WeeklyViewProps } from '../../types';
 import Event from '../Event/Event';
 import { CalEvent, groupEventsByDay, getDateKeyInTZ, EventFragment } from '../../utils/calendar';
 
+// Hook personalizado para detectar si la pantalla es móvil
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
@@ -82,7 +83,7 @@ const WeeklyView = ({ currentDate, events, onDateChange, onTimeSlotClick }: Week
   };
 
   const renderFragment = (frag: EventFragment) => {
-    // Top and height in px: 1 minute = 1px -> 60px per hour
+    // Top y height en px: 1 minuto = 1px -> 60px por hora
     const top = frag.startHour * 60 + frag.startMinute;
     const height = frag.endHour * 60 + frag.endMinute - (frag.startHour * 60 + frag.startMinute);
 

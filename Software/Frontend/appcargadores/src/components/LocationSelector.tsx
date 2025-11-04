@@ -4,6 +4,7 @@ import L, { LeafletMouseEvent } from 'leaflet';
 import 'leaflet/dist/leaflet.css?inline';
 import DropdownSearch, { LocationOption } from './DropdownSearch';
 
+// Icono personalizado de Leaflet para el marcador
 const customIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -18,6 +19,7 @@ interface LocationSelectorProps {
   onCancel: () => void;
 }
 
+// Componente helper: actualiza la vista del mapa cuando cambia la posición
 const UpdateMapView = ({ position }: { position: [number, number] }) => {
   const map = useMap();
   
@@ -28,6 +30,7 @@ const UpdateMapView = ({ position }: { position: [number, number] }) => {
   return null;
 };
 
+// Componente helper: captura eventos de click en el mapa
 const MapClickHandler = ({ onClick }: { onClick: (e: LeafletMouseEvent) => void }) => {
   const map = useMap();
   
@@ -43,6 +46,7 @@ const MapClickHandler = ({ onClick }: { onClick: (e: LeafletMouseEvent) => void 
   return null;
 };
 
+// Componente principal: selector de ubicación con mapa interactivo y búsqueda
 export default function LocationSelector({ 
   initialPosition, 
   onSelect, 
@@ -50,12 +54,12 @@ export default function LocationSelector({
 }: LocationSelectorProps) {
   const [position, setPosition] = useState<[number, number]>(initialPosition);
 
-  // Nuevo: manejar selección desde DropdownSearch
+  // Manejar selección desde el dropdown de búsqueda
   const handleDropdownSelect = (option: LocationOption) => {
     setPosition([option.lat, option.lon]);
   };
 
-  // Permitir selección manual en el mapa
+  // Manejar click manual en el mapa para actualizar posición
   const handleMapClick = (e: LeafletMouseEvent) => {
     setPosition([e.latlng.lat, e.latlng.lng]);
   };

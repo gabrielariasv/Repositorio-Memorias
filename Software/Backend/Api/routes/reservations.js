@@ -8,21 +8,35 @@ const calcularDistancia = require('../utils/calcularDistancia');
 const { emitToUser } = require('../utils/socket');
 const { authenticateToken } = require('./auth');
 
-// POST /api/reservations - Crear una nueva reserva
+/**
+ * POST /api/reservations
+ * Crear una nueva reserva con validación de conflictos
+ * Validaciones:
+ * - Campos requeridos: vehicleId, chargerId, startTime, endTime
+ * - Fechas válidas (endTime > startTime)
+ * - No hay conflictos con otras reservas del mismo cargador
+ * - No hay conflictos con otras reservas del mismo vehículo
+ */
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
     const { vehicleId, chargerId, startTime, endTime } = req.body;
+    
+    // VALIDACIÓN 1: Campos obligatorios
     if (!vehicleId || !chargerId || !startTime || !endTime) {
       return res.status(400).json({ error: 'Faltan campos obligatorios (vehicleId, chargerId, startTime, endTime)' });
     }
+    
     const start = new Date(startTime);
     const end = new Date(endTime);
+    
+    // VALIDACIÓN 2: Fechas válidas
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
       return res.status(400).json({ error: 'Fechas inválidas' });
     }
 
-    // Verificar conflicto por la estación
+    // VALIDACIÓN 3: Verificar conflicto de reservas en el cargador
+    // Busca reservas que se solapen con el intervalo solicitado
     const chargerConflict = await Reservation.findOne({
       chargerId,
       status: { $in: ['upcoming', 'active'] },
@@ -35,7 +49,8 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(409).json({ error: 'La estación ya está reservada en ese intervalo' });
     }
 
-    // Verificar conflicto por el mismo vehículo
+    // VALIDACIÓN 4: Verificar conflicto de reservas del vehículo
+    // Un vehículo no puede tener dos reservas simultáneas
     const vehicleConflict = await Reservation.findOne({
       vehicleId,
       status: { $in: ['upcoming', 'active'] },
@@ -48,14 +63,14 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(409).json({ error: 'El vehículo ya tiene una reserva en ese intervalo' });
     }
 
-    // Crear reserva
+    // PASO 1: Crear reserva con estado 'upcoming'
     const reservation = new Reservation({
       vehicleId,
       chargerId,
       userId,
       startTime: start,
       endTime: end,
-      calculatedEndTime: end,
+      calculatedEndTime: end, // Se puede ajustar según cálculos de carga
       status: 'upcoming'
     });
     await reservation.save();
@@ -135,36 +150,51 @@ router.post('/update-statuses', async (req, res) => {
   }
 });
 
-// POST /api/reservations/:id/accept - Aceptar una reserva (usuario o dueño de estación)
+/**
+ * POST /api/reservations/:id/accept
+ * Aceptar una reserva pendiente
+ * Puede ser aceptada por:
+ * - El usuario que creó la reserva
+ * - El propietario de la estación
+ * - Un administrador (app_admin)
+ * Envía notificaciones en tiempo real a ambas partes
+ */
 router.post('/:id/accept', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const requesterId = req.user.userId;
 
+    // PASO 1: Buscar reserva
     const reservation = await Reservation.findById(id);
     if (!reservation) return res.status(404).json({ error: 'Reserva no encontrada' });
 
+    // PASO 2: Verificar permisos
     const charger = await Charger.findById(reservation.chargerId).select('ownerId name');
     const isOwner = charger && String(charger.ownerId) === String(requesterId);
     const isUser = String(reservation.userId) === String(requesterId);
     const isAdmin = req.user.role === 'app_admin';
+    
     if (!isOwner && !isUser && !isAdmin) {
       return res.status(403).json({ error: 'No autorizado para aceptar esta reserva' });
     }
 
+    // VALIDACIÓN: Estado válido para aceptar
     if (reservation.status === 'cancelled' || reservation.status === 'completed') {
       return res.status(400).json({ error: 'La reserva ya no es válida para aceptar' });
     }
 
+    // PASO 3: Actualizar estado de aceptación
     reservation.acceptanceStatus = 'accepted';
     await reservation.save();
 
-    // Notificar a ambas partes
+    // PASO 4: Enviar notificaciones a ambas partes
     const messages = {
       user: `Tu reserva ha sido aceptada${isOwner ? ' por el dueño de la estación' : ''}.`,
       owner: `La reserva fue aceptada${isUser ? ' por el usuario' : ''}.`
     };
+    
     try {
+      // Notificar al usuario que hizo la reserva
       const notifUser = await Notification.create({
         user: reservation.userId,
         title: 'Reserva aceptada',
@@ -177,6 +207,8 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
         }
       });
       emitToUser(String(reservation.userId), 'notification', notifUser);
+      
+      // Notificar al propietario de la estación
       if (charger?.ownerId) {
         const notifOwner = await Notification.create({
           user: charger.ownerId,
@@ -191,7 +223,9 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
         });
         emitToUser(String(charger.ownerId), 'notification', notifOwner);
       }
-    } catch (_) { }
+    } catch (_) { 
+      // Ignorar errores de notificación (no son críticos)
+    }
 
     res.json({ message: 'Reserva aceptada', reservation });
   } catch (error) {
@@ -199,37 +233,50 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/reservations/:id/cancel - Cancelar con motivo (usuario o dueño de estación)
+/**
+ * POST /api/reservations/:id/cancel
+ * Cancelar una reserva con motivo especificado
+ * Motivos válidos: indisponibilidad, mantenimiento, falta_tiempo, otro
+ * Registra quién canceló (user, owner, system) y envía notificaciones
+ */
 router.post('/:id/cancel', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
     const requesterId = req.user.userId;
+    
+    // VALIDACIÓN 1: Motivo válido
     const ALLOWED = ['indisponibilidad', 'mantenimiento', 'falta_tiempo', 'otro'];
     if (!ALLOWED.includes(String(reason))) {
       return res.status(400).json({ error: 'Motivo inválido' });
     }
 
+    // PASO 1: Buscar reserva
     const reservation = await Reservation.findById(id);
     if (!reservation) return res.status(404).json({ error: 'Reserva no encontrada' });
+    
+    // VALIDACIÓN 2: Estado válido para cancelar
     if (reservation.status === 'cancelled' || reservation.status === 'completed') {
       return res.status(400).json({ error: 'La reserva ya no se puede cancelar' });
     }
 
+    // PASO 2: Verificar permisos
     const charger = await Charger.findById(reservation.chargerId).select('ownerId name');
     const isOwner = charger && String(charger.ownerId) === String(requesterId);
     const isUser = String(reservation.userId) === String(requesterId);
     const isAdmin = req.user.role === 'app_admin';
+    
     if (!isOwner && !isUser && !isAdmin) {
       return res.status(403).json({ error: 'No autorizado para cancelar esta reserva' });
     }
 
+    // PASO 3: Actualizar reserva con motivo y origen de cancelación
     reservation.status = 'cancelled';
     reservation.cancellationReason = reason;
     reservation.cancelledBy = isOwner ? 'owner' : isUser ? 'user' : 'system';
     await reservation.save();
 
-    // Notificar a ambas partes con el motivo
+    // PASO 4: Preparar mensaje de notificación según motivo
     const reasonText = {
       indisponibilidad: 'Indisponibilidad',
       mantenimiento: 'En mantenimiento',
@@ -237,7 +284,10 @@ router.post('/:id/cancel', authenticateToken, async (req, res) => {
       otro: 'Otro motivo'
     }[reason];
     const baseMsg = `Reserva cancelada. Motivo: ${reasonText}`;
+    
+    // PASO 5: Enviar notificaciones a ambas partes
     try {
+      // Notificar al usuario
       const notifUser = await Notification.create({
         user: reservation.userId,
         title: 'Reserva cancelada',
@@ -251,6 +301,8 @@ router.post('/:id/cancel', authenticateToken, async (req, res) => {
         }
       });
       emitToUser(String(reservation.userId), 'notification', notifUser);
+      
+      // Notificar al propietario
       if (charger?.ownerId) {
         const notifOwner = await Notification.create({
           user: charger.ownerId,
@@ -266,7 +318,9 @@ router.post('/:id/cancel', authenticateToken, async (req, res) => {
         });
         emitToUser(String(charger.ownerId), 'notification', notifOwner);
       }
-    } catch (_) { }
+    } catch (_) { 
+      // Ignorar errores de notificación
+    }
 
     res.json({ message: 'Reserva cancelada', reservation });
   } catch (error) {

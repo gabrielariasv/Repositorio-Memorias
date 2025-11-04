@@ -9,7 +9,21 @@ export const EvVehicleProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Función: Obtener vehículos del usuario autenticado
+   * 
+   * Proceso:
+   * 1. Validar que hay usuario autenticado
+   * 2. Llamar GET /api/vehicles/user/:userId
+   * 3. Actualizar lista de vehículos
+   * 4. Seleccionar vehículo automáticamente:
+   *    - Si había selección previa y sigue existiendo: mantenerla
+   *    - Si no: seleccionar primer vehículo de la lista
+   * 
+   * Esta función se llama al montar y al cambiar de usuario.
+   */
   const fetchVehicles = useCallback(async () => {
+    // VALIDACIÓN: Requiere usuario autenticado
     if (!user?._id) {
       setVehicles([]);
       setSelectedVehicleId(null);
@@ -21,6 +35,7 @@ export const EvVehicleProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setError(null);
 
     try {
+      // PASO 1: Obtener vehículos del backend
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/vehicles/user/${user._id}`);
       if (!response.ok) {
         throw new Error('No se pudieron obtener los vehículos del usuario');
@@ -29,11 +44,14 @@ export const EvVehicleProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const data = await response.json();
       setVehicles(Array.isArray(data) ? data : []);
 
+      // PASO 2: Gestión inteligente de selección de vehículo
       if (Array.isArray(data) && data.length > 0) {
         setSelectedVehicleId(prev => {
+          // Si había selección previa válida: mantenerla
           if (prev && data.some(vehicle => vehicle._id === prev)) {
             return prev;
           }
+          // Sino: seleccionar primero de la lista
           return data[0]._id;
         });
       } else {

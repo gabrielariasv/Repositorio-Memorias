@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 
-// Solución definitiva para iconos
+// Icono personalizado de Leaflet para el marcador
 const customIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -18,7 +18,7 @@ interface MapPickerProps {
   onLocationSelect: (location: [number, number]) => void;
 }
 
-// Componente para actualizar la vista del mapa
+// Componente auxiliar: actualiza vista del mapa cuando cambia la posición
 const UpdateMapView = ({ position }: { position: [number, number] }) => {
   const map = useMap();
   useEffect(() => {
@@ -27,7 +27,7 @@ const UpdateMapView = ({ position }: { position: [number, number] }) => {
   return null;
 };
 
-// Componente para manejar clics en el mapa
+// Componente auxiliar: captura clics en el mapa y actualiza el marcador
 const LocationMarker = ({ position, onPositionChange }: { 
   position: [number, number]; 
   onPositionChange: (pos: [number, number]) => void 

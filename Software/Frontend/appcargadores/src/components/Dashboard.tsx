@@ -16,6 +16,7 @@ import ProfilePage from '../pages/ProfilePage';
 import { EvVehicleProvider } from '../contexts/EvVehicleContext';
 import AdminDashboard from './AdminDashboard';
 
+// Componente principal: enruta según el rol del usuario autenticado
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
 
@@ -35,6 +36,7 @@ const Dashboard: React.FC = () => {
   }
 };
 
+// Dashboard para administradores de estaciones de carga (gestión de cargadores)
 const StationAdminDashboard: React.FC = () => {
   const [chargers, setChargers] = useState<Charger[]>([]);
   const [loading, setLoading] = useState(false);
@@ -172,6 +174,7 @@ const StationAdminDashboard: React.FC = () => {
   );
 };
 
+// Dashboard para usuarios de vehículos eléctricos (reservas, historial, perfil)
 const EVUserDashboard: React.FC = () => (
   <Router>
     <EvVehicleProvider>

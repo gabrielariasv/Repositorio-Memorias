@@ -5,39 +5,44 @@ const User = require('../models/User');
 const Vehicle = require('../models/Vehicle');
 const router = express.Router();
 
-// Login
+/**
+ * POST /api/auth/login
+ * Endpoint de autenticación de usuarios
+ * Valida credenciales y retorna token JWT junto con datos del usuario
+ */
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log('Intento de login para:', email); // Debug
+    console.log('Intento de login para:', email);
 
-    // Buscar usuario por email
+    // PASO 1: Buscar usuario por email y popular relaciones
     const user = await User.findOne({ email }).populate('vehicles ownedStations');
     if (!user) {
-      console.log('Usuario no encontrado'); // Debug
+      console.log('Usuario no encontrado');
       return res.status(400).json({ error: 'Credenciales inválidas' });
     }
 
-    console.log('Usuario encontrado:', user.email); // Debug
-    console.log('Contraseña almacenada (hash):', user.password); // Debug
+    console.log('Usuario encontrado:', user.email);
+    console.log('Contraseña almacenada (hash):', user.password);
 
-    // Verificar contraseña
+    // PASO 2: Verificar contraseña usando bcrypt
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log('¿Coincide la contraseña?', isMatch); // Debug
+    console.log('¿Coincide la contraseña?', isMatch);
 
     if (!isMatch) {
       return res.status(400).json({ error: 'Credenciales inválidas' });
     }
 
-    // Crear token JWT
+    // PASO 3: Crear token JWT con userId y rol
+    // Token expira en 1 hora por seguridad
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET || 'secreto',
       { expiresIn: '1h' }
     );
 
-    // Devolver datos del usuario sin la contraseña
+    // PASO 4: Preparar datos del usuario sin incluir la contraseña (seguridad)
     const userData = {
       _id: user._id,
       name: user.name,
@@ -57,24 +62,30 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Nuevo endpoint: registro de usuario EV (registerEvUser)
+/**
+ * POST /api/auth/registerEvUser
+ * Registro de nuevos usuarios con vehículo eléctrico
+ * Permite asociar un vehículo existente o crear uno nuevo durante el registro
+ */
 router.post('/registerEvUser', async (req, res) => {
   try {
     const { name, email, password, vehicleId, vehicle } = req.body;
 
-    // Validaciones básicas
+    // VALIDACIÓN 1: Campos obligatorios
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Faltan campos obligatorios: nombre, email o contraseña.' });
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
-    // Verificar email único
+    
+    // VALIDACIÓN 2: Email único
     const existing = await User.findOne({ email: normalizedEmail });
     if (existing) {
       return res.status(400).json({ error: 'Ya existe un usuario con ese correo.' });
     }
 
-    // Política de contraseña (misma que en perfil)
+    // VALIDACIÓN 3: Política de contraseña segura
+    // Mínimo 8 caracteres, mayúsculas, minúsculas, números y carácter especial
     const passwordPolicy = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
     if (!passwordPolicy.test(password)) {
       return res.status(400).json({
@@ -82,27 +93,28 @@ router.post('/registerEvUser', async (req, res) => {
       });
     }
 
-    // Hashear contraseña
+    // PASO 1: Encriptar contraseña con bcrypt (salt de 10 rondas)
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(password, salt);
 
-    // Crear usuario
+    // PASO 2: Crear usuario base con rol 'ev_user'
     const user = new User({
       name: String(name).trim(),
       email: normalizedEmail,
       password: hashed,
-      role: 'ev_user' // usuarios son de tipo ev_user por defecto
+      role: 'ev_user'
     });
 
-    // Guardar usuario primero para tener su _id si se crean vehículos
+    // Guardar usuario primero para obtener su _id
     await user.save();
 
-    // Manejo de vehículo: si viene vehicleId asociar, si viene vehicle (obj) crear y asociar
+    // PASO 3: Asociar vehículo (dos métodos posibles)
+    
+    // Método A: Asociar vehículo existente por ID
     if (vehicleId) {
       try {
         const v = await Vehicle.findById(vehicleId);
         if (v) {
-          // evitar duplicados si ya tiene relación
           if (!Array.isArray(user.vehicles)) user.vehicles = [];
           if (!user.vehicles.includes(v._id)) {
             user.vehicles.push(v._id);
@@ -110,19 +122,20 @@ router.post('/registerEvUser', async (req, res) => {
           }
         }
       } catch (err) {
-        // ignore invalid id, no bloquear registro por esto
+        // Ignorar ID inválido, no bloquear registro
       }
-    } else if (vehicle && typeof vehicle === 'object') {
-      // Normalizar campos posibles y crear vehículo asociado al usuario
+    } 
+    // Método B: Crear vehículo nuevo desde objeto
+    else if (vehicle && typeof vehicle === 'object') {
+      // Normalizar diferentes formatos de campos del frontend
       const vname = String(vehicle.name || '').trim();
       const vcap = Number(vehicle.batteryCapacity || vehicle.battery_capicity || vehicle.battery || 0);
-      // aceptar varias claves posibles para tipo de cargador, y soporte para "otherType"
       const vtypeRaw = vehicle.chargerType || vehicle.type || vehicle.otherType || vehicle.charger_type || '';
       const vtype = String(vtypeRaw).trim();
-      // aceptar nivel de carga actual si lo proporciona el frontend (en %)
       const vCurrentCharge = Number(vehicle.currentChargeLevel ?? vehicle.current_charge_level ?? vehicle.currentCharge ?? 0);
+      
       if (vname && vcap > 0 && vtype) {
-        // Crear Vehicle respetando el esquema (userId, model, chargerType, batteryCapacity, currentChargeLevel)
+        // Crear vehículo asociado al usuario
         const newVehicle = new Vehicle({
           userId: user._id,
           model: vname,
@@ -136,20 +149,20 @@ router.post('/registerEvUser', async (req, res) => {
           user.vehicles.push(newVehicle._id);
           await user.save();
         } catch (err) {
-          // si falla crear vehículo, no revertir el usuario; log y continuar
+          // Si falla crear vehículo, no revertir registro de usuario
           console.error('No se pudo crear vehículo manual durante registro:', err);
         }
       }
     }
 
-    // Crear token JWT
+    // PASO 4: Generar token JWT para login automático
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET || 'secreto',
       { expiresIn: '1h' }
     );
 
-    // Recuperar usuario poblado (sin contraseña) y devolverlo junto al token
+    // PASO 5: Retornar usuario poblado (sin contraseña) y token
     const safeUser = await User.findById(user._id).populate('vehicles ownedStations').select('-password');
     return res.status(201).json({ token, user: safeUser });
   } catch (error) {
@@ -158,10 +171,14 @@ router.post('/registerEvUser', async (req, res) => {
   }
 });
 
-// Middleware para verificar token
+/**
+ * Middleware de autenticación mediante JWT
+ * Verifica que el token sea válido y extrae información del usuario
+ * Agrega req.user = { userId, role } para usar en rutas protegidas
+ */
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
 
   if (!token) {
     return res.status(401).json({ error: 'Token de acceso requerido' });
@@ -171,17 +188,21 @@ const authenticateToken = (req, res, next) => {
     if (err) {
       return res.status(403).json({ error: 'Token inválido' });
     }
-    req.user = user;
+    req.user = user; // { userId, role }
     next();
   });
 };
 
-// Obtener perfil de usuario
+/**
+ * GET /api/auth/profile
+ * Obtener perfil del usuario autenticado
+ * Retorna información completa incluyendo vehículos y estaciones
+ */
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId)
       .populate('vehicles ownedStations')
-      .select('-password');
+      .select('-password'); // Excluir contraseña por seguridad
     
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -193,6 +214,14 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/auth/profile
+ * Actualizar perfil del usuario (nombre y/o contraseña)
+ * Validaciones:
+ * - Nombre no puede estar vacío
+ * - Contraseña actual debe ser correcta
+ * - Nueva contraseña debe cumplir política de seguridad
+ */
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
     const { name, currentPassword, newPassword, confirmNewPassword } = req.body;
@@ -203,6 +232,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
+    // PASO 1: Actualizar nombre si se proporciona
     if (typeof name === 'string') {
       const trimmedName = name.trim();
       if (!trimmedName) {
@@ -211,22 +241,27 @@ router.put('/profile', authenticateToken, async (req, res) => {
       user.name = trimmedName;
     }
 
+    // PASO 2: Cambiar contraseña si se solicita
     const wantsPasswordChange = Boolean(newPassword || confirmNewPassword || currentPassword);
 
     if (wantsPasswordChange) {
+      // VALIDACIÓN 1: Todos los campos de contraseña son requeridos
       if (!currentPassword || !newPassword || !confirmNewPassword) {
         return res.status(400).json({ error: 'Debes proporcionar la contraseña actual y la nueva contraseña dos veces.' });
       }
 
+      // VALIDACIÓN 2: Verificar contraseña actual
       const matches = await bcrypt.compare(currentPassword, user.password);
       if (!matches) {
         return res.status(400).json({ error: 'La contraseña actual no es correcta.' });
       }
 
+      // VALIDACIÓN 3: Confirmación debe coincidir
       if (newPassword !== confirmNewPassword) {
         return res.status(400).json({ error: 'La nueva contraseña y su confirmación no coinciden.' });
       }
 
+      // VALIDACIÓN 4: Política de contraseña segura
       const passwordPolicy = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
       if (!passwordPolicy.test(newPassword)) {
         return res.status(400).json({
@@ -234,12 +269,15 @@ router.put('/profile', authenticateToken, async (req, res) => {
         });
       }
 
+      // Encriptar nueva contraseña
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(newPassword, salt);
     }
 
+    // PASO 3: Guardar cambios
     await user.save();
 
+    // PASO 4: Retornar usuario actualizado (sin contraseña)
     const safeUser = await User.findById(user._id)
       .populate('vehicles ownedStations')
       .select('-password');

@@ -7,6 +7,7 @@ interface PermissionsModalProps {
   onComplete: () => void;
 }
 
+// Modal para solicitar permisos necesarios de la app (ubicación, notificaciones)
 const PermissionsModal: React.FC<PermissionsModalProps> = ({ onClose, onComplete }) => {
   const [permissions, setPermissions] = useState<{
     location: PermissionStatus;

@@ -2,8 +2,7 @@ import React from 'react';
 import { getHours, getMinutes } from 'date-fns';
 import { EventProps } from '../../types';
 
-
-// Tailwind-based version: no CSS import, classes inline
+// Componente de evento individual para mostrar en calendario (hora + título)
 const Event = ({ event, style }: EventProps & { style?: React.CSSProperties }) => {
   return (
     <div

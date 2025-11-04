@@ -50,6 +50,7 @@ interface ThingSpeakChartProps {
 
 type TimeRange = 'live' | '24h' | 'week' | 'month' | 'year';
 
+// Componente: gráfica de datos de ThingSpeak con soporte binario y rangos de tiempo
 const ThingSpeakChart: React.FC<ThingSpeakChartProps> = ({
   channelId,
   fieldNumber,
