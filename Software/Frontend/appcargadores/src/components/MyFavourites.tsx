@@ -76,22 +76,22 @@ const MyFavourites: React.FC<MyFavouritesProps> = ({ userId, onGoToReserve, refr
   }
 
   if (!favorites.length) {
-    return <div className="p-4 text-gray-600 dark:text-gray-300 text-justify">No tienes estaciones favoritas. Para agregar
+    return <div className="p-4 text-secondary text-justify">No tienes estaciones favoritas. Para agregar
     estaciones a tus favoritas, ve al mapa (o al calendario de reserva), selecciona la estación y presiona el ícono de estrella en la estación que desees.
     </div>;
   }
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-100">
-        <thead className="bg-gray-50 dark:bg-gray-700">
+  <table className="table-divided">
+  <thead className="thead">
           <tr>
-            <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-300">Nombre de la estación</th>
-            <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-300">Dirección (posición)</th>
-            <th className="px-4 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-300">Acciones</th>
+            <th className="th-left">Nombre de la estación</th>
+            <th className="th-left">Dirección (posición)</th>
+            <th className="th-center">Acciones</th>
           </tr>
         </thead>
-        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+        <tbody className="tbody-default">
           {favorites.map((station: any) => {
             const lat = station.location?.coordinates?.[1] ?? station.location?.lat ?? null;
             const lng = station.location?.coordinates?.[0] ?? station.location?.lng ?? null;
@@ -99,17 +99,14 @@ const MyFavourites: React.FC<MyFavouritesProps> = ({ userId, onGoToReserve, refr
             return (
               <tr key={station._id}>
                 <td className="px-4 py-3">{station.name}</td>
-                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{posStr}</td>
+                <td className="px-4 py-3 text-sm text-secondary">{posStr}</td>
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-2">
-                    <button
-                      className="w-32 h-15 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700"
-                      onClick={() => onGoToReserve(station._id)}
-                    >
+                    <button className="btn btn-primary btn-xs w-32" onClick={() => onGoToReserve(station._id)}>
                       Ir a calendario
                     </button>
                     <button
-                      className="w-32 h-15 px-3 py-1.5 bg-red-500 text-white text-sm rounded hover:bg-red-600 disabled:opacity-50"
+                      className="btn btn-danger btn-xs w-32 disabled:opacity-50"
                       onClick={() => handleRemove(station._id)}
                       disabled={removingId === station._id}
                     >

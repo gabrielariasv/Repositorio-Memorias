@@ -94,11 +94,11 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
   }, [chargerId, vehicleId]);
 
   if (loading) {
-    return <div className="text-center py-4">Cargando datos de sesiones...</div>;
+    return <div className="text-center text-muted py-4">Cargando datos de sesiones...</div>;
   }
 
   if (error) {
-    return <div className="text-center py-4 text-red-500">Error: {error}</div>;
+    return <div className="alert alert-error">Error: {error}</div>;
   }
 
   /**
@@ -246,15 +246,13 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 mb-6">
-      <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">
-          {title}
-        </h2>
+    <div className="card card--2xl">
+      <div className="section-header">
+        <h2>{title}</h2>
         <button
           type="button"
           onClick={handleResetZoom}
-          className="rounded-md bg-gray-100 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-200 active:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:active:bg-gray-500 touch-manipulation"
+          className="btn btn-secondary btn-sm touch-manipulation"
         >
           Restablecer zoom
         </button>
@@ -262,10 +260,10 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
       <div className="relative" style={{ minHeight: '300px', touchAction: 'pan-x pinch-zoom' }}>
         <Bar key={chartKey} data={chartData} options={options} />
       </div>
-      
+
       {/* Estadísticas adicionales */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-        <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 text-center">
+        <div className="card text-center">
           <div className="text-blue-500 text-2xl mb-2">
             <i className="fas fa-bolt"></i>
           </div>
@@ -274,16 +272,16 @@ const ChargingSessionsChart: React.FC<ChargingSessionsChartProps> = ({
             {sessions.reduce((sum, session) => sum + (session.energyDelivered || 0), 0).toFixed(2)} kWh
           </p>
         </div>
-        
-        <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 text-center">
+
+        <div className="card text-center">
           <div className="text-green-500 text-2xl mb-2">
             <i className="fas fa-charging-station"></i>
           </div>
           <h3 className="font-semibold text-lg mb-1">Sesiones</h3>
           <p className="text-xl font-bold">{sessions.length}</p>
         </div>
-        
-        <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 text-center">
+
+        <div className="card text-center">
           <div className="text-yellow-500 text-2xl mb-2">
             <i className="fas fa-clock"></i>
           </div>

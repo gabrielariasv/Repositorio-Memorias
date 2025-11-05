@@ -1,5 +1,6 @@
 /* src/index.css — compatible con Tailwind 4.1 y sin @apply */
 @import "tailwindcss";
+@import "./styles/ui.css";
 
 /* variables de fondo (gradientes) */
 :root {

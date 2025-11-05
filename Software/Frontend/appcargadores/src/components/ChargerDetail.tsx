@@ -47,48 +47,39 @@ const ChargerDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      <div className="screen-center">
+        <div className="spinner-lg"></div>
       </div>
     );
   }
 
   if (error || !charger) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="screen-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Error</h1>
-          <p className="text-gray-600">{error || 'Cargador no encontrado'}</p>
+          <h1 className="heading-2">Error</h1>
+          <p className="text-secondary">{error || 'Cargador no encontrado'}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="container-page">
+      <div className="card mb-6">
+        <div className="header-row">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">
+            <h1 className="title-page">
               <i className="fas fa-charging-station mr-3 text-blue-500"></i>
               {charger.name}
             </h1>
             <div className="flex flex-wrap gap-2 mt-2">
-              <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-lg text-xs font-medium">
-                {charger.chargerType}
-              </span>
-              <span className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-1 rounded-lg text-xs font-medium">
-                {charger.powerOutput} kW
-              </span>
-              <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                charger.status === 'available' 
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' 
-                  : charger.status === 'occupied'
-                    ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
-                    : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+              <span className="badge badge-blue">{charger.chargerType}</span>
+              <span className="badge badge-green">{charger.powerOutput} kW</span>
+              <span className={`badge ${
+                charger.status === 'available' ? 'badge-green' : charger.status === 'occupied' ? 'badge-purple' : 'badge-red'
               }`}>
-                {charger.status === 'available' ? 'Disponible' : 
-                 charger.status === 'occupied' ? 'Ocupado' : 'Mantenimiento'}
+                {charger.status === 'available' ? 'Disponible' : charger.status === 'occupied' ? 'Ocupado' : 'Mantenimiento'}
               </span>
             </div>
           </div>

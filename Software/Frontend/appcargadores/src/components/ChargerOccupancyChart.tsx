@@ -95,11 +95,11 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
   }, [chargerId]);
 
   if (loading) {
-    return <div className="text-center py-4">Cargando datos de ocupación...</div>;
+    return <div className="text-center text-muted py-4">Cargando datos de ocupación...</div>;
   }
 
   if (error) {
-    return <div className="text-center py-4 text-red-500">Error: {error}</div>;
+    return <div className="alert alert-error">Error: {error}</div>;
   }
 
   // Construir puntos escalonados incluyendo gaps marcados como 0 (desocupado)
@@ -276,15 +276,13 @@ const ChargerOccupancyChart: React.FC<ChargerOccupancyChartProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 mb-6">
-      <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">
-          {title}
-        </h2>
+    <div className="card card--2xl">
+      <div className="section-header">
+        <h2>{title}</h2>
         <button
           type="button"
           onClick={handleResetZoom}
-          className="rounded-md bg-gray-100 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-200 active:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:active:bg-gray-500 touch-manipulation"
+          className="btn btn-secondary btn-sm touch-manipulation"
         >
           Restablecer zoom
         </button>

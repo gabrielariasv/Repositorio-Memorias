@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "set:icon": "node scripts/use-eccode-icon.js",
     "gen:assets": "npx @capacitor/assets generate --android --ios false",
-    "apply:icon": "npm run set:icon && npm run gen:assets && npx cap sync android"
+    "apply:icon": "npm run set:icon && npm run gen:assets && npx cap sync android",
+    "refactor:classes": "node scripts/refactor-classes.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.0",

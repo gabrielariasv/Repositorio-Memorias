@@ -204,16 +204,16 @@ export default function ChargerCalendarPage() {
   }, [events]);
 
   if (!chargerId) {
-    return <div className="p-6 text-red-600 dark:text-red-400">Charger ID no especificado.</div>;
+    return <div className="alert alert-error">Charger ID no especificado.</div>;
   }
 
   return (
     <div className="min-h-screen p-4">
       <div className="max-w-6xl mx-auto">
-        <header className="flex items-center justify-between mb-4">
+        <header className="section-header">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Calendario del cargador</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <h1>Calendario del cargador</h1>
+            <p className="text-sm text-muted">
               {charger ? charger.name : `Cargador ID: ${chargerId}`}
             </p>
           </div>
@@ -221,14 +221,14 @@ export default function ChargerCalendarPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/')}
-              className="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 dark:text-gray-100 text-gray-800 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="btn btn-outline btn-sm"
             >
               Volver a cargadores
             </button>
 
             <button
               onClick={handleRefresh}
-              className="px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/40 text-blue-800 dark:text-blue-200 transition-colors"
+              className="btn btn-primary btn-sm"
               disabled={loading}
             >
               {loading ? 'Cargando...' : 'Actualizar'}
@@ -237,15 +237,13 @@ export default function ChargerCalendarPage() {
         </header>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded">
-            {error}
-          </div>
+          <div className="alert alert-error mb-4">{error}</div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow transition-colors">
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Vista semanal</h2>
+            <div className="card">
+              <h2 className="mb-2">Vista semanal</h2>
               <div style={{ height: 520 }}>
                 <WeeklyView
                   currentDate={currentDate}
@@ -255,8 +253,8 @@ export default function ChargerCalendarPage() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow transition-colors">
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Vista mensual</h2>
+            <div className="card">
+              <h2 className="mb-2">Vista mensual</h2>
               <MonthlyCalendar
                 currentDate={currentDate}
                 events={eventsForCalendar}
@@ -266,28 +264,26 @@ export default function ChargerCalendarPage() {
           </div>
 
           <aside className="space-y-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow transition-colors">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-100">Disponibilidad (próx. 7 días)</h3>
+            <div className="card">
+              <h3 className="font-semibold">Disponibilidad (próx. 7 días)</h3>
               {availability.length === 0 ? (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Sin datos de disponibilidad</p>
+                <p className="text-sm text-muted mt-2">Sin datos de disponibilidad</p>
               ) : (
                 <ul className="mt-2 space-y-2 text-sm">
                   {availability.map((day) => (
                     <li key={day.date} className="flex flex-col">
                       <div className="flex justify-between items-center">
-                        <span className="font-medium text-gray-700 dark:text-gray-200">{day.date}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{day.available.toFixed(1)} h libres</span>
+                        <span className="text-primary-medium">{day.date}</span>
+                        <span className="text-xs text-muted">{day.available.toFixed(1)} h libres</span>
                       </div>
                       {day.busySlots.length > 0 ? (
                         <div className="mt-1 flex flex-wrap gap-2">
                           {day.busySlots.map((s, i) => (
-                            <span key={i} className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded">
-                              {s.start} - {s.end}
-                            </span>
+                            <span key={i} className="badge badge-red">{s.start} - {s.end}</span>
                           ))}
                         </div>
                       ) : (
-                        <div className="mt-1 text-xs text-green-700 dark:text-green-300">Libre todo el día</div>
+                        <div className="mt-1"><span className="badge badge-green">Libre todo el día</span></div>
                       )}
                     </li>
                   ))}
@@ -295,15 +291,15 @@ export default function ChargerCalendarPage() {
               )}
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow transition-colors">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-100">Eventos próximos</h3>
+            <div className="card">
+              <h3 className="font-semibold">Eventos próximos</h3>
               <div className="mt-3 space-y-2">
-                {eventsForCalendar.length === 0 && <p className="text-sm text-gray-600 dark:text-gray-400">No hay eventos programados</p>}
+                {eventsForCalendar.length === 0 && <p className="text-sm text-muted">No hay eventos programados</p>}
                 {eventsForCalendar.slice(0, 10).map(ev => (
                   <div key={ev.id} className="flex items-center justify-between p-2 border border-gray-100 dark:border-gray-700 rounded">
                     <div>
-                      <div className="font-medium text-gray-800 dark:text-gray-100">{ev.title}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="text-primary-medium">{ev.title}</div>
+                      <div className="text-xs text-muted">
                         {ev.date.toLocaleString()} — {ev.endTime.toLocaleTimeString()}
                       </div>
                     </div>
@@ -313,15 +309,15 @@ export default function ChargerCalendarPage() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow transition-colors">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-100">Detalles del cargador</h3>
+            <div className="card">
+              <h3 className="font-semibold">Detalles del cargador</h3>
               {charger ? (
-                <div className="mt-2 text-sm text-gray-700 dark:text-gray-200 space-y-1">
+                <div className="mt-2 text-sm space-y-1">
                   <div><strong>Nombre:</strong> {charger.name || '—'}</div>
                   {charger.location && <div><strong>Ubicación:</strong> {`${charger.location.lat?.toFixed?.(4) ?? '-'}, ${charger.location.lng?.toFixed?.(4) ?? '-'}`}</div>}
                 </div>
               ) : (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Cargando detalles...</p>
+                <p className="text-sm text-muted mt-2">Cargando detalles...</p>
               )}
             </div>
           </aside>

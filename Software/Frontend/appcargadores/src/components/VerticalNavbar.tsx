@@ -61,7 +61,7 @@ const VerticalNavbar: React.FC = () => {
     <>
       {/* Botón hamburguesa para móvil - z-index alto para estar sobre mapa */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-[60] p-2 rounded-md bg-white dark:bg-gray-800 shadow-md"
+        className="lg:hidden fixed top-4 left-4 z-[60] btn btn-ghost"
         onClick={() => setIsOpen(!isOpen)}
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@ const VerticalNavbar: React.FC = () => {
               {user?.name ? user.name[0].toUpperCase() : 'U'}
             </div>
             <div>
-              <div className="font-semibold text-gray-800 dark:text-gray-100">{user?.name}</div>
+              <div className="item-title">{user?.name}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">
                 {user?.role?.replace('_', ' ')}
               </div>
@@ -108,13 +108,13 @@ const VerticalNavbar: React.FC = () => {
 
           {/* Selector de vehículo para usuarios EV */}
           {showVehicleSelector && (
-            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+            <div className="mt-5 card p-4 dark:bg-gray-900">
               <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
                 Vehículo seleccionado
               </h3>
               {evVehicleContext.loading ? (
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent"></span>
+                  <span className="spinner-inline"></span>
                   Cargando vehículos…
                 </div>
               ) : evVehicleContext.vehicles.length > 0 ? (
@@ -123,7 +123,7 @@ const VerticalNavbar: React.FC = () => {
                   <select
                     value={evVehicleContext.selectedVehicle?._id ?? ''}
                     onChange={event => evVehicleContext.selectVehicle(event.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                    className="select"
                   >
                     {evVehicleContext.vehicles.map(vehicle => (
                       <option key={vehicle._id} value={vehicle._id}>
@@ -134,36 +134,36 @@ const VerticalNavbar: React.FC = () => {
 
                   {/* Grid con detalles del vehículo seleccionado (2x2) */}
                   {evVehicleContext.selectedVehicle ? (
-                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-300">
-                      <div className="rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-gray-800/70">
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-secondary">
+                      <div className="surface">
                         <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
                           Nivel de carga
                         </div>
-                        <div className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-100">
+                        <div className="mt-1 text-base item-title">
                           {evVehicleContext.selectedVehicle.currentChargeLevel ?? '--'}%
                         </div>
                       </div>
-                      <div className="rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-gray-800/70">
+                      <div className="surface">
                         <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
                           Capacidad
                         </div>
-                        <div className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-100">
+                        <div className="mt-1 text-base item-title">
                           {evVehicleContext.selectedVehicle.batteryCapacity ?? '--'} kWh
                         </div>
                       </div>
-                      <div className="rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-gray-800/70">
+                      <div className="surface">
                         <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
                           Modelo
                         </div>
-                        <div className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-100">
+                        <div className="mt-1 text-base item-title">
                           {evVehicleContext.selectedVehicle.model}
                         </div>
                       </div>
-                      <div className="rounded-lg bg-white px-3 py-2 shadow-sm dark:bg-gray-800/70">
+                      <div className="surface">
                         <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
                           Tipo de cargador
                         </div>
-                        <div className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-100">
+                        <div className="mt-1 text-base item-title">
                           {evVehicleContext.selectedVehicle.chargerType}
                         </div>
                       </div>
@@ -175,7 +175,7 @@ const VerticalNavbar: React.FC = () => {
                   )}
                 </>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-secondary">
                   No tienes vehículos registrados.
                 </p>
               )}
@@ -195,15 +195,11 @@ const VerticalNavbar: React.FC = () => {
               <li key={item.path}>
                 <Link
                   to={item.path}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === item.path
-                      ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'
-                      : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                  className={`nav-link ${location.pathname === item.path ? 'nav-link--active' : ''}`}
                   onClick={() => setIsOpen(false)} // Cerrar menú móvil al navegar
                 >
                   <span className="text-lg">{item.icon}</span>
-                  <span className="font-medium">{item.label}</span>
+                  <span className="text-primary-medium">{item.label}</span>
                 </Link>
               </li>
             ))}
@@ -214,10 +210,10 @@ const VerticalNavbar: React.FC = () => {
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-3 w-full px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            className="btn btn-ghost btn-block text-red-600 dark:text-red-400"
           >
             <span className="text-lg">🚪</span>
-            <span className="font-medium">Cerrar sesión</span>
+            <span className="text-primary-medium">Cerrar sesión</span>
           </button>
         </div>
       </aside>

@@ -386,17 +386,17 @@ export default function ChargerReservationPage() {
   }, [selectionStart, selectionEnd, selectedVehicle, charger]);
 
   if (!chargerId) {
-    return <div className="p-6 text-red-600 dark:text-red-400">Charger ID no especificado.</div>;
+    return <div className="alert alert-error">Charger ID no especificado.</div>;
   }
 
   return (
     <div className="min-h-screen p-4">
       <div className="max-w-6xl mx-auto">
-        <header className="flex items-center justify-between mb-4">
+        <header className="section-header">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Reservar cargador</h1>
+            <h1>Reservar cargador</h1>
             <div className="flex items-center gap-3 mt-1">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-muted">
                 {charger ? charger.name : `Cargador ID: ${chargerId}`}
               </p>
               {/* Estrella favoritos junto al nombre */}
@@ -406,7 +406,7 @@ export default function ChargerReservationPage() {
                   disabled={favLoading}
                   aria-label={isFavorite ? 'Quitar favorito' : 'Agregar favorito'}
                   title={isFavorite ? 'Quitar favorito' : 'Agregar favorito'}
-                  className="inline-flex items-center justify-center p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="btn btn-ghost btn-sm"
                 >
                   {isFavorite ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -429,31 +429,27 @@ export default function ChargerReservationPage() {
  
           <button
             onClick={() => navigate('/')}
-            className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors shadow-md"
+            className="btn btn-outline"
           >
             Volver
           </button>
          </header>
  
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded">
-            {error}
-          </div>
+          <div className="alert alert-error mb-4">{error}</div>
         )}
 
         {reservationFeedback && (
-          <div className={`mb-4 p-3 rounded ${reservationFeedback.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'}`}>
-            {reservationFeedback.message}
-          </div>
+          <div className={`mb-4 ${reservationFeedback.type === 'success' ? 'alert' : 'alert alert-error'}`}>{reservationFeedback.message}</div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow transition-colors">
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
+            <div className="card">
+              <h2 className="mb-2">
                 Selecciona el horario de tu reserva
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              <p className="text-sm text-muted mb-3">
                 {isSelecting 
                   ? 'Ahora selecciona la hora de fin haciendo click en el calendario' 
                   : 'Haz click en la hora de inicio en el calendario'}
@@ -470,12 +466,12 @@ export default function ChargerReservationPage() {
           </div>
 
           <aside className="space-y-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow transition-colors">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">Horario seleccionado</h3>
+            <div className="card">
+              <h3 className="font-semibold mb-3">Horario seleccionado</h3>
               
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">
+                  <label className="form-label label-xs label-strong">
                     Fecha y hora de inicio
                   </label>
                   <div className="flex gap-2">
@@ -483,19 +479,19 @@ export default function ChargerReservationPage() {
                       type="date"
                       value={startDateInput}
                       onChange={(e) => setStartDateInput(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+                      className="input flex-1"
                     />
                     <input
                       type="time"
                       value={startTimeInput}
                       onChange={(e) => setStartTimeInput(e.target.value)}
-                      className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+                      className="input w-24"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">
+                  <label className="form-label label-xs label-strong">
                     Fecha y hora de fin
                   </label>
                   <div className="flex gap-2">
@@ -503,26 +499,26 @@ export default function ChargerReservationPage() {
                       type="date"
                       value={endDateInput}
                       onChange={(e) => setEndDateInput(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+                      className="input flex-1"
                     />
                     <input
                       type="time"
                       value={endTimeInput}
                       onChange={(e) => setEndTimeInput(e.target.value)}
-                      className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+                      className="input w-24"
                     />
                   </div>
                 </div>
 
                 {selectionStart && selectionEnd && (
-                  <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                    <div className="text-xs font-semibold text-amber-800 dark:text-amber-200 mb-1">
+                  <div className="mt-3 card">
+                    <div className="text-xs font-semibold mb-1">
                       Duración de la reserva
                     </div>
-                    <div className="text-sm text-amber-900 dark:text-amber-100">
+                    <div className="text-sm">
                           {Math.round((selectionEnd.getTime() - selectionStart.getTime()) / (1000 * 60 * 60) * 10) / 10} horas
                         {reachableInfo && (
-                          <div className="mt-2 text-sm text-amber-900 dark:text-amber-100">
+                          <div className="mt-2 text-sm">
                             <strong>Porcentaje alcanzable:</strong>{' '}
                             {`${Math.round(reachableInfo.reachablePercent)}%`} en {Math.round(reachableInfo.timeToReachHours)} horas con
                             {` ${Math.round(reachableInfo.timeToReachHours*60-Math.floor(reachableInfo.timeToReachHours*60))} minutos`}.
@@ -544,30 +540,30 @@ export default function ChargerReservationPage() {
                 <button
                   onClick={handleConfirmReservation}
                   disabled={!selectionStart || !selectionEnd || submitting || !selectedVehicle}
-                  className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                  className="btn btn-primary btn-block"
                 >
                   {submitting ? 'Creando reserva...' : 'Confirmar reserva'}
                 </button>
                 
                 <button
                   onClick={handleClearSelection}
-                  className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  className="btn btn-outline btn-block"
                 >
                   Limpiar selección
                 </button>
               </div>
 
               {!selectedVehicle && (
-                <p className="mt-3 text-xs text-red-600 dark:text-red-400">
+                <p className="mt-3 text-xs text-muted">
                   Selecciona un vehículo desde el menú lateral para continuar
                 </p>
               )}
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow transition-colors">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Detalles del cargador</h3>
+            <div className="card">
+              <h3 className="font-semibold mb-2">Detalles del cargador</h3>
               {charger ? (
-                <div className="text-sm text-gray-700 dark:text-gray-200 space-y-1">
+                <div className="text-sm space-y-1">
                   <div><strong>Nombre:</strong> {charger.name || '—'}</div>
                   <div><strong>Tipo:</strong> {charger.chargerType || '—'}</div>
                   <div><strong>Potencia:</strong> {charger.powerOutput ? `${charger.powerOutput} kW` : '—'}</div>
@@ -580,15 +576,15 @@ export default function ChargerReservationPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-600 dark:text-gray-400">Cargando detalles...</p>
+                <p className="text-sm text-muted">Cargando detalles...</p>
               )}
             </div>
 
-            <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4">
-              <h3 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-2 text-sm">
+            <div className="card">
+              <h3 className="font-semibold mb-2 text-sm">
                 💡 Instrucciones
               </h3>
-              <ul className="text-xs text-indigo-800 dark:text-indigo-200 space-y-1 list-disc list-inside">
+              <ul className="text-xs space-y-1 list-disc list-inside">
                 <li>Haz click en la hora de inicio deseada</li>
                 <li>Luego click en la hora de fin</li>
                 <li>Verás tu reserva en color ámbar</li>

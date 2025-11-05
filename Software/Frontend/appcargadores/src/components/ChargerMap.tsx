@@ -198,8 +198,8 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
   }, []);
 
   if (!chargers.length && !userLocation) return (
-    <div className="h-80 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
-      <div className="text-center text-gray-500 dark:text-gray-400">
+    <div className="h-80 flex items-center justify-center card">
+      <div className="text-center text-muted">
         <i className="fas fa-map-marker-alt text-4xl mb-3"></i>
         <p>No hay cargadores para mostrar</p>
       </div>
@@ -313,7 +313,7 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
                   <br />
                   <div className="mt-1">
                     <span className="inline-block w-3 h-3 rounded-full mr-1 bg-green-500"></span>
-                    {(charger.type ?? charger.chargerType) ?? 'Tipo desconocido'} - {(charger.power ?? charger.powerOutput) ?? 'N/D'} kW · <span className="font-medium">{unitCostStr}</span>
+                    {(charger.type ?? charger.chargerType) ?? 'Tipo desconocido'} - {(charger.power ?? charger.powerOutput) ?? 'N/D'} kW · <span className="text-primary-medium">{unitCostStr}</span>
                   </div>
                   <div className="mt-2 text-sm">
                     {resolvedLocation.lat.toFixed(4)}, {resolvedLocation.lng.toFixed(4)}
@@ -322,7 +322,7 @@ const ChargerMap = forwardRef<ChargerMapHandle, ChargerMapProps>(({ chargers, us
                     <div className="mt-3">
                       <button
                         onClick={() => onReserveCharger(charger._id)}
-                        className="w-full px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors"
+                        className="btn btn-primary btn-sm btn-block"
                       >
                         Reservar
                       </button>

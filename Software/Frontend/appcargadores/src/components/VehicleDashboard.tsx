@@ -271,8 +271,8 @@ const VehicleDashboard: React.FC = () => {
 
   if (!evVehicleContext) {
     return (
-      <div className="flex h-full min-h-[320px] items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <div className="text-center text-gray-600 dark:text-gray-300">
+      <div className="center-layout">
+        <div className="text-center text-secondary">
           No se pudo cargar la información de vehículos. Vuelve a intentarlo más tarde.
         </div>
       </div>
@@ -281,8 +281,8 @@ const VehicleDashboard: React.FC = () => {
 
   if (vehiclesLoading) {
     return (
-      <div className="flex h-full min-h-[320px] items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-indigo-600"></div>
+      <div className="center-layout">
+        <div className="spinner-lg"></div>
       </div>
     );
   }
@@ -290,7 +290,7 @@ const VehicleDashboard: React.FC = () => {
   const renderReservationCards = () => {
     if (!selectedVehicle) {
       return (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+  <div className="card card--2xl card--shadow-lg card--center">
           Selecciona un vehículo desde el menú lateral para planificar nuevas reservas.
         </div>
       );
@@ -298,8 +298,8 @@ const VehicleDashboard: React.FC = () => {
 
     if (loadingReservations) {
       return (
-        <div className="flex min-h-[120px] items-center justify-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-t-2 border-b-2 border-indigo-600"></div>
+        <div className="loading-box">
+          <div className="spinner-lg"></div>
         </div>
       );
     }
@@ -307,7 +307,7 @@ const VehicleDashboard: React.FC = () => {
     const upcomingReservations = reservations.filter(r => String(r.status).toLowerCase() !== 'cancelled');
 
     if (!upcomingReservations.length) {
-      return <p className="text-gray-600 dark:text-gray-300">No hay reservas actuales para este vehículo.</p>;
+      return <p className="text-secondary">No hay reservas actuales para este vehículo.</p>;
     }
 
     return (
@@ -335,36 +335,33 @@ const VehicleDashboard: React.FC = () => {
             : null;
 
           return (
-            <div key={res._id} className="flex items-center rounded-lg bg-indigo-50 p-5 shadow-sm dark:bg-indigo-900/60">
-              <div className="mr-4 flex w-14 flex-col items-center justify-center">
-                <span className="text-xs font-semibold uppercase text-indigo-600 dark:text-indigo-300">{day}</span>
-                <span className="text-2xl font-bold leading-none text-indigo-700 dark:text-indigo-100">{date}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">{month}</span>
+            <div key={res._id} className="card card-indigo">
+              <div className="date-badge">
+                <span className="date-badge-day">{day}</span>
+                <span className="date-badge-date">{date}</span>
+                <span className="date-badge-month">{month}</span>
               </div>
               <div className="flex-1">
-                <div className="font-semibold text-gray-800 dark:text-gray-100">{res.chargerId?.name ?? 'Cargador desconocido'}</div>
-                <div className="text-sm text-gray-500 dark:text-gray-300">Carga de Vehículo Tipo {selectedVehicle.chargerType || '-'}</div>
+                <div className="item-title">{res.chargerId?.name ?? 'Cargador desconocido'}</div>
+                <div className="text-caption">Carga de Vehículo Tipo {selectedVehicle.chargerType || '-'}</div>
                 {enCurso && (
-                  <div className="mt-2 inline-block rounded bg-green-100 px-2 py-1 text-xs font-semibold text-green-700 dark:bg-green-800 dark:text-green-200">
+                  <div className="badge-in-progress">
                     En curso
                   </div>
                 )}
               </div>
               <div className="flex min-w-[150px] flex-col items-end gap-1 text-right">
-                <div className="font-semibold text-gray-800 dark:text-gray-100">
+                <div className="item-title">
                   {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
-                <div className="mt-1 text-xs text-gray-500 dark:text-gray-300">Duración estimada: {durationStr}</div>
+                <div className="mt-1 text-caption">Duración estimada: {durationStr}</div>
                 {chargerLocation && (
                   <div className="mt-1 flex items-center gap-2">
-                    <button
-                      className="rounded bg-indigo-200 px-2 py-1 text-xs text-indigo-800 transition hover:bg-indigo-300 dark:bg-indigo-700 dark:text-indigo-100 dark:hover:bg-indigo-600"
-                      onClick={() => handleCenterOnMap({ ...chargerLocation, zoom: 17 })}
-                    >
+                    <button className="btn btn-outline btn-xs" onClick={() => handleCenterOnMap({ ...chargerLocation, zoom: 17 })}>
                       Centrar en mapa
                     </button>
                     <button
-                      className="rounded bg-red-500 px-2 py-1 text-xs font-medium text-white transition hover:bg-red-600"
+                      className="btn btn-danger btn-xs"
                       onClick={() => {
                         setCancelTargetId(res._id);
                         setCancelModalOpen(true);
@@ -385,7 +382,7 @@ const VehicleDashboard: React.FC = () => {
   const renderHistory = () => {
     if (!selectedVehicle) {
       return (
-        <p className="text-center text-gray-600 dark:text-gray-300">
+        <p className="text-center text-secondary">
           Selecciona un vehículo desde el menú lateral para revisar su historial de carga.
         </p>
       );
@@ -393,35 +390,35 @@ const VehicleDashboard: React.FC = () => {
 
     if (loadingHistory) {
       return (
-        <div className="flex min-h-[120px] items-center justify-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-indigo-600"></div>
+        <div className="loading-box">
+          <div className="spinner-lg"></div>
         </div>
       );
     }
 
     if (!chargingHistory.length) {
-      return <p className="text-gray-600 dark:text-gray-300">No hay historial de carga para este vehículo.</p>;
+      return <p className="text-secondary">No hay historial de carga para este vehículo.</p>;
     }
 
     return (
       <div className="overflow-x-auto">
-        <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-cyan-400 dark:scrollbar-track-gray-800">
-          <table className="min-w-full divide-y divide-gray-200 text-gray-800 dark:divide-gray-700 dark:text-gray-100">
+        <div className="scroll-table">
+          <table className="table table-divide-y">
             <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Fecha</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Cargador</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Energía (kWh)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Duración (min)</th>
+                <th className="th-spacious">Fecha</th>
+                <th className="th-spacious">Cargador</th>
+                <th className="th-spacious">Energía (kWh)</th>
+                <th className="th-spacious">Duración (min)</th>
               </tr>
             </thead>
             <tbody>
               {chargingHistory.map((session) => (
                 <tr key={session._id}>
-                  <td className="whitespace-nowrap px-6 py-4">{new Date(session.startTime).toLocaleDateString()}</td>
-                  <td className="whitespace-nowrap px-6 py-4">{session.chargerId.name}</td>
-                  <td className="whitespace-nowrap px-6 py-4">{session.energyDelivered.toFixed(2)}</td>
-                  <td className="whitespace-nowrap px-6 py-4">{session.duration.toFixed(0)}</td>
+                  <td className="td-spacious-nowrap">{new Date(session.startTime).toLocaleDateString()}</td>
+                  <td className="td-spacious-nowrap">{session.chargerId.name}</td>
+                  <td className="td-spacious-nowrap">{session.energyDelivered.toFixed(2)}</td>
+                  <td className="td-spacious-nowrap">{session.duration.toFixed(0)}</td>
                 </tr>
               ))}
             </tbody>
@@ -436,7 +433,7 @@ const VehicleDashboard: React.FC = () => {
       <main className="flex-1 overflow-y-auto p-6 md:p-12">
         <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
           {vehiclesError && (
-            <div className="md:col-span-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700 dark:border-red-500 dark:bg-red-900/40 dark:text-red-200">
+            <div className="md:col-span-3 alert alert-error">
               {vehiclesError}
             </div>
           )}
@@ -444,11 +441,11 @@ const VehicleDashboard: React.FC = () => {
           {!isHistoryView && (
             <>
               <div className="space-y-6">
-                <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-                  <h1 className="mb-3 text-3xl font-bold text-gray-800 dark:text-gray-100">¡Buenos días! ¿Dónde quieres cargar?</h1>
-                  <p className="mb-6 text-gray-600 dark:text-gray-300">Planifica otra carga como encuentres necesario.</p>
+                <section className="card">
+                  <h1 className="heading-xl">¡Buenos días! ¿Dónde quieres cargar?</h1>
+                  <p className="mb-6 text-secondary">Planifica otra carga como encuentres necesario.</p>
                   {/* Modal/Panel de opciones renderizado aquí, justo debajo del mensaje de bienvenida */}
-                  <div ref={optionsPanelRef} className="rounded-lg bg-white dark:bg-gray-800 p-0 mt-4">
+                  <div ref={optionsPanelRef} className="mt-4">
                     <ChargerOptionsModal
                       onClose={() => { /* inline: no-op */ }}
                       user={user}
@@ -461,8 +458,8 @@ const VehicleDashboard: React.FC = () => {
                   </div>
                 </section>
 
-                <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-                  <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">Mapa de cargadores</h2>
+                <section className="card">
+                  <h2 className="heading-lg">Mapa de cargadores</h2>
                   <div className="h-72 md:h-80 rounded overflow-hidden">
                     <ChargerMap
                       ref={mapRef}
@@ -477,27 +474,24 @@ const VehicleDashboard: React.FC = () => {
               </div>
 
               <div className="h-full">
-                <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800 h-full flex flex-col">
+                <section className="card h-full flex flex-col">
                   <div className="mb-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="tabs">
                       <button
                         onClick={() => setSelectedTab('reservations')}
-                        className={`px-3 py-1 rounded ${selectedTab === 'reservations' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'}`}
+                        className={`tab ${selectedTab === 'reservations' ? 'tab--active' : ''}`}
                       >
                         Próximas reservas
                       </button>
                       <button
                         onClick={() => setSelectedTab('favourites')}
-                        className={`px-3 py-1 rounded ${selectedTab === 'favourites' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'}`}
+                        className={`tab ${selectedTab === 'favourites' ? 'tab--active' : ''}`}
                       >
                         Mis Favoritos
                       </button>
                     </div>
                     {selectedTab === 'reservations' && reservations.length > 0 && (
-                      <button
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
-                        onClick={() => setShowAllReservations(true)}
-                      >
+                      <button className="btn btn-ghost btn-xs" onClick={() => setShowAllReservations(true)}>
                         Ver todas
                       </button>
                     )}
@@ -516,14 +510,14 @@ const VehicleDashboard: React.FC = () => {
           )}
 
           {isHistoryView && (
-            <section className="md:col-span-3 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-              <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">Historial de carga</h2>
+            <section className="md:col-span-3 card">
+              <h2 className="heading-lg">Historial de carga</h2>
               {renderHistory()}
             </section>
           )}
 
           {vehicles.length > 0 && !selectedVehicle && (
-            <div className="md:col-span-3 rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            <div className="md:col-span-3 card card--2xl card--shadow-lg card--center">
               Selecciona un vehículo desde el menú lateral para ver tus reservas e historial.
             </div>
           )}
@@ -531,33 +525,30 @@ const VehicleDashboard: React.FC = () => {
       </main>
 
       {showAllReservations && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
-          <div className="relative w-full max-w-[82vw] rounded-lg bg-white p-8 shadow-xl dark:bg-gray-900">
-            <button
-              className="absolute right-4 top-4 text-2xl text-gray-500 transition hover:text-gray-800 dark:hover:text-gray-200"
-              onClick={() => setShowAllReservations(false)}
-            >
-              &times;
+        <div className="modal">
+          <div className="relative w-full max-w-[82vw] modal__panel p-8" onClick={(e) => e.stopPropagation()}>
+            <button className="absolute right-4 top-4 btn btn-ghost btn-xs" onClick={() => setShowAllReservations(false)}>
+              ×
             </button>
-            <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">Todas las reservas</h2>
+            <h2 className="heading-lg">Todas las reservas</h2>
             <div className="overflow-x-auto">
-              <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-cyan-400 dark:scrollbar-track-gray-800">
-                <table className="min-w-full divide-y divide-gray-200 text-gray-800 dark:divide-gray-700 dark:text-gray-100">
+              <div className="scroll-table">
+                <table className="table table-divide-y">
                   <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Fecha inicio</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Fecha fin</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Cargador</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Estado</th>
+                      <th className="th-spacious">Fecha inicio</th>
+                      <th className="th-spacious">Fecha fin</th>
+                      <th className="th-spacious">Cargador</th>
+                      <th className="th-spacious">Estado</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reservations.map((res) => (
                       <tr key={res._id}>
-                        <td className="whitespace-nowrap px-6 py-4">{new Date(res.startTime).toLocaleString()}</td>
-                        <td className="whitespace-nowrap px-6 py-4">{new Date(res.endTime).toLocaleString()}</td>
-                        <td className="whitespace-nowrap px-6 py-4">{res.chargerId?.name ?? '-'}</td>
-                        <td className="whitespace-nowrap px-6 py-4">{res.status}</td>
+                        <td className="td-spacious-nowrap">{new Date(res.startTime).toLocaleString()}</td>
+                        <td className="td-spacious-nowrap">{new Date(res.endTime).toLocaleString()}</td>
+                        <td className="td-spacious-nowrap">{res.chargerId?.name ?? '-'}</td>
+                        <td className="td-spacious-nowrap">{res.status}</td>
                       </tr>
                     ))}
                   </tbody>

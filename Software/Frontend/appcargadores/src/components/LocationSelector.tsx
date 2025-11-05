@@ -65,20 +65,20 @@ export default function LocationSelector({
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col">
+    <div className="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col">
       {/* Encabezado */}
-      <div className="p-4 bg-gray-100 border-b flex justify-between items-center">
+      <div className="section-header-flex">
         <h2 className="text-xl font-bold">Seleccionar ubicación</h2>
         <div className="flex gap-2">
           <button 
             onClick={onCancel}
-            className="px-4 py-2 border rounded-md hover:bg-gray-50 transition-colors"
+            className="btn btn-outline"
           >
             Cancelar
           </button>
           <button 
             onClick={() => onSelect(position)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="btn btn-primary"
           >
             Aceptar
           </button>
@@ -86,7 +86,7 @@ export default function LocationSelector({
       </div>
 
       {/* Menú desplegable de búsqueda de ubicaciones */}
-      <div className="p-4 border-b">
+      <div className="section-header">
         <DropdownSearch onSelect={handleDropdownSelect} />
       </div>
 
@@ -108,8 +108,8 @@ export default function LocationSelector({
         </MapContainer>
         
         {/* Indicador de posición actual */}
-        <div className="absolute top-4 left-4 bg-white px-3 py-2 rounded-md shadow-md z-10 text-sm">
-          <div className="font-medium">Posición actual:</div>
+        <div className="absolute top-4 left-4 card p-2 z-10 text-sm">
+          <div className="text-primary-medium">Posición actual:</div>
           <div>Lat: {position[0].toFixed(6)}, Lng: {position[1].toFixed(6)}</div>
         </div>
       </div>

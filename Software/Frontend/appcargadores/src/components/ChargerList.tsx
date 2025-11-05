@@ -51,13 +51,13 @@ function DesktopChargerList({
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-xl">
+                <h1 className="heading-1 flex items-center gap-3">
+                  <div className="icon-badge-blue">
                     <i className="fas fa-charging-station text-blue-600 dark:text-blue-400 text-xl"></i>
                   </div>
                   <span>Estaciones de Carga</span>
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mt-2 ml-1">
+                <p className="text-secondary text-sm mt-2 ml-1">
                   {chargers.length} cargadores registrados
                 </p>
               </div>
@@ -68,12 +68,12 @@ function DesktopChargerList({
               {/* Filtros */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="flex items-center gap-2 form-label">
                     <i className="fas fa-filter text-gray-400"></i>
                     Filtro por estado
                   </label>
                   <select
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="select appearance-none cursor-pointer"
                     value={statusFilter ?? ''}
                     onChange={e => setStatusFilter(e.target.value || undefined)}
                   >
@@ -85,12 +85,12 @@ function DesktopChargerList({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="flex items-center gap-2 form-label">
                     <i className="fas fa-plug text-gray-400"></i>
                     Filtro por tipo
                   </label>
                   <select
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                    className="select appearance-none cursor-pointer"
                     value={typeFilter ?? ''}
                     onChange={e => setTypeFilter(e.target.value || undefined)}
                   >
@@ -109,26 +109,18 @@ function DesktopChargerList({
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex items-center gap-2">
                     <i className="fas fa-search text-gray-400 dark:text-gray-500"></i>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Modo de búsqueda:</span>
+                    <span className="form-label">Modo de búsqueda:</span>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setSearchMode('name')}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        searchMode === 'name'
-                          ? 'bg-blue-500 text-white shadow-md'
-                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
-                      }`}
+                      className={`search-toggle ${searchMode === 'name' ? 'search-toggle--active' : 'search-toggle--inactive'}`}
                     >
                       <i className="fas fa-tag mr-2"></i>Por nombre
                     </button>
                     <button
                       onClick={() => setSearchMode('location')}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        searchMode === 'location'
-                          ? 'bg-blue-500 text-white shadow-md'
-                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
-                      }`}
+                      className={`search-toggle ${searchMode === 'location' ? 'search-toggle--active' : 'search-toggle--inactive'}`}
                     >
                       <i className="fas fa-map-marker-alt mr-2"></i>Por ubicación
                     </button>
@@ -145,17 +137,17 @@ function DesktopChargerList({
         </div>
 
         {/* LISTA CON SCROLL INDEPENDIENTE */}
-        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+        <div className="scroll-content scrollbar-muted">
           <div className="p-6">
             {filteredChargers.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg p-8 text-center">
-                <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="fas fa-charging-station text-3xl text-gray-400 dark:text-gray-500"></i>
+              <div className="card card--2xl card--shadow-lg card--center">
+                <div className="icon-empty-container">
+                  <i className="fas fa-charging-station icon-empty-xl"></i>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+                <h3 className="heading-2 mb-2">
                   No se encontraron cargadores
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-secondary">
                   Intenta ajustar los filtros o términos de búsqueda
                 </p>
               </div>
@@ -171,19 +163,19 @@ function DesktopChargerList({
                     <div
                       key={charger._id}
                       ref={el => { if (el) chargerRefs.current[charger._id] = el; }}
-                      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group ${
+                      className={`card-charger group ${
                         highlightedChargerId === charger._id ? 'ring-4 ring-blue-500 dark:ring-blue-400' : ''
                       }`}
                     >
                       {/* Contenido de cada cargador */}
                       <div
                         onClick={() => setExpandedChargerId(expandedChargerId === charger._id ? null : charger._id)}
-                        className="p-6 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200"
+                        className="clickable-area"
                       >
                         <div className="flex justify-between items-start gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-800 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                              <h3 className="charger-title truncate">
                                 {charger.name}
                               </h3>
                               <div className={`px-2.5 py-1 rounded-full text-xs font-medium ${status.dot} ${status.text} bg-opacity-20`}>
@@ -191,20 +183,20 @@ function DesktopChargerList({
                               </div>
                             </div>
                             
-                            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                            <div className="meta-row mb-3">
                               <div className="flex items-center gap-1.5">
-                                <i className="fas fa-bolt text-yellow-500"></i>
+                                <i className="fas fa-bolt icon-yellow"></i>
                                 <span>{powerOutput} kW</span>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <i className="fas fa-plug text-blue-500"></i>
+                                <i className="fas fa-plug icon-blue"></i>
                                 <span>{charger.chargerType}</span>
                               </div>
                             </div>
                           </div>
                           
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg text-sm font-medium">
+                          <div className="flex-col-end">
+                            <div className="badge badge-blue">
                               {charger.chargerType}
                             </div>
                           </div>
@@ -217,10 +209,10 @@ function DesktopChargerList({
                               e.stopPropagation();
                               navigate(`/chargers/${charger._id}/charts`);
                             }}
-                            className="flex-1 flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/30 dark:hover:to-blue-700/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 transition-all duration-200 hover:scale-[1.02] hover:shadow-md group/btn"
+                            className="action-btn-blue"
                             title="Ver gráficas detalladas"
                           >
-                            <div className="p-2 bg-blue-500 rounded-lg group-hover/btn:bg-blue-600 transition-colors">
+                            <div className="action-btn-icon">
                               <i className="fas fa-chart-line text-white text-lg"></i>
                             </div>
                             <span className="text-sm font-medium">Gráficas</span>
@@ -231,10 +223,10 @@ function DesktopChargerList({
                               e.stopPropagation();
                               navigate(`/chargers/${charger._id}/history`);
                             }}
-                            className="flex-1 flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/30 dark:hover:to-purple-700/30 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 transition-all duration-200 hover:scale-[1.02] hover:shadow-md group/btn"
+                            className="action-btn-purple"
                             title="Ver historial de uso"
                           >
-                            <div className="p-2 bg-purple-500 rounded-lg group-hover/btn:bg-purple-600 transition-colors">
+                            <div className="action-btn-icon">
                               <i className="fas fa-history text-white text-lg"></i>
                             </div>
                             <span className="text-sm font-medium">Historial</span>
@@ -245,10 +237,10 @@ function DesktopChargerList({
                               e.stopPropagation();
                               navigate(`/chargers/${charger._id}/calendar`);
                             }}
-                            className="flex-1 flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 hover:from-green-100 hover:to-green-200 dark:hover:from-green-800/30 dark:hover:to-green-700/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 transition-all duration-200 hover:scale-[1.02] hover:shadow-md group/btn"
+                            className="action-btn-green"
                             title="Ver calendario de reservas"
                           >
-                            <div className="p-2 bg-green-500 rounded-lg group-hover/btn:bg-green-600 transition-colors">
+                            <div className="action-btn-icon">
                               <i className="fas fa-calendar-alt text-white text-lg"></i>
                             </div>
                             <span className="text-sm font-medium">Calendario</span>
@@ -257,8 +249,8 @@ function DesktopChargerList({
 
                         {/* Información adicional */}
                         <div className="mt-4 flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                            <i className="fas fa-map-marker-alt text-gray-400"></i>
+                          <div className="meta-subtle">
+                            <i className="fas fa-map-marker-alt icon-gray"></i>
                             <span className="truncate max-w-[200px]">
                               {!charger.location || !Array.isArray(charger.location.coordinates) 
                                 ? 'Ubicación desconocida'
@@ -277,17 +269,17 @@ function DesktopChargerList({
                                   });
                                 }
                               }}
-                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1.5 transition-colors"
+                              className="link link-inline"
                             >
                               <i className="fas fa-map text-xs"></i>
                               Ver en mapa
                             </button>
-                            <button className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors group">
+                            <button className="details-toggle group">
                               <span>{expandedChargerId === charger._id ? 'Ocultar detalles' : 'Ver detalles'}</span>
                               <div className={`p-1.5 rounded-md border-2 transition-all ${
                                 expandedChargerId === charger._id 
-                                  ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400' 
-                                  : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 group-hover:border-gray-400 dark:group-hover:border-gray-500'
+                                  ? 'chip--selected' 
+                                  : 'chip--inactive'
                               }`}>
                                 <i className={`fas ${expandedChargerId === charger._id ? 'fa-compress-alt' : 'fa-expand-alt'} text-xs ${
                                   expandedChargerId === charger._id ? 'text-blue-600 dark:text-blue-400' : ''
@@ -300,40 +292,40 @@ function DesktopChargerList({
                       
                       {/* Panel expandible */}
                       {expandedChargerId === charger._id && (
-                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-t border-gray-200 dark:border-gray-600 p-6 transition-all duration-300">
+                        <div className="card-details-panel">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
-                              <h4 className="font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-                                <i className="fas fa-info-circle text-blue-500"></i>
+                              <h4 className="item-title flex items-center gap-2">
+                                <i className="fas fa-info-circle icon-blue"></i>
                                 Información del cargador
                               </h4>
                               <div className="space-y-3">
-                                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
-                                  <span className="text-gray-600 dark:text-gray-400">Tipo de conector</span>
-                                  <span className="font-medium text-gray-800 dark:text-white">
+                                <div className="detail-row">
+                                  <span className="detail-label">Tipo de conector</span>
+                                  <span className="detail-value">
                                     {charger.chargerType}
                                   </span>
                                 </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
-                                  <span className="text-gray-600 dark:text-gray-400">Potencia máxima</span>
-                                  <span className="font-medium text-gray-800 dark:text-white">
+                                <div className="detail-row">
+                                  <span className="detail-label">Potencia máxima</span>
+                                  <span className="detail-value">
                                     {powerOutput} kW
                                   </span>
                                 </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
-                                  <span className="text-gray-600 dark:text-gray-400">Precio energía</span>
-                                  <span className="font-medium text-gray-800 dark:text-white">
+                                <div className="detail-row">
+                                  <span className="detail-label">Precio energía</span>
+                                  <span className="detail-value">
                                     {charger.energy_cost != null ? `${Number(charger.energy_cost)} CLP$/kWh` : 'No establecido'}
                                   </span>
                                 </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
-                                  <span className="text-gray-600 dark:text-gray-400">Precio estacionamiento</span>
-                                  <span className="font-medium text-gray-800 dark:text-white">
+                                <div className="detail-row">
+                                  <span className="detail-label">Precio estacionamiento</span>
+                                  <span className="detail-value">
                                     {charger.parking_cost != null ? `${Number(charger.parking_cost)} CLP$/min` : 'No establecido'}
                                   </span>
                                 </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
-                                  <span className="text-gray-600 dark:text-gray-400">Estado actual</span>
+                                <div className="detail-row">
+                                  <span className="detail-label">Estado actual</span>
                                   <span className={`font-medium ${status.text}`}>
                                     {getStatusText(charger.status)}
                                   </span>
@@ -341,20 +333,20 @@ function DesktopChargerList({
                               </div>
                             </div>
                             <div className="space-y-4">
-                              <h4 className="font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-                                <i className="fas fa-map-marked-alt text-green-500"></i>
+                              <h4 className="item-title flex items-center gap-2">
+                                <i className="fas fa-map-marked-alt icon-green"></i>
                                 Ubicación exacta
                               </h4>
-                              <div className="space-y-3 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                              <div className="detail-box">
                                 <div className="flex justify-between items-center py-2">
-                                  <span className="text-gray-600 dark:text-gray-400">Latitud</span>
-                                  <span className="font-mono text-sm text-gray-800 dark:text-white">
+                                  <span className="detail-label">Latitud</span>
+                                  <span className="coord-value">
                                     {charger.location.coordinates[1].toFixed(6)}
                                   </span>
                                 </div>
                                 <div className="flex justify-between items-center py-2">
-                                  <span className="text-gray-600 dark:text-gray-400">Longitud</span>
-                                  <span className="font-mono text-sm text-gray-800 dark:text-white">
+                                  <span className="detail-label">Longitud</span>
+                                  <span className="coord-value">
                                     {charger.location.coordinates[0].toFixed(6)}
                                   </span>
                                 </div>
@@ -368,7 +360,7 @@ function DesktopChargerList({
                                 e.stopPropagation();
                                 onRequestRename?.(charger);
                               }}
-                              className="px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-200 flex items-center gap-2 shadow-sm"
+                              className="btn btn-outline"
                             >
                               <i className="fas fa-edit"></i>
                               Cambiar detalles
@@ -386,15 +378,15 @@ function DesktopChargerList({
       </div>
 
       {/* Right Panel - Mapa */}
-      <div className="flex w-1/2 flex-col bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700">
-        <div className="flex-shrink-0 p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-xl">
-              <i className="fas fa-map-marker-alt text-green-600 dark:text-green-400"></i>
+      <div className="panel-bordered-left">
+        <div className="panel-header-lg">
+          <h2 className="heading-3 flex items-center gap-3">
+            <div className="icon-badge-green">
+              <i className="fas fa-map-marker-alt icon-green"></i>
             </div>
             Mapa de Cargadores
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 text-sm mt-2 ml-1">
+          <p className="text-secondary text-sm mt-2 ml-1">
             {filteredChargers.length} cargadores mostrados en el mapa
           </p>
         </div>
@@ -437,15 +429,15 @@ function MobileChargerList({
       {/* Static Search Header */}
       <div className="flex-shrink-0 p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <div className="p-1.5 bg-blue-100 dark:bg-blue-900 rounded-lg">
+          <h1 className="heading-3 flex items-center gap-2">
+            <div className="icon-badge-blue">
               <i className="fas fa-charging-station text-blue-600 dark:text-blue-400"></i>
             </div>
             Estaciones de Carga
           </h1>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-secondary hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             <i className={`fas ${showFilters ? 'fa-times' : 'fa-filter'}`}></i>
           </button>
@@ -456,21 +448,13 @@ function MobileChargerList({
           <div className="flex gap-2 mb-2">
             <button
               onClick={() => setSearchMode('name')}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                searchMode === 'name'
-                  ? 'bg-blue-500 text-white shadow-md'
-                  : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
-              }`}
+              className={`search-toggle flex-1 ${searchMode === 'name' ? 'search-toggle--active' : 'search-toggle--inactive'}`}
             >
               <i className="fas fa-tag mr-1"></i>Nombre
             </button>
             <button
               onClick={() => setSearchMode('location')}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                searchMode === 'location'
-                  ? 'bg-blue-500 text-white shadow-md'
-                  : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
-              }`}
+              className={`search-toggle flex-1 ${searchMode === 'location' ? 'search-toggle--active' : 'search-toggle--inactive'}`}
             >
               <i className="fas fa-map-marker-alt mr-1"></i>Ubicación
             </button>
@@ -486,11 +470,11 @@ function MobileChargerList({
         {showFilters && (
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-3 animate-slideDown">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="form-label">
                 Estado del cargador
               </label>
               <select
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="select"
                 value={statusFilter ?? ''}
                 onChange={e => setStatusFilter(e.target.value || undefined)}
               >
@@ -502,11 +486,11 @@ function MobileChargerList({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="form-label">
                 Tipo de conector
               </label>
               <select
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="select"
                 value={typeFilter ?? ''}
                 onChange={e => setTypeFilter(e.target.value || undefined)}
               >
@@ -526,18 +510,18 @@ function MobileChargerList({
       <div className={`flex-shrink-0 border-b border-gray-200 dark:border-gray-700 transition-all duration-300 ${isMapMinimized ? 'h-12' : 'h-48'}`}>
         <button 
           onClick={() => setIsMapMinimized(!isMapMinimized)}
-          className="w-full p-3 bg-gray-50 dark:bg-gray-700 flex justify-between items-center hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer group"
+          className="row-toggle group"
         >
-          <h3 className="font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+          <h3 className="heading-3 flex items-center gap-2">
             <i className="fas fa-map-marker-alt text-green-500"></i>
             Mapa de Cargadores
           </h3>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400 hidden group-hover:inline">
+            <span className="hover-hint-xs">
               {isMapMinimized ? 'Expandir' : 'Minimizar'}
             </span>
-            <div className="p-2 rounded-lg bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-sm group-hover:border-blue-500 dark:group-hover:border-blue-400 transition-all">
-              <i className={`fas ${isMapMinimized ? 'fa-expand-alt' : 'fa-compress-alt'} text-lg ${isMapMinimized ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'}`}></i>
+            <div className="toggle-icon-box group-hover:border-blue-500 dark:group-hover:border-blue-400">
+              <i className={`fas ${isMapMinimized ? 'fa-expand-alt' : 'fa-compress-alt'} text-lg ${isMapMinimized ? 'text-blue-600 dark:text-blue-400' : 'text-secondary'}`}></i>
             </div>
           </div>
         </button>
@@ -549,12 +533,12 @@ function MobileChargerList({
       </div>
 
       {/* Scrollable Chargers List */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+      <div className="scroll-content scrollbar-muted">
         <div className="p-4">
           {filteredChargers.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow p-6 text-center">
-              <i className="fas fa-charging-station text-3xl text-gray-300 dark:text-gray-600 mb-3"></i>
-              <p className="text-gray-600 dark:text-gray-300 font-medium">
+            <div className="card card--center">
+              <i className="fas fa-charging-station icon-empty-xl mb-3"></i>
+              <p className="text-primary-medium">
                 No se encontraron cargadores
               </p>
               <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
@@ -573,18 +557,18 @@ function MobileChargerList({
                   <div
                     key={charger._id}
                     ref={el => { if (el) chargerRefs.current[charger._id] = el; }}
-                    className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 ${
+                    className={`card card--hover card-overflow-hidden ${
                       highlightedChargerId === charger._id ? 'ring-4 ring-blue-500 dark:ring-blue-400' : ''
                     }`}
                   >
                     <div
                       onClick={() => setExpandedChargerId(expandedChargerId === charger._id ? null : charger._id)}
-                      className="p-4 cursor-pointer active:bg-gray-50 dark:active:bg-gray-700/50 transition-colors"
+                      className="clickable-area"
                     >
                       <div className="flex justify-between items-start gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-gray-800 dark:text-white truncate text-sm">
+                            <h3 className="item-title truncate text-sm">
                               {charger.name}
                             </h3>
                             <div className={`px-2 py-1 rounded-full text-xs font-medium ${status.dot} ${status.text} bg-opacity-20`}>
@@ -592,7 +576,7 @@ function MobileChargerList({
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400 mb-3">
+                          <div className="meta-row mb-3">
                             <div className="flex items-center gap-1">
                               <i className="fas fa-bolt text-yellow-500"></i>
                               <span>{powerOutput} kW</span>
@@ -604,8 +588,8 @@ function MobileChargerList({
                           </div>
                         </div>
                         
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded text-xs font-medium">
+                        <div className="flex-col-end">
+                          <div className="badge badge-blue">
                             {charger.chargerType}
                           </div>
                         </div>
@@ -618,10 +602,10 @@ function MobileChargerList({
                             e.stopPropagation();
                             navigate(`/chargers/${charger._id}/charts`);
                           }}
-                          className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-800/30 text-blue-600 dark:text-blue-400 transition-all duration-200 active:scale-95 group/btn"
+                          className="action-btn-blue"
                           title="Ver gráficas"
                         >
-                          <div className="p-1.5 bg-blue-500 rounded-md group-hover/btn:bg-blue-600 transition-colors">
+                          <div className="action-btn-icon">
                             <i className="fas fa-chart-line text-white text-sm"></i>
                           </div>
                           <span className="text-xs font-medium">Gráficas</span>
@@ -632,10 +616,10 @@ function MobileChargerList({
                             e.stopPropagation();
                             navigate(`/chargers/${charger._id}/history`);
                           }}
-                          className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-800/30 text-purple-600 dark:text-purple-400 transition-all duration-200 active:scale-95 group/btn"
+                          className="action-btn-purple"
                           title="Ver historial"
                         >
-                          <div className="p-1.5 bg-purple-500 rounded-md group-hover/btn:bg-purple-600 transition-colors">
+                          <div className="action-btn-icon">
                             <i className="fas fa-history text-white text-sm"></i>
                           </div>
                           <span className="text-xs font-medium">Historial</span>
@@ -646,10 +630,10 @@ function MobileChargerList({
                             e.stopPropagation();
                             navigate(`/chargers/${charger._id}/calendar`);
                           }}
-                          className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-800/30 text-green-600 dark:text-green-400 transition-all duration-200 active:scale-95 group/btn"
+                          className="action-btn-green"
                           title="Ver calendario"
                         >
-                          <div className="p-1.5 bg-green-500 rounded-md group-hover/btn:bg-green-600 transition-colors">
+                          <div className="action-btn-icon">
                             <i className="fas fa-calendar-alt text-white text-sm"></i>
                           </div>
                           <span className="text-xs font-medium">Calendario</span>
@@ -657,19 +641,19 @@ function MobileChargerList({
                       </div>
 
                       <div className="flex items-center justify-between mt-3">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                        <div className="meta-subtle">
                           <i className="fas fa-map-marker-alt"></i>
                           <span className="truncate max-w-[120px]">
                             {locationMap[charger._id]?.split(',')[0] || 'Ubicación'}
                           </span>
                         </div>
                         
-                        <button className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors group">
+                        <button className="link link-action group">
                           <span>{expandedChargerId === charger._id ? 'Ocultar' : 'Detalles'}</span>
                           <div className={`p-1 rounded border-2 transition-all ${
                             expandedChargerId === charger._id 
-                              ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400' 
-                              : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 group-hover:border-blue-400'
+                              ? 'chip--selected' 
+                              : 'chip--inactive group-hover:border-blue-400'
                           }`}>
                             <i className={`fas ${expandedChargerId === charger._id ? 'fa-compress-alt' : 'fa-expand-alt'} text-xs ${
                               expandedChargerId === charger._id ? 'text-blue-600 dark:text-blue-400' : ''
@@ -680,31 +664,31 @@ function MobileChargerList({
                     </div>
                     
                     {expandedChargerId === charger._id && (
-                      <div className="bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 p-4">
+                      <div className="card-expand-panel">
                         <div className="space-y-3 text-xs">
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <p className="text-gray-500 dark:text-gray-400 mb-1">Tipo</p>
-                              <p className="font-medium text-gray-800 dark:text-white">{charger.chargerType}</p>
+                              <p className="detail-label mb-1">Tipo</p>
+                              <p className="detail-value">{charger.chargerType}</p>
                             </div>
                             <div>
-                              <p className="text-gray-500 dark:text-gray-400 mb-1">Potencia</p>
-                              <p className="font-medium text-gray-800 dark:text-white">{powerOutput} kW</p>
+                              <p className="detail-label mb-1">Potencia</p>
+                              <p className="detail-value">{powerOutput} kW</p>
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <p className="text-gray-500 dark:text-gray-400 mb-1">Precio energía</p>
-                              <p className="font-medium text-gray-800 dark:text-white">{charger.energy_cost != null ? `$${Number(charger.energy_cost).toFixed(2)} /kWh` : 'No establecido'}</p>
+                              <p className="detail-label mb-1">Precio energía</p>
+                              <p className="detail-value">{charger.energy_cost != null ? `$${Number(charger.energy_cost).toFixed(2)} /kWh` : 'No establecido'}</p>
                             </div>
                             <div>
-                              <p className="text-gray-500 dark:text-gray-400 mb-1">Precio estacionamiento</p>
-                              <p className="font-medium text-gray-800 dark:text-white">{charger.parking_cost != null ? `$${Number(charger.parking_cost).toFixed(2)} /hr` : 'No establecido'}</p>
+                              <p className="detail-label mb-1">Precio estacionamiento</p>
+                              <p className="detail-value">{charger.parking_cost != null ? `$${Number(charger.parking_cost).toFixed(2)} /hr` : 'No establecido'}</p>
                             </div>
                           </div>
                           <div>
-                            <p className="text-gray-500 dark:text-gray-400 mb-1">Coordenadas</p>
-                            <div className="space-y-1 font-mono text-gray-800 dark:text-white">
+                            <p className="detail-label mb-1">Coordenadas</p>
+                            <div className="space-y-1 coord-value">
                               <div>Lat: {charger.location.coordinates[1].toFixed(6)}</div>
                               <div>Lng: {charger.location.coordinates[0].toFixed(6)}</div>
                             </div>
@@ -717,7 +701,7 @@ function MobileChargerList({
                               e.stopPropagation();
                               onRequestRename(charger);
                             }}
-                            className="px-3 py-1.5 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg text-gray-700 dark:text-gray-200 text-xs hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors flex items-center gap-1"
+                            className="btn btn-outline btn-xs"
                           >
                             <i className="fas fa-edit text-xs"></i>
                             Cambiar nombre
@@ -804,23 +788,23 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
     switch (status) {
       case 'available':
         return { 
-          dot: 'bg-green-500 dark:bg-green-600 text-green-700 dark:text-green-300', 
-          text: 'text-green-700 dark:text-green-300' 
+          dot: 'status-available', 
+          text: 'status-available-text' 
         };
       case 'occupied':
         return { 
-          dot: 'bg-yellow-500 dark:bg-yellow-600 text-yellow-700 dark:text-yellow-300', 
-          text: 'text-yellow-700 dark:text-yellow-300' 
+          dot: 'status-occupied', 
+          text: 'status-occupied-text' 
         };
       case 'maintenance':
         return { 
-          dot: 'bg-red-500 dark:bg-red-600 text-red-700 dark:text-red-400', 
-          text: 'text-red-700 dark:text-red-400' 
+          dot: 'status-maintenance', 
+          text: 'status-maintenance-text' 
         };
       default:
         return { 
-          dot: 'bg-gray-500 dark:bg-gray-600 text-gray-700 dark:text-gray-300', 
-          text: 'text-gray-700 dark:text-gray-300' 
+          dot: 'status-unknown', 
+          text: 'status-unknown-text' 
         };
     }
   };
@@ -1052,43 +1036,37 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
       )}
 
       {renamingCharger && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            role="button"
-            tabIndex={-1}
-            onClick={closeRenameModal}
-          ></div>
-          <div className="relative z-10 w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-2xl p-6 transform transition-all duration-300 scale-100">
+        <div className="modal" onClick={closeRenameModal}>
+          <div className="relative z-10 w-full max-w-md modal__panel" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-xl">
+              <div className="icon-badge-blue">
                 <i className="fas fa-edit text-blue-600 dark:text-blue-400 text-lg"></i>
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   Cambiar detalles del cargador
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-secondary">
                   Actualiza el nombre y los precios para mejor identificación
                 </p>
               </div>
             </div>
             
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 mb-4">
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Cargador actual: <span className="font-medium text-gray-800 dark:text-white">{renamingCharger.name}</span>
+              <p className="text-sm text-secondary">
+                Cargador actual: <span className="detail-value">{renamingCharger.name}</span>
               </p>
               {/* Precios apilados: cada uno en su fila */}
-              <div className="mt-2 text-sm text-gray-600 dark:text-gray-300 space-y-2">
+              <div className="mt-2 text-sm text-secondary space-y-2">
                 <div>
-                  <div className="text-gray-600 text-sm">Precio energía</div>
-                  <div className="font-medium text-gray-800 dark:text-white">
+                  <div className="detail-label text-sm">Precio energía</div>
+                  <div className="detail-value">
                     {renamingCharger.energy_cost != null ? `${Math.round(Number(renamingCharger.energy_cost))} CLP$/kWh` : 'No establecido'}
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-600 text-sm">Precio estacionamiento</div>
-                  <div className="font-medium text-gray-800 dark:text-white">
+                  <div className="detail-label text-sm">Precio estacionamiento</div>
+                  <div className="detail-value">
                     {renamingCharger.parking_cost != null ? `${Math.round(Number(renamingCharger.parking_cost))} CLP$/min` : 'No establecido'}
                   </div>
                 </div>
@@ -1097,7 +1075,7 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
 
             <form onSubmit={handleRenameSubmit} className="space-y-4">
               <div>
-                <label htmlFor="charger-new-name" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                <label htmlFor="charger-new-name" className="form-label">
                   Nuevo nombre
                 </label>
                 <input
@@ -1105,14 +1083,14 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
                   type="text"
                   value={renameName}
                   onChange={event => setRenameName(event.target.value)}
-                  className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-3 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200"
+                  className="input"
                   placeholder="Ingresa el nuevo nombre..."
                   maxLength={80}
                   autoFocus
                   disabled={isRenaming}
                 />
                 {renameError && (
-                  <div className="flex items-center gap-2 mt-2 text-sm text-red-600 dark:text-red-400">
+                  <div className="error-message">
                     <i className="fas fa-exclamation-circle"></i>
                     {renameError}
                   </div>
@@ -1122,27 +1100,27 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
               {/* Campos para precios */}
               <div className="grid grid-rows-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Precio energía (CLP$/kWh)</label>
+                  <label className="form-label">Precio energía (CLP$/kWh)</label>
                   <input
                     type="number"
                     step="1"
                     min="0"
                     value={renameEnergyCost}
                     onChange={e => setRenameEnergyCost(e.target.value)}
-                    className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                    className="input"
                     placeholder="Ej. 365"
                     disabled={isRenaming}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Precio estacionamiento (CLP$/min)</label>
+                  <label className="form-label">Precio estacionamiento (CLP$/min)</label>
                   <input
                     type="number"
                     step="1"
                     min="0"
                     value={renameParkingCost}
                     onChange={e => setRenameParkingCost(e.target.value)}
-                    className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                    className="input"
                     placeholder="Ej. 29"
                     disabled={isRenaming}
                   />
@@ -1153,7 +1131,7 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
                 <button
                   type="button"
                   onClick={closeRenameModal}
-                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 transition-all duration-200 font-medium flex items-center gap-2"
+                  className="btn btn-secondary"
                   disabled={isRenaming}
                 >
                   <i className="fas fa-times"></i>
@@ -1161,7 +1139,7 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 font-medium flex items-center gap-2 shadow-lg"
+                  className="btn btn-primary"
                   disabled={isRenaming}
                 >
                   {isRenaming ? (

@@ -115,30 +115,30 @@ const WeeklyView = ({ currentDate, events, onDateChange, onTimeSlotClick }: Week
   };
 
   return (
-    <div className="flex flex-col h-full border border-gray-200 rounded-lg overflow-hidden bg-white dark:bg-gray-800 transition-colors">
-      <div className="flex justify-between items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+    <div className="panel">
+      <div className="toolbar">
         <button
-          className="bg-transparent border-0 text-xl cursor-pointer px-3 py-2 rounded transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100"
+          className="btn btn-ghost btn-sm text-xl"
           onClick={() => navigateDays('prev')}
           aria-label="prev"
         >
           &lt;
         </button>
 
-        <div className="font-semibold text-gray-800 dark:text-gray-100">
+        <div className="item-title">
           {isMobile ? (
-            <span onClick={navigateToToday} className="cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 dark:hover:bg-gray-600">
+            <span onClick={navigateToToday} className="btn btn-ghost btn-sm">
               {format(selectedDate, 'EEEE, d MMMM', { locale: es })}
             </span>
           ) : (
-            <span onClick={navigateToToday} className="cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 dark:hover:bg-gray-600">
+            <span onClick={navigateToToday} className="btn btn-ghost btn-sm">
               Semana {format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'd')} - {format(addDays(startOfWeek(currentDate, { weekStartsOn: 1 }), 6), 'd MMMM', { locale: es })}
             </span>
           )}
         </div>
 
         <button
-          className="bg-transparent border-0 text-xl cursor-pointer px-3 py-2 rounded transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100"
+          className="btn btn-ghost btn-sm text-xl"
           onClick={() => navigateDays('next')}
           aria-label="next"
         >

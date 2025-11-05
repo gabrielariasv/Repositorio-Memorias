@@ -31,7 +31,7 @@ const NotificationBell: React.FC = () => {
         <button
           aria-label="Notificaciones"
           onClick={() => setOpen(o => !o)}
-          className="relative rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+          className="relative btn btn-ghost rounded-full p-2"
         >
           <span className="text-xl">🔔</span>
           {unreadCount > 0 && (
@@ -189,16 +189,16 @@ const NotificationsPanel: React.FC<{
     <>
       <div className="p-3">
         <div className="flex items-center justify-between mb-2">
-          <div className="font-semibold text-gray-800 dark:text-gray-100">Notificaciones</div>
+          <div className="item-title">Notificaciones</div>
           <div className="flex gap-2">
-            <button className="text-sm px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" onClick={refresh}>Actualizar</button>
-            <button className="text-sm px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" onClick={markAllAsRead}>Marcar todas</button>
+            <button className="btn btn-ghost btn-xs" onClick={refresh}>Actualizar</button>
+            <button className="btn btn-ghost btn-xs" onClick={markAllAsRead}>Marcar todas</button>
           </div>
         </div>
-        {loading && <div className="text-sm text-gray-500 dark:text-gray-400">Cargando…</div>}
-        {error && <div className="text-sm text-red-600 dark:text-red-400">{error}</div>}
+        {loading && <div className="text-secondary">Cargando…</div>}
+  {error && <div className="text-danger">{error}</div>}
         <ul className="space-y-2">
-          {items.length === 0 && !loading && <li className="text-sm text-gray-500 dark:text-gray-400">Sin notificaciones</li>}
+          {items.length === 0 && !loading && <li className="text-secondary">Sin notificaciones</li>}
           {items.map(n => {
             const isActionable = n.data && n.data.reservationId && actionable.has(String(n.type));
             const chargerName = n.data?.chargerName;
@@ -206,24 +206,24 @@ const NotificationsPanel: React.FC<{
               <li key={n._id} className={`p-2 rounded border ${n.read ? 'border-transparent' : 'border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-900/20'}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1 pr-2">
-                    <div className="font-medium text-gray-800 dark:text-gray-100">{n.title}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300">{n.message}</div>
+                    <div className="text-primary-medium">{n.title}</div>
+                    <div className="text-sm text-secondary">{n.message}</div>
                     {chargerName && (
-                      <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 font-medium">
+                      <div className="text-accent text-xs">
                         📍 {chargerName}
                       </div>
                     )}
-                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">{new Date(n.createdAt).toLocaleString()}</div>
+                    <div className="text-xs text-secondary mt-1">{new Date(n.createdAt).toLocaleString()}</div>
                     {isActionable && (
                       <div className="mt-2 flex gap-2">
                         <button
-                          className="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700"
+                          className="btn btn-success btn-xs"
                           onClick={() => acceptReservation(n.data.reservationId, n._id, chargerName)}
                         >
                           Aceptar
                         </button>
                         <button
-                          className="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700"
+                          className="btn btn-danger btn-xs"
                           onClick={() => openCancelModal(n.data.reservationId, n._id, chargerName)}
                         >
                           Cancelar
@@ -238,7 +238,7 @@ const NotificationsPanel: React.FC<{
         </ul>
         {onClose && (
           <div className="mt-2 text-right">
-            <button className="text-sm px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" onClick={onClose}>Cerrar</button>
+            <button className="btn btn-ghost btn-xs" onClick={onClose}>Cerrar</button>
           </div>
         )}
       </div>

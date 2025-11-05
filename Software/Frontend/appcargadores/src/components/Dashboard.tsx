@@ -82,26 +82,26 @@ const StationAdminDashboard: React.FC = () => {
     const navigate = useNavigate();
 
     if (!chargerId) {
-      return <div className="p-6 text-gray-700 dark:text-gray-200">No se ha seleccionado ningún cargador.</div>;
+      return <div className="modal__body">No se ha seleccionado ningún cargador.</div>;
     }
 
     return (
       <div className="flex h-full flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Gráficas del Cargador</h2>
+        <div className="flex-between-wrap-3">
+          <h2 className="heading-page-2xl">Gráficas del Cargador</h2>
           <button
             onClick={() => navigate('/')}
-            className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+            className="btn btn-secondary"
           >
             Volver a cargadores
           </button>
         </div>
         {/* Siempre vertical (como en móvil) */}
         <div className="grid flex-1 gap-6 grid-cols-1">
-          <div className="rounded-2xl bg-white p-6 shadow dark:bg-gray-800">
+          <div className="card">
             <ChargerOccupancyChart chargerId={chargerId} />
           </div>
-          <div className="rounded-2xl bg-white p-6 shadow dark:bg-gray-800">
+          <div className="card">
             <ChargingSessionsChart chargerId={chargerId} />
           </div>
         </div>
@@ -113,30 +113,26 @@ const StationAdminDashboard: React.FC = () => {
     <div className="flex h-full min-h-0 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Gestión de Cargadores</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
+          <h1 className="heading-page-3xl">Gestión de Cargadores</h1>
+          <p className="text-sm text-secondary">
             Administra tus estaciones sin desplazamientos adicionales.
           </p>
         </div>
         <button
           onClick={() => fetchChargers()}
-          className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+          className="btn btn-secondary"
         >
           Actualizar
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden rounded-2xl bg-white shadow dark:bg-gray-800">
-        <div className="flex h-full min-h-0 flex-col p-6">
+      <div className="card flex-1 min-h-0 overflow-hidden">
+        <div className="flex h-full min-h-0 flex-col">
           {loading && (
-            <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-700 dark:border-indigo-900/40 dark:bg-indigo-900/20 dark:text-indigo-200">
-              Cargando cargadores…
-            </div>
+            <div className="alert mb-4">Cargando cargadores…</div>
           )}
           {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-900/30 dark:text-red-200">
-              {error}
-            </div>
+            <div className="alert alert-error mb-4">{error}</div>
           )}
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="h-full min-h-0 overflow-hidden">
@@ -150,11 +146,11 @@ const StationAdminDashboard: React.FC = () => {
 
   return (
     <Router>
-      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 lg:pl-64">
+      <div className="main-layout">
         <VerticalNavbar />
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* top right header */}
-          <div className="flex items-center justify-end px-4 pt-4 sm:px-6">
+          <div className="header-actions">
             <NotificationBell />
           </div>
           <main className="flex-1 overflow-hidden px-4 py-2 sm:px-6">
@@ -178,10 +174,10 @@ const StationAdminDashboard: React.FC = () => {
 const EVUserDashboard: React.FC = () => (
   <Router>
     <EvVehicleProvider>
-      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 lg:pl-64">
+      <div className="main-layout">
         <VerticalNavbar />
         <div className="flex-1">
-          <div className="flex items-center justify-end px-4 pt-4 sm:px-6">
+          <div className="header-actions">
             <NotificationBell />
           </div>
           <div className="p-6">

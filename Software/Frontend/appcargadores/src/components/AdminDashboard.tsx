@@ -248,16 +248,16 @@ const AdminOverview: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <section className="rounded-2xl bg-white p-6 shadow dark:bg-gray-800">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="card card--2xl">
+        <div className="flex-between-wrap-3">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Resumen del sistema</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Indicadores globales recopilados desde la API.</p>
+              <h2 className="heading-1">Resumen del sistema</h2>
+              <p className="text-secondary">Indicadores globales recopilados desde la API.</p>
           </div>
           <button
             type="button"
             onClick={() => fetchStats()}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+            className="btn btn-primary"
             disabled={statsLoading}
           >
             {statsLoading ? 'Actualizando…' : 'Actualizar'}
@@ -265,14 +265,14 @@ const AdminOverview: React.FC = () => {
         </div>
 
         {statsError && (
-          <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/60 dark:bg-red-900/20 dark:text-red-200">
+          <div className="mt-4 alert alert-error">
             {statsError}
           </div>
         )}
 
         {statsLoading && !overviewStats && (
-          <div className="mt-6 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-300">
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent"></span>
+          <div className="loading-state">
+            <span className="spinner-inline"></span>
             Cargando estadísticas…
           </div>
         )}
@@ -280,56 +280,56 @@ const AdminOverview: React.FC = () => {
         {overviewStats && (
           <>
             <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Vehículos registrados</p>
-                <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{integerFormatter.format(overviewStats.totalVehicles ?? 0)}</p>
+              <div className="card card-muted">
+                <p className="stat-label">Vehículos registrados</p>
+                <p className="mt-2 stat-value">{integerFormatter.format(overviewStats.totalVehicles ?? 0)}</p>
               </div>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Estaciones activas</p>
-                <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{integerFormatter.format(overviewStats.totalChargers ?? 0)}</p>
+              <div className="card card-muted">
+                <p className="stat-label">Estaciones activas</p>
+                <p className="mt-2 stat-value">{integerFormatter.format(overviewStats.totalChargers ?? 0)}</p>
               </div>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Sesiones históricas</p>
-                <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{integerFormatter.format(overviewStats.totalSessions ?? 0)}</p>
+              <div className="card card-muted">
+                <p className="stat-label">Sesiones históricas</p>
+                <p className="mt-2 stat-value">{integerFormatter.format(overviewStats.totalSessions ?? 0)}</p>
               </div>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Energía entregada</p>
-                <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{decimalFormatter.format(overviewStats.totalEnergy ?? 0)} kWh</p>
+              <div className="card card-muted">
+                <p className="stat-label">Energía entregada</p>
+                <p className="mt-2 stat-value">{decimalFormatter.format(overviewStats.totalEnergy ?? 0)} kWh</p>
               </div>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Reservas totales</p>
-                <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{integerFormatter.format(overviewStats.totalReservations ?? 0)}</p>
+              <div className="card card-muted">
+                <p className="stat-label">Reservas totales</p>
+                <p className="mt-2 stat-value">{integerFormatter.format(overviewStats.totalReservations ?? 0)}</p>
               </div>
             </div>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
-              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+              <div className="card">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Distribución por tipo de cargador</h3>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Top tipos</span>
+                  <h3 className="heading-2">Distribución por tipo de cargador</h3>
+                  <span className="text-caption">Top tipos</span>
                 </div>
                 {chargerTypeBreakdown.length ? (
-                  <ul className="mt-4 space-y-3 text-sm text-gray-700 dark:text-gray-200">
+                  <ul className="mt-4 space-y-3 text-body">
                     {chargerTypeBreakdown.map((stat) => (
                       <li key={stat._id} className="flex items-center justify-between gap-3">
-                        <span className="font-medium">{stat.label}</span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                        <span className="text-primary-medium">{stat.label}</span>
+                        <span className="text-secondary">
                           {integerFormatter.format(stat.count)} · {stat.percentage.toFixed(1)}%
                         </span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Sin datos disponibles.</p>
+                  <p className="mt-4 text-secondary">Sin datos disponibles.</p>
                 )}
               </div>
 
-              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Energía por mes</h3>
+              <div className="card">
+                <h3 className="heading-2">Energía por mes</h3>
                 {recentEnergyMonthly.length ? (
                   <div className="mt-4 max-h-56 overflow-y-auto">
-                    <table className="min-w-full text-left text-sm text-gray-700 dark:text-gray-200">
-                      <thead className="sticky top-0 bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <table className="min-w-full text-left text-body">
+                      <thead className="thead-sticky">
                         <tr>
                           <th className="px-3 py-2">Mes</th>
                           <th className="px-3 py-2 text-right">Energía (kWh)</th>
@@ -340,8 +340,8 @@ const AdminOverview: React.FC = () => {
                         {recentEnergyMonthly.map((entry) => {
                           const label = new Date(entry._id.year, entry._id.month - 1).toLocaleString('es-CL', { month: 'short', year: 'numeric' });
                           return (
-                            <tr key={`${entry._id.year}-${entry._id.month}`} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800/70">
-                              <td className="px-3 py-2 font-medium capitalize">{label}</td>
+                            <tr key={`${entry._id.year}-${entry._id.month}`} className="table-row">
+                              <td className="px-3 py-2 text-primary-medium capitalize">{label}</td>
                               <td className="px-3 py-2 text-right">{decimalFormatter.format(entry.totalEnergy ?? 0)}</td>
                               <td className="px-3 py-2 text-right">{integerFormatter.format(entry.sessionCount ?? 0)}</td>
                             </tr>
@@ -351,16 +351,16 @@ const AdminOverview: React.FC = () => {
                     </table>
                   </div>
                 ) : (
-                  <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Sin datos mensuales para mostrar.</p>
+                  <p className="mt-4 text-secondary">Sin datos mensuales para mostrar.</p>
                 )}
               </div>
 
-              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Vehículos con mayor consumo</h3>
+              <div className="card">
+                <h3 className="heading-2">Vehículos con mayor consumo</h3>
                 {topVehiclesList.length ? (
                   <div className="mt-4 max-h-56 overflow-y-auto">
-                    <table className="min-w-full text-left text-sm text-gray-700 dark:text-gray-200">
-                      <thead className="sticky top-0 bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <table className="min-w-full text-left text-body">
+                      <thead className="thead-sticky">
                         <tr>
                           <th className="px-3 py-2">#</th>
                           <th className="px-3 py-2">Vehículo</th>
@@ -370,11 +370,11 @@ const AdminOverview: React.FC = () => {
                       </thead>
                       <tbody>
                         {topVehiclesList.map((vehicle) => (
-                          <tr key={vehicle._id ?? vehicle.rank} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800/70">
-                            <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{vehicle.rank}</td>
+                          <tr key={vehicle._id ?? vehicle.rank} className="table-row">
+                            <td className="px-3 py-2 text-secondary">{vehicle.rank}</td>
                             <td className="px-3 py-2">
-                              <div className="font-medium text-gray-900 dark:text-gray-100">{vehicle.name}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">{vehicle.chargerType}</div>
+                              <div className="text-primary-medium">{vehicle.name}</div>
+                              <div className="text-caption">{vehicle.chargerType}</div>
                             </td>
                             <td className="px-3 py-2 text-right">{decimalFormatter.format(vehicle.totalEnergy ?? 0)}</td>
                             <td className="px-3 py-2 text-right">{integerFormatter.format(vehicle.sessionCount ?? 0)}</td>
@@ -384,15 +384,15 @@ const AdminOverview: React.FC = () => {
                     </table>
                   </div>
                 ) : (
-                  <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Aún no hay consumos registrados.</p>
+                  <p className="mt-4 text-secondary">Aún no hay consumos registrados.</p>
                 )}
               </div>
 
-              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Uso por hora del día</h3>
+              <div className="card">
+                <h3 className="heading-2">Uso por hora del día</h3>
                 <div className="mt-4 max-h-56 overflow-y-auto">
-                  <table className="min-w-full text-left text-sm text-gray-700 dark:text-gray-200">
-                    <thead className="sticky top-0 bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                  <table className="min-w-full text-left text-body">
+                    <thead className="thead-sticky">
                       <tr>
                         <th className="px-3 py-2">Hora</th>
                         <th className="px-3 py-2 text-right">Sesiones</th>
@@ -401,8 +401,8 @@ const AdminOverview: React.FC = () => {
                     </thead>
                     <tbody>
                       {usageByHourComplete.map((entry) => (
-                        <tr key={entry.hour} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800/70">
-                          <td className="px-3 py-2 font-medium">{entry.hour.toString().padStart(2, '0')}:00</td>
+                        <tr key={entry.hour} className="table-row">
+                          <td className="px-3 py-2 text-primary-medium">{entry.hour.toString().padStart(2, '0')}:00</td>
                           <td className="px-3 py-2 text-right">{integerFormatter.format(entry.sessionCount)}</td>
                           <td className="px-3 py-2 text-right">{decimalFormatter.format(entry.totalEnergy)}</td>
                         </tr>
@@ -870,24 +870,24 @@ const AdminManagement: React.FC = () => {
   return (
     <>
       <div className="mx-auto max-w-7xl space-y-6">
-        <section className="rounded-2xl bg-white p-6 shadow dark:bg-gray-800">
+        <section className="card card--2xl">
           <form onSubmit={handleSearchSubmit} className="grid gap-4 md:grid-cols-[1.5fr_1fr_auto] md:items-end">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">Buscar usuarios</label>
+              <label className="form-label">Buscar usuarios</label>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Nombre o correo electrónico"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                className="input"
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">Filtrar por rol</label>
+              <label className="form-label">Filtrar por rol</label>
               <select
                 value={roleFilter}
                 onChange={(event) => setRoleFilter(event.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                className="input"
               >
                 <option value="">Todos</option>
                 <option value="app_admin">Administrador general</option>
@@ -897,14 +897,14 @@ const AdminManagement: React.FC = () => {
             </div>
             <button
               type="submit"
-              className="h-12 rounded-lg bg-indigo-600 px-6 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+              className="btn btn-primary btn-tall"
               disabled={usersLoading}
             >
               {usersLoading ? 'Buscando…' : 'Buscar'}
             </button>
           </form>
           {usersError && (
-            <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500 dark:bg-red-900/20 dark:text-red-200">
+            <div className="mt-4 alert-error-box">
               {usersError}
             </div>
           )}
@@ -912,22 +912,22 @@ const AdminManagement: React.FC = () => {
 
         <section className="grid gap-6 lg:grid-cols-[350px_1fr]">
           <div className={`rounded-2xl bg-white shadow dark:bg-gray-800 ${isMobileDetailOpen ? 'hidden' : ''}`}>
-            <div className="flex h-[79vh] min-h-[500px] flex-col overflow-hidden rounded-2xl">
-              <div className="flex-shrink-0 border-b border-gray-200 p-4 dark:border-gray-700 dark:bg-gray-800/80">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Usuarios</h2>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <div className="list-panel">
+              <div className="panel-header">
+                <h2 className="heading-2">Usuarios</h2>
+                <p className="mt-1 text-caption">
                   {usersLoading ? 'Buscando usuarios…' : `${users.length} usuario${users.length === 1 ? '' : 's'} encontrados`}
                 </p>
               </div>
-              <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+              <div className="scroll-content scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                 <div className="space-y-3 p-4">
                   {usersLoading && (
-                    <div className="flex items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-900/20 dark:text-indigo-200">
+                    <div className="info-loading">
                       Cargando usuarios…
                     </div>
                   )}
                   {!usersLoading && users.length === 0 && (
-                    <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-300">
+                    <div className="info-box info-box--dashed">
                       No se encontraron usuarios con esos criterios.
                     </div>
                   )}
@@ -940,18 +940,18 @@ const AdminManagement: React.FC = () => {
                         onClick={() => handleSelectUser(user._id)}
                         className={`w-full rounded-xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                           isSelected
-                            ? 'border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-900/30'
-                            : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow dark:border-gray-700 dark:bg-gray-900'
+                            ? 'user-item-selected'
+                            : 'user-item-default'
                         }`}
                       >
                         <div className="flex items-center justify-between text-sm">
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">{user.name}</span>
-                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                          <span className="item-title">{user.name}</span>
+                          <span className="info-label">
                             {user.role.replace('_', ' ')}
                           </span>
                         </div>
-                        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
-                        <div className="mt-2 flex gap-3 text-xs text-gray-500 dark:text-gray-400">
+                        <div className="mt-1 text-caption">{user.email}</div>
+                        <div className="mt-2 flex gap-3 text-caption">
                           <span>{user.vehicles?.length ?? 0} vehículos</span>
                           <span>{user.ownedStations?.length ?? 0} estaciones</span>
                         </div>
@@ -964,40 +964,40 @@ const AdminManagement: React.FC = () => {
           </div>
 
           {/* Vista Desktop - oculta completamente en móvil */}
-          <div className="hidden rounded-2xl bg-white p-6 shadow dark:bg-gray-800 lg:block">
+          <div className="hidden card card--2xl lg:block">
             {!selectedUser && !detailLoading && (
-              <div className="flex h-full items-center justify-center text-sm text-gray-500 dark:text-gray-300">
+              <div className="center-content">
                 Selecciona un usuario para ver y editar su información.
               </div>
             )}
 
             {detailLoading && (
-              <div className="flex h-full items-center justify-center text-gray-600 dark:text-gray-300">
+              <div className="loading-message">
                 Cargando detalles del usuario…
               </div>
             )}
 
             {detailError && (
-              <div className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500 dark:bg-red-900/20 dark:text-red-200">
+              <div className="mb-4 alert-error-box">
                 {detailError}
               </div>
             )}
 
             {selectedUser && !detailLoading && (
               <div className="space-y-6">
-                <header className="flex flex-wrap items-end justify-between gap-4">
+                <header className="flex-between-wrap-4">
                   <div>
-                    <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{selectedUser.name}</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{selectedUser.email}</p>
+                    <h2 className="stat-value">{selectedUser.name}</h2>
+                    <p className="text-secondary">{selectedUser.email}</p>
                   </div>
                   {selectedUserSummary && (
-                    <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-300">
+                    <div className="flex gap-4 text-secondary">
                       <div>
-                        <div className="text-xl font-semibold text-gray-900 dark:text-gray-100">{selectedUserSummary.vehicles}</div>
+                        <div className="text-xl item-title">{selectedUserSummary.vehicles}</div>
                         <div>Vehículos</div>
                       </div>
                       <div>
-                        <div className="text-xl font-semibold text-gray-900 dark:text-gray-100">{selectedUserSummary.chargers}</div>
+                        <div className="text-xl item-title">{selectedUserSummary.chargers}</div>
                         <div>Estaciones</div>
                       </div>
                     </div>
@@ -1008,8 +1008,8 @@ const AdminManagement: React.FC = () => {
                   <div
                     className={`rounded-lg border p-3 text-sm ${
                       feedback.type === 'success'
-                        ? 'border-green-300 bg-green-50 text-green-700 dark:border-green-500/60 dark:bg-green-900/20 dark:text-green-200'
-                        : 'border-red-300 bg-red-50 text-red-700 dark:border-red-500/60 dark:bg-red-900/20 dark:text-red-200'
+                        ? 'alert-success-box'
+                        : 'alert-red-box'
                     }`}
                   >
                     {feedback.text}
@@ -1022,7 +1022,7 @@ const AdminManagement: React.FC = () => {
                     onClick={() => toggleSection('userData')}
                     aria-expanded={expandedSections.userData}
                     aria-controls={sectionContentIds.userData}
-                    className="flex w-full items-center justify-between text-left text-lg font-semibold text-gray-900 transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-100 dark:hover:text-indigo-300"
+                    className="section-toggle"
                   >
                     <span>Datos del usuario</span>
                     <ChevronIcon expanded={expandedSections.userData} />
@@ -1034,36 +1034,36 @@ const AdminManagement: React.FC = () => {
                       className="grid gap-4 sm:grid-cols-2"
                     >
                     <div className="sm:col-span-2">
-                      <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Nombre</label>
+                      <label className="form-label">Nombre</label>
                       <input
                         type="text"
                         name="name"
                         value={editForm.name}
                         onChange={handleEditChange}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                        className="input"
                         required
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Correo electrónico</label>
+                      <label className="form-label">Correo electrónico</label>
                       <input
                         type="email"
                         name="email"
                         value={editForm.email}
                         onChange={handleEditChange}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                        className="input"
                         required
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Nueva contraseña</label>
+                      <label className="form-label">Nueva contraseña</label>
                       <input
                         type="password"
                         name="password"
                         value={editForm.password}
                         onChange={handleEditChange}
                         placeholder="Dejar en blanco para mantener"
-                        className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                        className="input"
                       />
                     </div>
                     <div className="sm:col-span-2 flex justify-end gap-3">
@@ -1074,13 +1074,13 @@ const AdminManagement: React.FC = () => {
                           setEditForm({ name: selectedUser.name ?? '', email: selectedUser.email ?? '', password: '' });
                           resetFeedback();
                         }}
-                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                        className="btn btn-outline"
                       >
                         Restablecer
                       </button>
                       <button
                         type="submit"
-                        className="rounded-lg bg-indigo-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+                        className="btn btn-primary"
                         disabled={savingUser}
                       >
                         {savingUser ? 'Guardando…' : 'Guardar cambios'}
@@ -1092,13 +1092,13 @@ const AdminManagement: React.FC = () => {
 
                 {selectedUser.role === 'station_admin' && (
                   <section className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex-between-wrap-3">
                       <button
                         type="button"
                         onClick={() => toggleSection('stations')}
                         aria-expanded={expandedSections.stations}
                         aria-controls={sectionContentIds.stations}
-                        className="flex items-center gap-2 text-left text-lg font-semibold text-gray-900 transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-100 dark:hover:text-indigo-300"
+                        className="section-toggle-gap"
                       >
                         <span>Estaciones de carga</span>
                         <ChevronIcon expanded={expandedSections.stations} />
@@ -1110,7 +1110,7 @@ const AdminManagement: React.FC = () => {
                           resetFeedback();
                           setExpandedSections((prev) => ({ ...prev, stations: true }));
                         }}
-                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                        className="btn btn-success"
                       >
                         Agregar estación
                       </button>
@@ -1118,14 +1118,14 @@ const AdminManagement: React.FC = () => {
                     {expandedSections.stations && (
                       <div id={sectionContentIds.stations} className="space-y-4">
                         {showChargerForm && (
-                          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+                          <div className="card">
                             <ChargerForm
                               onSubmit={handleCreateCharger}
                               onCancel={() => setShowChargerForm(false)}
                             />
                             {creatingCharger && (
-                              <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 dark:bg-gray-900/80">
-                                <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-900/40 dark:text-indigo-200">
+                              <div className="overlay">
+                                <div className="info-box info-box--indigo info-box--sm">
                                   Guardando estación…
                                 </div>
                               </div>
@@ -1135,22 +1135,22 @@ const AdminManagement: React.FC = () => {
 
                         <div className="space-y-3">
                           {selectedUser.ownedStations?.length === 0 && (
-                            <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-300">
+                            <div className="info-box info-box--dashed">
                               No hay estaciones registradas para este usuario.
                             </div>
                           )}
                           {selectedUser.ownedStations?.map((charger) => (
                             <div
                               key={charger._id}
-                              className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200"
+                              className="detail-card"
                             >
                               <div>
-                                <div className="font-semibold text-gray-900 dark:text-gray-100">{charger.name}</div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                <div className="item-title">{charger.name}</div>
+                                <div className="text-caption">
                                   {CHARGER_TYPE_LABELS[charger.chargerType as ChargerType] ?? charger.chargerType}
                                 </div>
                                 {Array.isArray(charger.location?.coordinates) && (
-                                  <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                  <div className="mt-1 text-caption">
                                     Lat: {charger.location.coordinates[1]?.toFixed?.(4) ?? '--'} · Lng: {charger.location.coordinates[0]?.toFixed?.(4) ?? '--'}
                                   </div>
                                 )}
@@ -1158,7 +1158,7 @@ const AdminManagement: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleDeleteCharger(charger._id)}
-                                className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-500/60 dark:text-red-300 dark:hover:bg-red-900/20"
+                                className="btn btn-outline-danger btn-compact"
                                 disabled={deletingId === charger._id}
                               >
                                 {deletingId === charger._id ? 'Eliminando…' : 'Eliminar'}
@@ -1173,13 +1173,13 @@ const AdminManagement: React.FC = () => {
 
                 {selectedUser.role === 'ev_user' && (
                   <section className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex-between-wrap-3">
                       <button
                         type="button"
                         onClick={() => toggleSection('vehicles')}
                         aria-expanded={expandedSections.vehicles}
                         aria-controls={sectionContentIds.vehicles}
-                        className="flex items-center gap-2 text-left text-lg font-semibold text-gray-900 transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-100 dark:hover:text-indigo-300"
+                        className="section-toggle-gap"
                       >
                         <span>Vehículos registrados</span>
                         <ChevronIcon expanded={expandedSections.vehicles} />
@@ -1191,7 +1191,7 @@ const AdminManagement: React.FC = () => {
                           resetFeedback();
                           setExpandedSections((prev) => ({ ...prev, vehicles: true }));
                         }}
-                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                        className="btn btn-success"
                       >
                         Agregar vehículo
                       </button>
@@ -1200,25 +1200,25 @@ const AdminManagement: React.FC = () => {
                       <div id={sectionContentIds.vehicles} className="space-y-4">
                         <div className="space-y-3">
                           {selectedUser.vehicles?.length === 0 && (
-                            <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-300">
+                            <div className="info-box info-box--dashed">
                               Este usuario no tiene vehículos registrados.
                             </div>
                           )}
                           {selectedUser.vehicles?.map((vehicle) => (
                             <div
                               key={vehicle._id}
-                              className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200"
+                              className="detail-card"
                             >
                               <div>
-                                <div className="font-semibold text-gray-900 dark:text-gray-100">{vehicle.model}</div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">Tipo de cargador: {vehicle.chargerType}</div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">Capacidad: {vehicle.batteryCapacity ?? '--'} kWh</div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">Nivel actual: {vehicle.currentChargeLevel ?? '--'}%</div>
+                                <div className="item-title">{vehicle.model}</div>
+                                <div className="text-caption">Tipo de cargador: {vehicle.chargerType}</div>
+                                <div className="text-caption">Capacidad: {vehicle.batteryCapacity ?? '--'} kWh</div>
+                                <div className="text-caption">Nivel actual: {vehicle.currentChargeLevel ?? '--'}%</div>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteVehicle(vehicle._id)}
-                                className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-500/60 dark:text-red-300 dark:hover:bg-red-900/20"
+                                className="btn btn-outline-danger btn-compact"
                                 disabled={deletingId === vehicle._id}
                               >
                                 {deletingId === vehicle._id ? 'Eliminando…' : 'Eliminar'}
@@ -1230,26 +1230,26 @@ const AdminManagement: React.FC = () => {
                         {showVehicleForm && (
                           <form
                             onSubmit={handleCreateVehicle}
-                            className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900"
+                            className="space-y-3 card"
                           >
                             <div>
-                              <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">Modelo</label>
+                              <label className="form-label label-xs label-strong">Modelo</label>
                               <input
                                 type="text"
                                 name="model"
                                 value={vehicleForm.model}
                                 onChange={handleVehicleFormChange}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                                className="input"
                                 required
                               />
                             </div>
                             <div>
-                              <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">Tipo de cargador</label>
+                              <label className="form-label label-xs label-strong">Tipo de cargador</label>
                               <select
                                 name="chargerType"
                                 value={vehicleForm.chargerType}
                                 onChange={handleVehicleFormChange}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                                className="input"
                               >
                                 {vehicleTypeOptions.map((type) => (
                                   <option key={type} value={type}>
@@ -1259,7 +1259,7 @@ const AdminManagement: React.FC = () => {
                               </select>
                             </div>
                             <div>
-                              <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">Capacidad de batería (kWh)</label>
+                              <label className="form-label label-xs label-strong">Capacidad de batería (kWh)</label>
                               <input
                                 type="number"
                                 name="batteryCapacity"
@@ -1267,12 +1267,12 @@ const AdminManagement: React.FC = () => {
                                 step="0.1"
                                 value={vehicleForm.batteryCapacity}
                                 onChange={handleVehicleFormChange}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                                className="input"
                                 required
                               />
                             </div>
                             <div>
-                              <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">Nivel actual (%)</label>
+                              <label className="form-label label-xs label-strong">Nivel actual (%)</label>
                               <input
                                 type="number"
                                 name="currentChargeLevel"
@@ -1280,20 +1280,20 @@ const AdminManagement: React.FC = () => {
                                 max="100"
                                 value={vehicleForm.currentChargeLevel}
                                 onChange={handleVehicleFormChange}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                                className="input"
                               />
                             </div>
                             <div className="flex justify-end gap-3 pt-2">
                               <button
                                 type="button"
                                 onClick={() => setShowVehicleForm(false)}
-                                className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                className="btn btn-outline btn-sm"
                               >
                                 Cancelar
                               </button>
                               <button
                                 type="submit"
-                                className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+                                className="btn btn-primary btn-xs"
                                 disabled={creatingVehicle}
                               >
                                 {creatingVehicle ? 'Guardando…' : 'Agregar vehículo'}
@@ -1307,13 +1307,13 @@ const AdminManagement: React.FC = () => {
                 )}
 
                 <section className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex-between-wrap-3">
                     <button
                       type="button"
                       onClick={() => toggleSection('reservations')}
                       aria-expanded={expandedSections.reservations}
                       aria-controls={sectionContentIds.reservations}
-                      className="flex items-center gap-2 text-left text-lg font-semibold text-gray-900 transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-100 dark:hover:text-indigo-300"
+                      className="section-toggle-gap"
                     >
                       <span>Reservas del usuario</span>
                       <ChevronIcon expanded={expandedSections.reservations} />
@@ -1322,7 +1322,7 @@ const AdminManagement: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => selectedUser && fetchUserReservations(selectedUser._id)}
-                        className="rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                        className="btn btn-secondary btn-xs"
                         disabled={reservationsLoading}
                       >
                         {reservationsLoading ? 'Actualizando…' : 'Actualizar'}
@@ -1333,19 +1333,19 @@ const AdminManagement: React.FC = () => {
                   {expandedSections.reservations && (
                     <div id={sectionContentIds.reservations} className="space-y-4">
                       {reservationsError && (
-                        <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-700 dark:border-red-500/60 dark:bg-red-900/20 dark:text-red-200">
+                        <div className="alert alert-error">
                           {reservationsError}
                         </div>
                       )}
 
                       {reservationsLoading && reservations.length === 0 && (
-                        <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-900/20 dark:text-indigo-200">
+                        <div className="info-box info-box--indigo">
                           Cargando reservas…
                         </div>
                       )}
 
                       {!reservationsLoading && reservations.length === 0 && !reservationsError && (
-                        <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-300">
+                        <div className="info-box info-box--dashed">
                           Este usuario no tiene reservas activas.
                         </div>
                       )}
@@ -1363,37 +1363,37 @@ const AdminManagement: React.FC = () => {
                             return (
                               <div
                                 key={reservation._id}
-                                className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200"
+                                className="reservation-item"
                               >
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                   <div>
-                                    <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                    <div className="item-title">
                                       {reservation.chargerId?.name ?? 'Cargador desconocido'}
                                     </div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    <div className="text-caption">
                                       {reservation.vehicleId?.model ?? 'Vehículo no asignado'} · {reservation.vehicleId?.chargerType ?? '—'}
                                     </div>
-                                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                    <div className="mt-2 text-caption">
                                       Inicio: {startLabel}
                                     </div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    <div className="text-caption">
                                       Fin estimado: {endLabel}
                                     </div>
                                   </div>
-                                  <div className="flex flex-col items-end gap-2">
-                                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                  <div className="flex-col-end">
+                                    <span className={`badge ${
                                       reservation.status === 'cancelled'
-                                        ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300'
+                                        ? 'badge-red'
                                         : reservation.status === 'completed'
-                                          ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300'
-                                          : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300'
+                                          ? 'badge-green'
+                                          : 'badge-blue'
                                     }`}>
                                       {statusLabel}
                                     </span>
                                     <button
                                       type="button"
                                       onClick={() => handleRequestCancelReservation(reservation._id)}
-                                      className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-500/60 dark:text-red-300 dark:hover:bg-red-900/20"
+                                      className="btn btn-outline-danger btn-compact"
                                       disabled={cancellingReservationId === reservation._id}
                                     >
                                       {cancellingReservationId === reservation._id
@@ -1406,14 +1406,14 @@ const AdminManagement: React.FC = () => {
                                 </div>
 
                                 {reservationConfirmId === reservation._id && (
-                                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-700 dark:border-amber-500/60 dark:bg-amber-900/20 dark:text-amber-200">
+                                  <div className="info-box info-box--amber info-box--xs">
                                     <p className="font-semibold">¿Deseas cancelar esta reserva?</p>
                                     <p className="mt-1">Esta acción eliminará la reserva permanentemente de la base de datos.</p>
                                     <div className="mt-3 flex flex-wrap gap-2">
                                       <button
                                         type="button"
                                         onClick={() => handleConfirmCancelReservation(reservation._id)}
-                                        className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                                        className="btn btn-danger btn-compact"
                                         disabled={cancellingReservationId === reservation._id}
                                       >
                                         {cancellingReservationId === reservation._id ? 'Cancelando…' : 'Sí, cancelar'}
@@ -1421,7 +1421,7 @@ const AdminManagement: React.FC = () => {
                                       <button
                                         type="button"
                                         onClick={handleDismissCancelReservation}
-                                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                        className="btn btn-outline btn-compact"
                                       >
                                         Mantener reserva
                                       </button>
@@ -1438,13 +1438,13 @@ const AdminManagement: React.FC = () => {
                 </section>
 
                 <section className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex-between-wrap-3">
                     <button
                       type="button"
                       onClick={() => toggleSection('history')}
                       aria-expanded={expandedSections.history}
                       aria-controls={sectionContentIds.history}
-                      className="flex items-center gap-2 text-left text-lg font-semibold text-gray-900 transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-100 dark:hover:text-indigo-300"
+                      className="section-toggle-gap"
                     >
                       <span>Historial de sesiones</span>
                       <ChevronIcon expanded={expandedSections.history} />
@@ -1452,7 +1452,7 @@ const AdminManagement: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => selectedUser && fetchUserHistory(selectedUser._id)}
-                      className="rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                      className="btn btn-secondary btn-xs"
                       disabled={historyLoading}
                     >
                       {historyLoading ? 'Actualizando…' : 'Actualizar'}
@@ -1462,27 +1462,27 @@ const AdminManagement: React.FC = () => {
                   {expandedSections.history && (
                     <div id={sectionContentIds.history} className="space-y-4">
                       {historyError && (
-                        <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-700 dark:border-red-500/60 dark:bg-red-900/20 dark:text-red-200">
+                        <div className="alert alert-error">
                           {historyError}
                         </div>
                       )}
 
                       {historyLoading && history.length === 0 && (
-                        <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-900/20 dark:text-indigo-200">
+                        <div className="info-box info-box--indigo">
                           Cargando historial…
                         </div>
                       )}
 
                       {!historyLoading && history.length === 0 && !historyError && (
-                        <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-300">
+                        <div className="info-box info-box--dashed">
                           Aún no hay sesiones registradas para este usuario.
                         </div>
                       )}
 
                       {history.length > 0 && (
-                        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-                          <table className="min-w-full divide-y divide-gray-200 text-left text-sm text-gray-700 dark:divide-gray-700 dark:text-gray-200">
-                            <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                        <div className="table-container">
+                          <table className="table-divided">
+                            <thead className="thead">
                               <tr>
                                 <th className="px-4 py-3">Vehículo</th>
                                 <th className="px-4 py-3">Cargador</th>
@@ -1494,13 +1494,13 @@ const AdminManagement: React.FC = () => {
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                               {history.map((session) => (
-                                <tr key={session._id} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800/70">
+                                <tr key={session._id} className="table-row">
                                   <td className="px-4 py-3">
-                                    <div className="font-semibold text-gray-900 dark:text-gray-100">{session.vehicleId?.model ?? '—'}</div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">{session.vehicleId?.chargerType ?? '—'}</div>
+                                    <div className="item-title">{session.vehicleId?.model ?? '—'}</div>
+                                    <div className="text-caption">{session.vehicleId?.chargerType ?? '—'}</div>
                                   </td>
                                   <td className="px-4 py-3">
-                                    <div className="font-semibold text-gray-900 dark:text-gray-100">{session.chargerId?.name ?? '—'}</div>
+                                    <div className="item-title">{session.chargerId?.name ?? '—'}</div>
                                   </td>
                                   <td className="px-4 py-3">{session.startTime ? dateTimeFormatter.format(new Date(session.startTime)) : '—'}</td>
                                   <td className="px-4 py-3">{session.endTime ? dateTimeFormatter.format(new Date(session.endTime)) : '—'}</td>
@@ -1526,18 +1526,18 @@ const AdminManagement: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900 lg:hidden">
           <div className="flex h-full flex-col">
             {/* Header del modal */}
-            <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+            <div className="modal__header">
               <button
                 type="button"
                 onClick={handleCloseMobileDetail}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="btn btn-ghost btn-sm"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 <span className="text-sm font-medium">Volver</span>
               </button>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <h2 className="heading-2">
                 Detalles del Usuario
               </h2>
             </div>
@@ -1546,19 +1546,19 @@ const AdminManagement: React.FC = () => {
             <div className="flex-1 overflow-y-auto bg-gray-50 p-4 dark:bg-gray-900">
               {!detailLoading && (
                 <div className="space-y-6">
-                  <header className="flex flex-wrap items-end justify-between gap-4">
+                  <header className="flex-between-wrap-4">
                     <div>
-                      <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{selectedUser.name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{selectedUser.email}</p>
+                      <h3 className="stat-value">{selectedUser.name}</h3>
+                      <p className="text-secondary">{selectedUser.email}</p>
                     </div>
                     {selectedUserSummary && (
-                      <div className="flex gap-4 text-sm text-gray-600 dark:text-gray-300">
+                      <div className="flex gap-4 text-secondary">
                         <div>
-                          <div className="text-xl font-semibold text-gray-900 dark:text-gray-100">{selectedUserSummary.vehicles}</div>
+                          <div className="text-xl item-title">{selectedUserSummary.vehicles}</div>
                           <div>Vehículos</div>
                         </div>
                         <div>
-                          <div className="text-xl font-semibold text-gray-900 dark:text-gray-100">{selectedUserSummary.chargers}</div>
+                          <div className="text-xl item-title">{selectedUserSummary.chargers}</div>
                           <div>Estaciones</div>
                         </div>
                       </div>
@@ -1569,21 +1569,21 @@ const AdminManagement: React.FC = () => {
                     <div
                       className={`rounded-lg border p-3 text-sm ${
                         feedback.type === 'success'
-                          ? 'border-green-300 bg-green-50 text-green-700 dark:border-green-500/60 dark:bg-green-900/20 dark:text-green-200'
-                          : 'border-red-300 bg-red-50 text-red-700 dark:border-red-500/60 dark:bg-red-900/20 dark:text-red-200'
+                          ? 'alert-success-box'
+                          : 'alert-red-box'
                       }`}
                     >
                       {feedback.text}
                     </div>
                   )}
 
-                  <section className="space-y-4 rounded-2xl bg-white p-4 shadow dark:bg-gray-800">
+                  <section className="section-mobile">
                     <button
                       type="button"
                       onClick={() => toggleSection('userData')}
                       aria-expanded={expandedSections.userData}
                       aria-controls={sectionContentIds.userData}
-                      className="flex w-full items-center justify-between text-left text-lg font-semibold text-gray-900 transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-100 dark:hover:text-indigo-300"
+                      className="section-toggle"
                     >
                       <span>Datos del usuario</span>
                       <ChevronIcon expanded={expandedSections.userData} />
@@ -1595,36 +1595,36 @@ const AdminManagement: React.FC = () => {
                         className="grid gap-4 sm:grid-cols-2"
                       >
                         <div className="sm:col-span-2">
-                          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Nombre</label>
+                          <label className="form-label">Nombre</label>
                           <input
                             type="text"
                             name="name"
                             value={editForm.name}
                             onChange={handleEditChange}
-                            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                            className="input"
                             required
                           />
                         </div>
                         <div className="sm:col-span-2">
-                          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Correo electrónico</label>
+                          <label className="form-label">Correo electrónico</label>
                           <input
                             type="email"
                             name="email"
                             value={editForm.email}
                             onChange={handleEditChange}
-                            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                            className="input"
                             required
                           />
                         </div>
                         <div className="sm:col-span-2">
-                          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">Nueva contraseña</label>
+                          <label className="form-label">Nueva contraseña</label>
                           <input
                             type="password"
                             name="password"
                             value={editForm.password}
                             onChange={handleEditChange}
                             placeholder="Dejar en blanco para mantener"
-                            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                            className="input"
                           />
                         </div>
                         <div className="sm:col-span-2 flex justify-end gap-3">
@@ -1635,13 +1635,13 @@ const AdminManagement: React.FC = () => {
                               setEditForm({ name: selectedUser.name ?? '', email: selectedUser.email ?? '', password: '' });
                               resetFeedback();
                             }}
-                            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                            className="btn btn-outline"
                           >
                             Restablecer
                           </button>
                           <button
                             type="submit"
-                            className="rounded-lg bg-indigo-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+                            className="btn btn-primary"
                             disabled={savingUser}
                           >
                             {savingUser ? 'Guardando…' : 'Guardar cambios'}
@@ -1652,14 +1652,14 @@ const AdminManagement: React.FC = () => {
                   </section>
 
                   {selectedUser.role === 'station_admin' && (
-                    <section className="space-y-4 rounded-2xl bg-white p-4 shadow dark:bg-gray-800">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
+                    <section className="section-mobile">
+                      <div className="flex-between-wrap-3">
                         <button
                           type="button"
                           onClick={() => toggleSection('stations')}
                           aria-expanded={expandedSections.stations}
                           aria-controls={sectionContentIds.stations}
-                          className="flex items-center gap-2 text-left text-lg font-semibold text-gray-900 transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-100 dark:hover:text-indigo-300"
+                          className="section-toggle-gap"
                         >
                           <span>Estaciones de carga</span>
                           <ChevronIcon expanded={expandedSections.stations} />
@@ -1671,7 +1671,7 @@ const AdminManagement: React.FC = () => {
                             resetFeedback();
                             setExpandedSections((prev) => ({ ...prev, stations: true }));
                           }}
-                          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                          className="btn btn-success"
                         >
                           Agregar estación
                         </button>
@@ -1679,14 +1679,14 @@ const AdminManagement: React.FC = () => {
                       {expandedSections.stations && (
                         <div id={sectionContentIds.stations} className="space-y-4">
                           {showChargerForm && (
-                            <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+                            <div className="card">
                               <ChargerForm
                                 onSubmit={handleCreateCharger}
                                 onCancel={() => setShowChargerForm(false)}
                               />
                               {creatingCharger && (
-                                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 dark:bg-gray-900/80">
-                                  <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-900/40 dark:text-indigo-200">
+                                <div className="overlay">
+                                  <div className="info-box info-box--indigo info-box--sm">
                                     Guardando estación…
                                   </div>
                                 </div>
@@ -1696,22 +1696,22 @@ const AdminManagement: React.FC = () => {
 
                           <div className="space-y-3">
                             {selectedUser.ownedStations?.length === 0 && (
-                              <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-300">
+                              <div className="info-box info-box--dashed">
                                 No hay estaciones registradas para este usuario.
                               </div>
                             )}
                             {selectedUser.ownedStations?.map((charger) => (
                               <div
                                 key={charger._id}
-                                className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200"
+                                className="detail-card"
                               >
                                 <div>
-                                  <div className="font-semibold text-gray-900 dark:text-gray-100">{charger.name}</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  <div className="item-title">{charger.name}</div>
+                                  <div className="text-caption">
                                     {CHARGER_TYPE_LABELS[charger.chargerType as ChargerType] ?? charger.chargerType}
                                   </div>
                                   {Array.isArray(charger.location?.coordinates) && (
-                                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    <div className="mt-1 text-caption">
                                       Lat: {charger.location.coordinates[1]?.toFixed?.(4) ?? '--'} · Lng: {charger.location.coordinates[0]?.toFixed?.(4) ?? '--'}
                                     </div>
                                   )}
@@ -1719,7 +1719,7 @@ const AdminManagement: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteCharger(charger._id)}
-                                  className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-500/60 dark:text-red-300 dark:hover:bg-red-900/20"
+                                  className="btn btn-outline-danger btn-compact"
                                   disabled={deletingId === charger._id}
                                 >
                                   {deletingId === charger._id ? 'Eliminando…' : 'Eliminar'}
@@ -1733,14 +1733,14 @@ const AdminManagement: React.FC = () => {
                   )}
 
                   {selectedUser.role === 'ev_user' && (
-                    <section className="space-y-4 rounded-2xl bg-white p-4 shadow dark:bg-gray-800">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
+                    <section className="section-mobile">
+                      <div className="flex-between-wrap-3">
                         <button
                           type="button"
                           onClick={() => toggleSection('vehicles')}
                           aria-expanded={expandedSections.vehicles}
                           aria-controls={sectionContentIds.vehicles}
-                          className="flex items-center gap-2 text-left text-lg font-semibold text-gray-900 transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-100 dark:hover:text-indigo-300"
+                          className="section-toggle-gap"
                         >
                           <span>Vehículos registrados</span>
                           <ChevronIcon expanded={expandedSections.vehicles} />
@@ -1752,7 +1752,7 @@ const AdminManagement: React.FC = () => {
                             resetFeedback();
                             setExpandedSections((prev) => ({ ...prev, vehicles: true }));
                           }}
-                          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                          className="btn btn-success"
                         >
                           Agregar vehículo
                         </button>
@@ -1761,25 +1761,25 @@ const AdminManagement: React.FC = () => {
                         <div id={sectionContentIds.vehicles} className="space-y-4">
                           <div className="space-y-3">
                             {selectedUser.vehicles?.length === 0 && (
-                              <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-300">
+                              <div className="info-box info-box--dashed">
                                 Este usuario no tiene vehículos registrados.
                               </div>
                             )}
                             {selectedUser.vehicles?.map((vehicle) => (
                               <div
                                 key={vehicle._id}
-                                className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200"
+                                className="detail-card"
                               >
                                 <div>
-                                  <div className="font-semibold text-gray-900 dark:text-gray-100">{vehicle.model}</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">Tipo de cargador: {vehicle.chargerType}</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">Capacidad: {vehicle.batteryCapacity ?? '--'} kWh</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">Nivel actual: {vehicle.currentChargeLevel ?? '--'}%</div>
+                                  <div className="item-title">{vehicle.model}</div>
+                                  <div className="text-caption">Tipo de cargador: {vehicle.chargerType}</div>
+                                  <div className="text-caption">Capacidad: {vehicle.batteryCapacity ?? '--'} kWh</div>
+                                  <div className="text-caption">Nivel actual: {vehicle.currentChargeLevel ?? '--'}%</div>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteVehicle(vehicle._id)}
-                                  className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-500/60 dark:text-red-300 dark:hover:bg-red-900/20"
+                                  className="btn btn-outline-danger btn-compact"
                                   disabled={deletingId === vehicle._id}
                                 >
                                   {deletingId === vehicle._id ? 'Eliminando…' : 'Eliminar'}
@@ -1791,26 +1791,26 @@ const AdminManagement: React.FC = () => {
                           {showVehicleForm && (
                             <form
                               onSubmit={handleCreateVehicle}
-                              className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900"
+                              className="space-y-3 card"
                             >
                               <div>
-                                <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">Modelo</label>
+                                <label className="form-label label-xs label-strong">Modelo</label>
                                 <input
                                   type="text"
                                   name="model"
                                   value={vehicleForm.model}
                                   onChange={handleVehicleFormChange}
-                                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                                  className="input"
                                   required
                                 />
                               </div>
                               <div>
-                                <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">Tipo de cargador</label>
+                                <label className="form-label label-xs label-strong">Tipo de cargador</label>
                                 <select
                                   name="chargerType"
                                   value={vehicleForm.chargerType}
                                   onChange={handleVehicleFormChange}
-                                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                                  className="input"
                                 >
                                   {vehicleTypeOptions.map((type) => (
                                     <option key={type} value={type}>
@@ -1820,7 +1820,7 @@ const AdminManagement: React.FC = () => {
                                 </select>
                               </div>
                               <div>
-                                <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">Capacidad de batería (kWh)</label>
+                                <label className="form-label label-xs label-strong">Capacidad de batería (kWh)</label>
                                 <input
                                   type="number"
                                   name="batteryCapacity"
@@ -1828,12 +1828,12 @@ const AdminManagement: React.FC = () => {
                                   step="0.1"
                                   value={vehicleForm.batteryCapacity}
                                   onChange={handleVehicleFormChange}
-                                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                                  className="input"
                                   required
                                 />
                               </div>
                               <div>
-                                <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">Nivel actual (%)</label>
+                                <label className="form-label label-xs label-strong">Nivel actual (%)</label>
                                 <input
                                   type="number"
                                   name="currentChargeLevel"
@@ -1841,20 +1841,20 @@ const AdminManagement: React.FC = () => {
                                   max="100"
                                   value={vehicleForm.currentChargeLevel}
                                   onChange={handleVehicleFormChange}
-                                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                                  className="input"
                                 />
                               </div>
                               <div className="flex justify-end gap-3 pt-2">
                                 <button
                                   type="button"
                                   onClick={() => setShowVehicleForm(false)}
-                                  className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                  className="btn btn-outline btn-sm"
                                 >
                                   Cancelar
                                 </button>
                                 <button
                                   type="submit"
-                                  className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+                                  className="btn btn-primary btn-xs"
                                   disabled={creatingVehicle}
                                 >
                                   {creatingVehicle ? 'Guardando…' : 'Agregar vehículo'}
@@ -1867,14 +1867,14 @@ const AdminManagement: React.FC = () => {
                     </section>
                   )}
 
-                  <section className="space-y-4 rounded-2xl bg-white p-4 shadow dark:bg-gray-800">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                  <section className="section-mobile">
+                    <div className="flex-between-wrap-3">
                       <button
                         type="button"
                         onClick={() => toggleSection('reservations')}
                         aria-expanded={expandedSections.reservations}
                         aria-controls={sectionContentIds.reservations}
-                        className="flex items-center gap-2 text-left text-lg font-semibold text-gray-900 transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-100 dark:hover:text-indigo-300"
+                        className="section-toggle-gap"
                       >
                         <span>Reservas del usuario</span>
                         <ChevronIcon expanded={expandedSections.reservations} />
@@ -1883,7 +1883,7 @@ const AdminManagement: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => selectedUser && fetchUserReservations(selectedUser._id)}
-                          className="rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                          className="btn btn-secondary btn-xs"
                           disabled={reservationsLoading}
                         >
                           {reservationsLoading ? 'Actualizando…' : 'Actualizar'}
@@ -1894,19 +1894,19 @@ const AdminManagement: React.FC = () => {
                     {expandedSections.reservations && (
                       <div id={sectionContentIds.reservations} className="space-y-4">
                         {reservationsError && (
-                          <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-700 dark:border-red-500/60 dark:bg-red-900/20 dark:text-red-200">
+                          <div className="alert alert-error">
                             {reservationsError}
                           </div>
                         )}
 
                         {reservationsLoading && reservations.length === 0 && (
-                          <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-900/20 dark:text-indigo-200">
+                          <div className="info-box info-box--indigo">
                             Cargando reservas…
                           </div>
                         )}
 
                         {!reservationsLoading && reservations.length === 0 && !reservationsError && (
-                          <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-300">
+                          <div className="info-box info-box--dashed">
                             Este usuario no tiene reservas activas.
                           </div>
                         )}
@@ -1924,37 +1924,37 @@ const AdminManagement: React.FC = () => {
                               return (
                                 <div
                                   key={reservation._id}
-                                  className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200"
+                                  className="reservation-item"
                                 >
                                   <div className="flex flex-wrap items-start justify-between gap-3">
                                     <div>
-                                      <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                      <div className="item-title">
                                         {reservation.chargerId?.name ?? 'Cargador desconocido'}
                                       </div>
-                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      <div className="text-caption">
                                         {reservation.vehicleId?.model ?? 'Vehículo no asignado'} · {reservation.vehicleId?.chargerType ?? '—'}
                                       </div>
-                                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                      <div className="mt-2 text-caption">
                                         Inicio: {startLabel}
                                       </div>
-                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      <div className="text-caption">
                                         Fin estimado: {endLabel}
                                       </div>
                                     </div>
-                                    <div className="flex flex-col items-end gap-2">
-                                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                    <div className="flex-col-end">
+                                      <span className={`badge ${
                                         reservation.status === 'cancelled'
-                                          ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300'
+                                          ? 'badge-red'
                                           : reservation.status === 'completed'
-                                            ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300'
-                                            : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300'
+                                            ? 'badge-green'
+                                            : 'badge-blue'
                                       }`}>
                                         {statusLabel}
                                       </span>
                                       <button
                                         type="button"
                                         onClick={() => handleRequestCancelReservation(reservation._id)}
-                                        className="rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-500/60 dark:text-red-300 dark:hover:bg-red-900/20"
+                                        className="btn btn-outline-danger btn-compact"
                                         disabled={cancellingReservationId === reservation._id}
                                       >
                                         {cancellingReservationId === reservation._id
@@ -1967,14 +1967,14 @@ const AdminManagement: React.FC = () => {
                                   </div>
 
                                   {reservationConfirmId === reservation._id && (
-                                    <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-700 dark:border-amber-500/60 dark:bg-amber-900/20 dark:text-amber-200">
+                                    <div className="info-box info-box--amber info-box--xs">
                                       <p className="font-semibold">¿Deseas cancelar esta reserva?</p>
                                       <p className="mt-1">Esta acción eliminará la reserva permanentemente de la base de datos.</p>
                                       <div className="mt-3 flex flex-wrap gap-2">
                                         <button
                                           type="button"
                                           onClick={() => handleConfirmCancelReservation(reservation._id)}
-                                          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                                          className="btn btn-danger btn-compact"
                                           disabled={cancellingReservationId === reservation._id}
                                         >
                                           {cancellingReservationId === reservation._id ? 'Cancelando…' : 'Sí, cancelar'}
@@ -1982,7 +1982,7 @@ const AdminManagement: React.FC = () => {
                                         <button
                                           type="button"
                                           onClick={handleDismissCancelReservation}
-                                          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                          className="btn btn-outline btn-compact"
                                         >
                                           Mantener reserva
                                         </button>
@@ -1998,14 +1998,14 @@ const AdminManagement: React.FC = () => {
                     )}
                   </section>
 
-                  <section className="space-y-4 rounded-2xl bg-white p-4 shadow dark:bg-gray-800">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                  <section className="section-mobile">
+                    <div className="flex-between-wrap-3">
                       <button
                         type="button"
                         onClick={() => toggleSection('history')}
                         aria-expanded={expandedSections.history}
                         aria-controls={sectionContentIds.history}
-                        className="flex items-center gap-2 text-left text-lg font-semibold text-gray-900 transition hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-100 dark:hover:text-indigo-300"
+                        className="section-toggle-gap"
                       >
                         <span>Historial de sesiones</span>
                         <ChevronIcon expanded={expandedSections.history} />
@@ -2013,7 +2013,7 @@ const AdminManagement: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => selectedUser && fetchUserHistory(selectedUser._id)}
-                        className="rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                        className="btn btn-secondary btn-xs"
                         disabled={historyLoading}
                       >
                         {historyLoading ? 'Actualizando…' : 'Actualizar'}
@@ -2023,27 +2023,27 @@ const AdminManagement: React.FC = () => {
                     {expandedSections.history && (
                       <div id={sectionContentIds.history} className="space-y-4">
                         {historyError && (
-                          <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-700 dark:border-red-500/60 dark:bg-red-900/20 dark:text-red-200">
+                          <div className="alert alert-error">
                             {historyError}
                           </div>
                         )}
 
                         {historyLoading && history.length === 0 && (
-                          <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-700 dark:border-indigo-800/60 dark:bg-indigo-900/20 dark:text-indigo-200">
+                          <div className="info-box info-box--indigo">
                             Cargando historial…
                           </div>
                         )}
 
                         {!historyLoading && history.length === 0 && !historyError && (
-                          <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-600 dark:text-gray-300">
+                          <div className="info-box info-box--dashed">
                             Aún no hay sesiones registradas para este usuario.
                           </div>
                         )}
 
                         {history.length > 0 && (
-                          <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-                            <table className="min-w-full divide-y divide-gray-200 text-left text-sm text-gray-700 dark:divide-gray-700 dark:text-gray-200">
-                              <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                          <div className="table-container">
+                            <table className="table-divided">
+                              <thead className="thead">
                                 <tr>
                                   <th className="px-4 py-3">Vehículo</th>
                                   <th className="px-4 py-3">Cargador</th>
@@ -2055,13 +2055,13 @@ const AdminManagement: React.FC = () => {
                               </thead>
                               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {history.map((session) => (
-                                  <tr key={session._id} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800/70">
+                                  <tr key={session._id} className="table-row">
                                     <td className="px-4 py-3">
-                                      <div className="font-semibold text-gray-900 dark:text-gray-100">{session.vehicleId?.model ?? '—'}</div>
-                                      <div className="text-xs text-gray-500 dark:text-gray-400">{session.vehicleId?.chargerType ?? '—'}</div>
+                                      <div className="item-title">{session.vehicleId?.model ?? '—'}</div>
+                                      <div className="text-caption">{session.vehicleId?.chargerType ?? '—'}</div>
                                     </td>
                                     <td className="px-4 py-3">
-                                      <div className="font-semibold text-gray-900 dark:text-gray-100">{session.chargerId?.name ?? '—'}</div>
+                                      <div className="item-title">{session.chargerId?.name ?? '—'}</div>
                                     </td>
                                     <td className="px-4 py-3">{session.startTime ? dateTimeFormatter.format(new Date(session.startTime)) : '—'}</td>
                                     <td className="px-4 py-3">{session.endTime ? dateTimeFormatter.format(new Date(session.endTime)) : '—'}</td>
@@ -2080,13 +2080,13 @@ const AdminManagement: React.FC = () => {
               )}
 
               {detailLoading && (
-                <div className="flex h-full items-center justify-center text-gray-600 dark:text-gray-300">
+                <div className="loading-message">
                   Cargando detalles del usuario…
                 </div>
               )}
 
               {detailError && (
-                <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500 dark:bg-red-900/20 dark:text-red-200">
+                <div className="alert-error-box">
                   {detailError}
                 </div>
               )}
@@ -2103,7 +2103,7 @@ const AdminDashboardLayout: React.FC = () => (
   <div className="min-h-screen bg-gray-100 dark:bg-gray-900 lg:pl-64">
     <VerticalNavbar />
     <div className="flex min-h-screen flex-col overflow-hidden">
-      <div className="flex items-center justify-end px-4 pt-4 sm:px-6">
+      <div className="header-actions">
         <NotificationBell />
       </div>
       <main className="flex-1 overflow-y-auto px-4 py-2 sm:px-6">

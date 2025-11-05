@@ -37,7 +37,7 @@ export const Root: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
         <div className="text-center">
           <i className="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
-          <p className="text-gray-600 dark:text-gray-300">Iniciando aplicación...</p>
+          <p className="text-secondary">Iniciando aplicación...</p>
         </div>
       </div>
     );

@@ -95,29 +95,29 @@ export default function MapPicker({ initialPosition, onLocationSelect }: MapPick
             onChange={e => { setSearchQuery(e.target.value); setShowResults(false); }}
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
             placeholder="Buscar dirección..."
-            className="w-full p-2 border rounded"
+            className="input"
             onFocus={() => searchResults.length > 0 && setShowResults(true)}
           />
           <button
             type="button"
             onClick={handleSearch}
             disabled={isSearching}
-            className="ml-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+            className="ml-2 btn btn-primary btn-sm"
           >
             {isSearching ? '...' : 'Buscar'}
           </button>
         </div>
         {/* Popup de resultados */}
         {showResults && searchResults.length > 0 && (
-          <div className="absolute z-10 left-0 right-0 bg-white border rounded shadow max-h-48 overflow-y-auto mt-1">
+          <div className="absolute z-10 left-0 right-0 card max-h-48 overflow-y-auto mt-1">
             {searchResults.map((result, idx) => (
               <div
                 key={idx}
                 className="p-2 cursor-pointer hover:bg-gray-100 text-sm"
                 onClick={() => handleResultClick(result)}
               >
-                <div className="font-medium">{result.display_name.split(',')[0]}</div>
-                <div className="text-gray-500">{result.display_name.split(',').slice(1).join(',')}</div>
+                <div className="text-primary-medium">{result.display_name.split(',')[0]}</div>
+                <div className="text-muted">{result.display_name.split(',').slice(1).join(',')}</div>
               </div>
             ))}
           </div>
@@ -142,7 +142,7 @@ export default function MapPicker({ initialPosition, onLocationSelect }: MapPick
         </MapContainer>
       </div>
       {/* Coordenadas actuales */}
-      <div className="text-xs text-center text-gray-600 mt-1">
+      <div className="text-xs text-center text-muted mt-1">
         Lat: {position[0].toFixed(6)}, Lng: {position[1].toFixed(6)}
       </div>
     </div>

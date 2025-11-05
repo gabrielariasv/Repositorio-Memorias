@@ -141,14 +141,14 @@ const MonthlyCalendar = ({ currentDate, onDateChange, events }: MonthlyCalendarP
       <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg mb-5 relative md:p-6 transition-colors">
         <div className="flex justify-between items-center mb-3">
           <button
-            className="bg-transparent border-0 text-xl cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100"
+              className="btn btn-ghost btn-sm text-xl"
             onClick={goToPreviousMonth}
             aria-label="Anterior"
           >
             &lt;
           </button>
 
-          <div className="flex gap-1 cursor-pointer px-2.5 py-1 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700">
+          <div className="btn btn-ghost cursor-pointer gap-1">
             <span className="font-bold text-gray-800 dark:text-gray-100" onClick={toggleWheelPicker}>
               {format(currentDate, 'MMMM', { locale: es })}
             </span>
@@ -158,7 +158,7 @@ const MonthlyCalendar = ({ currentDate, onDateChange, events }: MonthlyCalendarP
           </div>
 
           <button
-            className="bg-transparent border-0 text-xl cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100"
+              className="btn btn-ghost btn-sm text-xl"
             onClick={goToNextMonth}
             aria-label="Siguiente"
           >
@@ -166,8 +166,8 @@ const MonthlyCalendar = ({ currentDate, onDateChange, events }: MonthlyCalendarP
           </button>
         </div>
 
-        {(showMonthPicker || showYearPicker || showWheelPicker) && (
-          <div className="absolute top-[50px] left-0 right-0 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-[100] p-2.5 transition-colors" ref={pickerRef}>
+          {(showMonthPicker || showYearPicker || showWheelPicker) && (
+            <div className="card absolute top-[50px] left-0 right-0 z-[100] p-2.5 transition-colors" ref={pickerRef}>
             {showMonthPicker && (
               <div className="grid grid-cols-3 gap-1 w-full max-h-[200px] overflow-y-auto">
                 {months.map((monthName, index) => (
@@ -276,20 +276,20 @@ const WheelPicker = ({ currentDate, onDateChange, onClose }: WheelPickerProps) =
   const handleConfirm = () => onDateChange(selectedDay, selectedMonth, selectedYear);
 
   return (
-    <div className="w-full bg-white dark:bg-gray-800 rounded-xl shadow-xl transition-colors">
+    <div className="card w-full transition-colors">
       <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-        <button className="bg-transparent text-[#1976d2] font-semibold px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-200" onClick={onClose}>
+        <button className="btn btn-ghost btn-sm" onClick={onClose}>
           Cancelar
         </button>
-        <h3 className="m-0 text-base text-gray-800 dark:text-gray-100">Seleccionar fecha</h3>
-        <button className="bg-transparent text-[#1976d2] font-semibold px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-200" onClick={handleConfirm}>
+        <h3 className="m-0 text-base">Seleccionar fecha</h3>
+        <button className="btn btn-primary btn-sm" onClick={handleConfirm}>
           Confirmar
         </button>
       </div>
 
       <div className="flex h-[200px] overflow-hidden">
         <div className="flex-1 relative overflow-hidden wheel-column">
-          <div className="text-center py-2 font-semibold text-[0.9rem] text-gray-600 dark:text-gray-300">Día</div>
+          <div className="text-center py-2 font-semibold text-[0.9rem] text-secondary">Día</div>
           <div className="h-full overflow-y-auto snap-y snap-mandatory wheel">
             {days.map(d => (
               <div key={d} className={`snap-center text-center py-3 cursor-pointer transition-all text-[1.1rem] ${d === selectedDay ? 'text-[#1976f3] dark:text-[#1976f3] font-semibold text-[1.3rem]' : 'text-gray-800 dark:text-gray-100'}`} onClick={() => setSelectedDay(d)}>
@@ -300,7 +300,7 @@ const WheelPicker = ({ currentDate, onDateChange, onClose }: WheelPickerProps) =
         </div>
 
         <div className="flex-1 relative overflow-hidden wheel-column">
-          <div className="text-center py-2 font-semibold text-[0.9rem] text-gray-600 dark:text-gray-300">Mes</div>
+          <div className="text-center py-2 font-semibold text-[0.9rem] text-secondary">Mes</div>
           <div className="h-full overflow-y-auto snap-y snap-mandatory wheel">
             {months.map((m, i) => (
               <div key={m} className={`snap-center text-center py-3 cursor-pointer transition-all text-[1.1rem] ${i === selectedMonth ? 'text-[#1976f3] dark:text-[#1976f3] font-semibold text-[1.3rem]' : 'text-gray-800 dark:text-gray-100'}`} onClick={() => setSelectedMonth(i)}>
@@ -311,7 +311,7 @@ const WheelPicker = ({ currentDate, onDateChange, onClose }: WheelPickerProps) =
         </div>
 
         <div className="flex-1 relative overflow-hidden wheel-column">
-          <div className="text-center py-2 font-semibold text-[0.9rem] text-gray-600 dark:text-gray-300">Año</div>
+          <div className="text-center py-2 font-semibold text-[0.9rem] text-secondary">Año</div>
           <div className="h-full overflow-y-auto snap-y snap-mandatory wheel">
             {years.map(y => (
               <div key={y} className={`snap-center text-center py-3 cursor-pointer transition-all text-[1.1rem] ${y === selectedYear ? 'text-[#1976f3] dark:text-[#1976f3] font-semibold text-[1.3rem]' : 'text-gray-800 dark:text-gray-100'}`} onClick={() => setSelectedYear(y)}>

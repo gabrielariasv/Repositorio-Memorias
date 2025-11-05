@@ -29,7 +29,7 @@ const ProfilePage = () => {
 
   if (!user) {
     return (
-      <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow text-gray-700 dark:text-gray-200">
+      <div className="card text-body">
         No se pudo cargar la información del perfil.
       </div>
     );
@@ -100,20 +100,20 @@ const ProfilePage = () => {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60 flex items-center justify-between">
+      <div className="card card--2xl overflow-hidden">
+        <div className="section-header flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Editar datos de perfil</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Actualiza tu nombre y credenciales de acceso de forma segura.</p>
+            <h1 className="heading-page-2xl">Editar datos de perfil</h1>
+            <p className="text-sm text-secondary mt-1">Actualiza tu nombre y credenciales de acceso de forma segura.</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-6 space-y-8">
           <section>
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Información básica</h2>
+            <h2 className="subheading mb-4">Información básica</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label htmlFor="profile-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label htmlFor="profile-name" className="form-label">
                   Nombre completo
                 </label>
                 <input
@@ -121,44 +121,44 @@ const ProfilePage = () => {
                   type="text"
                   value={name}
                   onChange={event => setName(event.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  className="input"
                   placeholder="Nombre y apellido"
                   maxLength={80}
                   autoComplete="name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Correo electrónico</label>
+                <label className="form-label">Correo electrónico</label>
                 <input
                   value={user.email}
                   disabled
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/70 px-4 py-2.5 text-gray-600 dark:text-gray-300"
+                  className="input"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rol</label>
+                <label className="form-label">Rol</label>
                 <input
                   value={user.role === 'ev_user' ? 'Conductor EV' : user.role === 'station_admin' ? 'Administrador de estación' : 'Administrador general'}
                   disabled
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/70 px-4 py-2.5 text-gray-600 dark:text-gray-300"
+                  className="input"
                 />
               </div>
             </div>
           </section>
 
           <section>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Seguridad</h2>
-              <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+            <div className="header-row mb-4">
+              <h2 className="subheading">Seguridad</h2>
+              <span className="badge badge-blue">
                 Opcional
               </span>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+            <p className="text-sm text-secondary mb-4">
               Si deseas cambiar tu contraseña, completa los siguientes campos. Primero valida tu contraseña actual y luego escribe la nueva contraseña dos veces.
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label htmlFor="current-password" className="form-label">
                   Contraseña actual
                 </label>
                 <input
@@ -166,12 +166,12 @@ const ProfilePage = () => {
                   type="password"
                   value={currentPassword}
                   onChange={event => setCurrentPassword(event.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  className="input"
                   autoComplete="current-password"
                 />
               </div>
               <div>
-                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label htmlFor="new-password" className="form-label">
                   Nueva contraseña
                 </label>
                 <input
@@ -179,12 +179,12 @@ const ProfilePage = () => {
                   type="password"
                   value={newPassword}
                   onChange={event => setNewPassword(event.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  className="input"
                   autoComplete="new-password"
                 />
               </div>
               <div>
-                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label htmlFor="confirm-password" className="form-label">
                   Confirmar nueva contraseña
                 </label>
                 <input
@@ -192,12 +192,12 @@ const ProfilePage = () => {
                   type="password"
                   value={confirmNewPassword}
                   onChange={event => setConfirmNewPassword(event.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  className="input"
                   autoComplete="new-password"
                 />
               </div>
             </div>
-            <ul className="mt-3 text-xs text-gray-500 dark:text-gray-400 space-y-1">
+            <ul className="mt-3 text-xs text-muted space-y-1">
               {passwordHints.map(hint => (
                 <li key={hint} className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-blue-400"></span>
@@ -208,17 +208,7 @@ const ProfilePage = () => {
           </section>
 
           {message && (
-            <div
-              className={`rounded-lg px-4 py-3 text-sm ${
-                status === 'success'
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                  : status === 'error'
-                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200'
-              }`}
-            >
-              {message}
-            </div>
+            <div className={status === 'error' ? 'alert alert-error' : 'alert'}>{message}</div>
           )}
 
           <div className="flex justify-end gap-3 pt-2">
@@ -230,14 +220,14 @@ const ProfilePage = () => {
                 setMessage(null);
                 setStatus('idle');
               }}
-              className="px-5 py-2.5 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 transition-colors"
+              className="btn btn-secondary"
               disabled={status === 'loading'}
             >
               Restablecer cambios
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn btn-primary"
               disabled={status === 'loading'}
             >
               {status === 'loading' ? 'Guardando…' : 'Guardar ajustes'}
