@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
 import ChargerOptionsModal from './ChargerOptionsModal';
 import ConfirmCancelModal from './ConfirmCancelModal';
+import ChargingModal from './ChargingModal';
 import ChargerMap, { ChargerMapHandle, FlyToOptions } from './ChargerMap';
 import { getTravelTimeORS } from '../utils/getTravelTimeORS';
 import { useAuth } from '../contexts/useAuth';
@@ -11,10 +12,17 @@ import MyFavourites from './MyFavourites';
 interface Reservation {
   _id: string;
   vehicleId: string;
-  chargerId: { name: string };
+  chargerId: { _id?: string; name: string };
   startTime: string;
   endTime: string;
   status: string;
+}
+
+interface ActiveChargingSession {
+  _id: string;
+  reservationId: string;
+  chargerId: string;
+  status: 'waiting_confirmations' | 'admin_confirmed' | 'user_confirmed' | 'ready_to_start' | 'charging' | 'completed' | 'cancelled';
 }
 
 interface ChargingSession {
@@ -48,6 +56,9 @@ const VehicleDashboard: React.FC = () => {
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
   const [favoriteRefreshKey, setFavoriteRefreshKey] = useState(0);
+  const [activeSessions, setActiveSessions] = useState<Map<string, ActiveChargingSession>>(new Map());
+  const [chargingModalOpen, setChargingModalOpen] = useState(false);
+  const [selectedReservationForCharging, setSelectedReservationForCharging] = useState<Reservation | null>(null);
   const mapRef = useRef<ChargerMapHandle>(null);
   const optionsPanelRef = useRef<HTMLDivElement | null>(null);
   const isHistoryView = location.pathname === '/charging-history';
@@ -96,6 +107,43 @@ const VehicleDashboard: React.FC = () => {
     navigator.geolocation.getCurrentPosition(handleSuccess, handleError);
   }, []);
 
+  // Función: Obtener sesiones de carga activas para las reservas
+  const fetchActiveSessionsForReservations = useCallback(async (reservations: Reservation[]) => {
+    try {
+      const token = localStorage.getItem('token');
+      const sessionMap = new Map<string, ActiveChargingSession>();
+
+      // Buscar sesión activa para cada reserva
+      await Promise.all(
+        reservations.map(async (res) => {
+          try {
+            const response = await fetch(
+              `${import.meta.env.VITE_API_URL}/api/charging-sessions/active/by-reservation/${res._id}`,
+              {
+                headers: {
+                  ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+              }
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.session && data.session.status !== 'completed' && data.session.status !== 'cancelled') {
+                sessionMap.set(res._id, data.session);
+              }
+            }
+          } catch (err) {
+            console.error(`Error fetching session for reservation ${res._id}:`, err);
+          }
+        })
+      );
+
+      setActiveSessions(sessionMap);
+    } catch (error) {
+      console.error('Error fetching active sessions:', error);
+    }
+  }, []);
+
   // Función: Obtener reservas activas del vehículo seleccionado
   const fetchReservations = useCallback(async (vehicleId: string) => {
     setLoadingReservations(true);
@@ -107,13 +155,16 @@ const VehicleDashboard: React.FC = () => {
       }
       const data = await response.json();
       setReservations(Array.isArray(data) ? data : []);
+      
+      // Cargar sesiones activas para cada reserva
+      await fetchActiveSessionsForReservations(data);
     } catch (error) {
       console.error('Error fetching reservations:', error);
       setReservations([]);
     } finally {
       setLoadingReservations(false);
     }
-  }, []);
+  }, [fetchActiveSessionsForReservations]);
 
   // Función: Obtener historial completo de sesiones de carga
   const fetchChargingHistory = useCallback(async (vehicleId: string) => {
@@ -158,6 +209,23 @@ const VehicleDashboard: React.FC = () => {
   const selectedVehicle = evVehicleContext?.selectedVehicle ?? null;
   const vehiclesLoading = evVehicleContext?.loading ?? false;
   const vehiclesError = evVehicleContext?.error ?? null;
+
+  // Callback: Abrir modal de carga para una reserva
+  const handleOpenChargingModal = useCallback((reservation: Reservation) => {
+    setSelectedReservationForCharging(reservation);
+    setChargingModalOpen(true);
+  }, []);
+
+  // Callback: Cerrar modal de carga y refrescar datos
+  const handleCloseChargingModal = useCallback(() => {
+    setChargingModalOpen(false);
+    setSelectedReservationForCharging(null);
+    
+    // Refrescar reservas y sesiones activas
+    if (selectedVehicle?._id) {
+      fetchReservations(selectedVehicle._id);
+    }
+  }, [selectedVehicle, fetchReservations]);
 
   /**
    * Función: Confirmar cancelación de reserva con motivo específico
@@ -310,9 +378,18 @@ const VehicleDashboard: React.FC = () => {
       return <p className="text-secondary">No hay reservas actuales para este vehículo.</p>;
     }
 
+    // Ordenar reservas: las que tienen sesión activa primero
+    const sortedReservations = [...upcomingReservations].sort((a, b) => {
+      const aHasSession = activeSessions.has(a._id);
+      const bHasSession = activeSessions.has(b._id);
+      if (aHasSession && !bHasSession) return -1;
+      if (!aHasSession && bHasSession) return 1;
+      return 0;
+    });
+
     return (
       <div className="flex flex-col gap-4">
-        {upcomingReservations.slice(0, 4).map((res) => {
+        {sortedReservations.slice(0, 4).map((res) => {
           const start = new Date(res.startTime);
           const end = new Date(res.endTime);
           const now = new Date();
@@ -334,17 +411,32 @@ const VehicleDashboard: React.FC = () => {
             ? { lat: chargerMatch.location.lat, lng: chargerMatch.location.lng }
             : null;
 
+          // Verificar si hay sesión de carga activa
+          const activeSession = activeSessions.get(res._id);
+          const hasActiveSession = !!activeSession;
+
           return (
-            <div key={res._id} className="card card-indigo">
+            <div 
+              key={res._id} 
+              className={`card ${hasActiveSession ? 'card-indigo border-2 border-yellow-400 dark:border-yellow-500' : 'card-indigo'}`}
+            >
               <div className="date-badge">
                 <span className="date-badge-day">{day}</span>
                 <span className="date-badge-date">{date}</span>
                 <span className="date-badge-month">{month}</span>
               </div>
               <div className="flex-1">
-                <div className="item-title">{res.chargerId?.name ?? 'Cargador desconocido'}</div>
+                <div className="flex items-center gap-2">
+                  <div className="item-title">{res.chargerId?.name ?? 'Cargador desconocido'}</div>
+                  {hasActiveSession && (
+                    <span className="badge badge-green animate-pulse">
+                      <i className="fas fa-bolt mr-1"></i>
+                      Carga Activa
+                    </span>
+                  )}
+                </div>
                 <div className="text-caption">Carga de Vehículo Tipo {selectedVehicle.chargerType || '-'}</div>
-                {enCurso && (
+                {enCurso && !hasActiveSession && (
                   <div className="badge-in-progress">
                     En curso
                   </div>
@@ -355,20 +447,34 @@ const VehicleDashboard: React.FC = () => {
                   {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
                 <div className="mt-1 text-caption">Duración estimada: {durationStr}</div>
+                
+                {/* Botón de Ver Carga Actual - Solo visible si hay sesión activa */}
+                {hasActiveSession && enCurso && (
+                  <button 
+                    className="btn btn-success btn-sm mt-2 w-full"
+                    onClick={() => handleOpenChargingModal(res)}
+                  >
+                    <i className="fas fa-bolt mr-2"></i>
+                    Ver Carga Actual
+                  </button>
+                )}
+                
                 {chargerLocation && (
                   <div className="mt-1 flex items-center gap-2">
                     <button className="btn btn-outline btn-xs" onClick={() => handleCenterOnMap({ ...chargerLocation, zoom: 17 })}>
                       Centrar en mapa
                     </button>
-                    <button
-                      className="btn btn-danger btn-xs"
-                      onClick={() => {
-                        setCancelTargetId(res._id);
-                        setCancelModalOpen(true);
-                      }}
-                    >
-                      Cancelar
-                    </button>
+                    {!hasActiveSession && (
+                      <button
+                        className="btn btn-danger btn-xs"
+                        onClick={() => {
+                          setCancelTargetId(res._id);
+                          setCancelModalOpen(true);
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -564,6 +670,26 @@ const VehicleDashboard: React.FC = () => {
         onConfirm={handleConfirmCancel}
         title="Confirmar cancelación de reserva"
       />
+
+      {/* Modal de Carga Activa */}
+      {selectedReservationForCharging && chargingModalOpen && (() => {
+        // Buscar el cargador completo para obtener el ownerId (adminId)
+        const chargerFullData = mappedChargers.find(c => 
+          c._id === selectedReservationForCharging.chargerId._id
+        );
+        const adminId = chargerFullData?.ownerId || '';
+
+        return (
+          <ChargingModal
+            isOpen={chargingModalOpen}
+            onClose={handleCloseChargingModal}
+            reservationId={selectedReservationForCharging._id}
+            chargerId={selectedReservationForCharging.chargerId._id || ''}
+            vehicleId={selectedReservationForCharging.vehicleId}
+            adminId={adminId}
+          />
+        );
+      })()}
     </div>
   );
 };

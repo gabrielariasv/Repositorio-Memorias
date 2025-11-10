@@ -462,9 +462,11 @@ const AdminManagement: React.FC = () => {
   const [expandedSections, setExpandedSections] = useState<SectionExpansionState>(() => createDefaultExpandedSections());
   const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(false);
 
+
   const resetFeedback = useCallback(() => {
     setFeedback(null);
   }, []);
+
 
   /**
    * Función: Obtener lista de usuarios con filtros opcionales
@@ -557,8 +559,10 @@ const AdminManagement: React.FC = () => {
       setReservationsError(null);
       setHistoryError(null);
       setReservationConfirmId(null);
+  // (Revert) limpiar sólo estados propios del usuario
     }
   }, [selectedUserId, fetchUserDetail, fetchUserReservations, fetchUserHistory]);
+
 
   useEffect(() => {
     setExpandedSections(createDefaultExpandedSections());
@@ -1144,7 +1148,7 @@ const AdminManagement: React.FC = () => {
                               key={charger._id}
                               className="detail-card"
                             >
-                              <div>
+                              <div className="flex-1">
                                 <div className="item-title">{charger.name}</div>
                                 <div className="text-caption">
                                   {CHARGER_TYPE_LABELS[charger.chargerType as ChargerType] ?? charger.chargerType}
@@ -2094,6 +2098,7 @@ const AdminManagement: React.FC = () => {
           </div>
         </div>
       )}
+
     </>
   );
 };

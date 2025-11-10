@@ -29,6 +29,7 @@ class SimulatorController {
      * 
      * @param {string} chargerId - ID del cargador
      * @param {string} vehicleId - ID del vehículo
+     * @param {string} sessionId - ID de la sesión activa (opcional, para tracking)
      * @returns {Object} { success, message, powerOutput, chargerType }
      * 
      * PASO 1: Obtener datos del cargador desde DB
@@ -37,7 +38,7 @@ class SimulatorController {
      * PASO 4: Iniciar carga
      * PASO 5: Retornar confirmación con datos del cargador
      */
-    async startNewSession(chargerId, vehicleId) {
+    async startNewSession(chargerId, vehicleId, sessionId = null) {
         try {
             // PASO 1: Obtener cargador
             const charger = await Charger.findById(chargerId);
@@ -49,6 +50,11 @@ class SimulatorController {
                 vehicleId, 
                 charger.powerOutput // Potencia nominal en kW
             );
+            
+            // Agregar sessionId si se proporciona
+            if (sessionId) {
+                simulator.sessionId = sessionId;
+            }
             
             // PASO 3: Almacenar referencia (un cargador puede tener solo 1 sesión activa)
             this.activeSimulations.set(chargerId, simulator);
@@ -169,6 +175,18 @@ class SimulatorController {
             duration: ((new Date() - simulator.startTime) / (1000 * 60)).toFixed(2), // Minutos
             realTimeData: simulator.realTimeData.slice(-5) // Últimos 5 puntos para gráfica
         };
+    }
+
+    /**
+     * Obtener todos los datos de una sesión activa
+     * 
+     * @param {string} chargerId - ID del cargador
+     * @returns {Object|null} Datos completos de la sesión o null si no existe
+     */
+    getSessionData(chargerId) {
+        const simulator = this.activeSimulations.get(chargerId);
+        if (!simulator) return null;
+        return simulator.getSessionData();
     }
 }
 

@@ -16,6 +16,7 @@ const notificationsRoutes = require('./routes/notifications');
 const reservationsRoutes = require('./routes/reservations');
 const recommendationsRoutes = require('./routes/recommendations');
 const favouritesRoutes = require('./routes/favourites');
+const chargingSessionsRoutes = require('./routes/chargingSessions');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -53,6 +54,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reservations', reservationsRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/favourites', favouritesRoutes);
+app.use('/api/charging-sessions', chargingSessionsRoutes);
 
 // Ruta de bienvenida
 app.get('/', (req, res) => {

@@ -4,6 +4,8 @@ import ChargerSearch from './ChargerSearch';
 import { useNavigate } from 'react-router-dom';
 import { Charger } from '../models/Charger';
 import ChargerMap, { ChargerMapHandle } from './ChargerMap';
+import ChargingModal from './ChargingModal';
+import { useAuth } from '../contexts/useAuth';
 
 /**
  * Componente Desktop: Lista de cargadores con filtros y búsqueda
@@ -40,6 +42,8 @@ function DesktopChargerList({
   chargerRefs,
   highlightedChargerId,
   onChargerClickFromMap,
+  activeChargingSessions,
+  onOpenChargingModal,
 }) {
   return (
     <div className="flex h-[79vh] min-h-[500px]">
@@ -158,6 +162,8 @@ function DesktopChargerList({
                   const powerOutput = typeof charger.powerOutput === 'number' 
                     ? charger.powerOutput.toFixed(2)
                     : charger.powerOutput;
+                  const activeSession = activeChargingSessions?.get?.(charger._id);
+                  const hasActiveSession = !!activeSession;
                   
                   return (
                     <div
@@ -165,7 +171,7 @@ function DesktopChargerList({
                       ref={el => { if (el) chargerRefs.current[charger._id] = el; }}
                       className={`card-charger group ${
                         highlightedChargerId === charger._id ? 'ring-4 ring-blue-500 dark:ring-blue-400' : ''
-                      }`}
+                      } ${hasActiveSession ? 'border-2 border-yellow-400 dark:border-yellow-500' : ''}`}
                     >
                       {/* Contenido de cada cargador */}
                       <div
@@ -181,6 +187,12 @@ function DesktopChargerList({
                               <div className={`px-2.5 py-1 rounded-full text-xs font-medium ${status.dot} ${status.text} bg-opacity-20`}>
                                 {getStatusText(charger.status)}
                               </div>
+                              {hasActiveSession && (
+                                <span className="badge badge-green animate-pulse">
+                                  <i className="fas fa-bolt mr-1"></i>
+                                  Carga Activa
+                                </span>
+                              )}
                             </div>
                             
                             <div className="meta-row mb-3">
@@ -246,6 +258,21 @@ function DesktopChargerList({
                             <span className="text-sm font-medium">Calendario</span>
                           </button>
                         </div>
+
+                        {/* Botón Ver Carga Actual - Debajo de los 3 botones */}
+                        {hasActiveSession && (
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              onOpenChargingModal(charger._id, activeSession.reservationId, activeSession.vehicleId, activeSession.userId);
+                            }}
+                            className="btn btn-success btn-sm mt-3 w-full"
+                            title="Ver carga actual"
+                          >
+                            <i className="fas fa-bolt mr-2"></i>
+                            Ver Carga Actual
+                          </button>
+                        )}
 
                         {/* Información adicional */}
                         <div className="mt-4 flex items-center justify-between">
@@ -420,6 +447,8 @@ function MobileChargerList({
   chargerRefs,
   highlightedChargerId,
   onChargerClickFromMap,
+  activeChargingSessions,
+  onOpenChargingModal,
 }) {
   const [isMapMinimized, setIsMapMinimized] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -552,6 +581,8 @@ function MobileChargerList({
                 const powerOutput = typeof charger.powerOutput === 'number' 
                   ? charger.powerOutput.toFixed(2)
                   : charger.powerOutput;
+                const activeSession = activeChargingSessions?.get?.(charger._id);
+                const hasActiveSession = !!activeSession;
                 
                 return (
                   <div
@@ -559,7 +590,7 @@ function MobileChargerList({
                     ref={el => { if (el) chargerRefs.current[charger._id] = el; }}
                     className={`card card--hover card-overflow-hidden ${
                       highlightedChargerId === charger._id ? 'ring-4 ring-blue-500 dark:ring-blue-400' : ''
-                    }`}
+                    } ${hasActiveSession ? 'border-2 border-yellow-400 dark:border-yellow-500' : ''}`}
                   >
                     <div
                       onClick={() => setExpandedChargerId(expandedChargerId === charger._id ? null : charger._id)}
@@ -574,6 +605,12 @@ function MobileChargerList({
                             <div className={`px-2 py-1 rounded-full text-xs font-medium ${status.dot} ${status.text} bg-opacity-20`}>
                               {getStatusText(charger.status)}
                             </div>
+                            {hasActiveSession && (
+                              <span className="badge badge-green animate-pulse">
+                                <i className="fas fa-bolt mr-1"></i>
+                                Carga Activa
+                              </span>
+                            )}
                           </div>
                           
                           <div className="meta-row mb-3">
@@ -639,6 +676,21 @@ function MobileChargerList({
                           <span className="text-xs font-medium">Calendario</span>
                         </button>
                       </div>
+
+                      {/* Botón Ver Carga Actual - Debajo de los 3 botones (móvil) */}
+                      {hasActiveSession && (
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            onOpenChargingModal(charger._id, activeSession.reservationId, activeSession.vehicleId, activeSession.userId);
+                          }}
+                          className="btn btn-success btn-xs mt-2 w-full"
+                          title="Ver carga actual"
+                        >
+                          <i className="fas fa-bolt mr-2"></i>
+                          Ver Carga Actual
+                        </button>
+                      )}
 
                       <div className="flex items-center justify-between mt-3">
                         <div className="meta-subtle">
@@ -729,6 +781,7 @@ interface ChargerListProps {
 }
 
 export default function ChargerList({ chargers, onChargerRename }: ChargerListProps) {
+  const { user } = useAuth();
   const [expandedChargerId, setExpandedChargerId] = useState<string | null>(null);
   const [locationMap] = useState<Record<string, string | null>>({});
   const [searchMode, setSearchMode] = useState<'name' | 'location'>('name');
@@ -746,6 +799,10 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
   const [renameEnergyCost, setRenameEnergyCost] = useState<string>('');
   const [renameParkingCost, setRenameParkingCost] = useState<string>('');
   const [highlightedChargerId, setHighlightedChargerId] = useState<string | null>(null);
+  // Sesiones de carga activas (por cargador)
+  const [activeChargingSessions, setActiveChargingSessions] = useState<Map<string, any>>(new Map());
+  const [chargingModalOpen, setChargingModalOpen] = useState(false);
+  const [selectedChargerForCharging, setSelectedChargerForCharging] = useState<{chargerId: string; reservationId: string; vehicleId: string; userId: string} | null>(null);
   
   // Detectar si es móvil
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
@@ -764,6 +821,56 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
       )
     );
   }, [chargers, statusFilter, typeFilter]);
+
+  // Cargar sesiones activas para cargadores visibles
+  useEffect(() => {
+    const fetchActiveSessionsForChargers = async (list: Charger[]) => {
+      try {
+        const token = localStorage.getItem('token');
+        const sessionMap = new Map<string, any>();
+        await Promise.all(
+          list.map(async (charger) => {
+            try {
+              const resp = await fetch(`${import.meta.env.VITE_API_URL}/api/charging-sessions/active/by-charger/${charger._id}`,
+                { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
+              );
+              if (resp.ok) {
+                const data = await resp.json();
+                if (data.session && data.session.status !== 'completed' && data.session.status !== 'cancelled') {
+                  sessionMap.set(charger._id, data.session);
+                }
+              }
+            } catch (err) {
+              console.error('Error fetching session for charger', charger._id, err);
+            }
+          })
+        );
+        setActiveChargingSessions(sessionMap);
+      } catch (e) {
+        console.error('Error fetching active sessions:', e);
+      }
+    };
+    if (filteredChargers && filteredChargers.length > 0) {
+      fetchActiveSessionsForChargers(filteredChargers);
+    } else {
+      setActiveChargingSessions(new Map());
+    }
+  }, [filteredChargers]);
+
+  const handleOpenChargingModal = (chargerId: string, reservationId: string, vehicleId: string, userId: string) => {
+    setSelectedChargerForCharging({ chargerId, reservationId, vehicleId, userId });
+    setChargingModalOpen(true);
+  };
+
+  const handleCloseChargingModal = () => {
+    setChargingModalOpen(false);
+    setSelectedChargerForCharging(null);
+    // refrescar sesiones activas
+    if (filteredChargers && filteredChargers.length > 0) {
+      // Trigger re-fetch by recreating filtered array reference
+      setFilteredChargers(prev => [...prev]);
+    }
+  };
 
   // Función: Obtener texto legible del estado del cargador
   const getStatusText = (status: string) => {
@@ -1009,6 +1116,8 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
           chargerRefs={chargerRefs}
           highlightedChargerId={highlightedChargerId}
           onChargerClickFromMap={handleChargerClickFromMap}
+          activeChargingSessions={activeChargingSessions}
+          onOpenChargingModal={handleOpenChargingModal}
         />
       ) : (
         <DesktopChargerList
@@ -1032,6 +1141,8 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
           chargerRefs={chargerRefs}
           highlightedChargerId={highlightedChargerId}
           onChargerClickFromMap={handleChargerClickFromMap}
+          activeChargingSessions={activeChargingSessions}
+          onOpenChargingModal={handleOpenChargingModal}
         />
       )}
 
@@ -1158,6 +1269,18 @@ export default function ChargerList({ chargers, onChargerRename }: ChargerListPr
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal de gestión de la sesión de carga */}
+      {selectedChargerForCharging && chargingModalOpen && (
+        <ChargingModal
+          isOpen={chargingModalOpen}
+          onClose={handleCloseChargingModal}
+          reservationId={selectedChargerForCharging.reservationId}
+          chargerId={selectedChargerForCharging.chargerId}
+          vehicleId={selectedChargerForCharging.vehicleId}
+          adminId={user?._id || ''}
+        />
       )}
     </>
   );
