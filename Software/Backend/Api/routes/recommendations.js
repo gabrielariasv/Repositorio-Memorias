@@ -75,6 +75,15 @@ async function recommendByCharge(q) {
         throw { status: 400, message: 'currentChargeLevel inválido (0-100)' };
     }
 
+    // Obtener vehículo antes de buscar cargadores
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (!vehicle) throw { status: 404, message: 'Vehículo no encontrado' };
+    
+    /*  Filtro cargador
+    const vehicleChargerType = vehicle.chargerType;
+    if (!vehicleChargerType) throw { status: 400, message: 'Tipo de conector del vehículo desconocido' };
+    */
+    
     // PASO 1: Búsqueda geoespacial de cargadores cercanos (radio 30km)
     const MAX_DISTANCE_METERS = 30000;
     const userLat = parseFloat(latitude);
@@ -82,6 +91,9 @@ async function recommendByCharge(q) {
 
     const chargers = await Charger.find({
         status: 'available',
+        /*Filtro cargador 
+        chargerType: vehicleChargerType,
+        */
         location: {
             $near: {
                 $geometry: { type: 'Point', coordinates: [userLng, userLat] },
@@ -90,9 +102,7 @@ async function recommendByCharge(q) {
         }
     }).populate('reservations');
 
-    // PASO 2: Obtener datos del vehículo y calcular energía necesaria
-    const vehicle = await Vehicle.findById(vehicleId);
-    if (!vehicle) throw { status: 404, message: 'Vehículo no encontrado' };
+    // PASO 2: Datos del vehículo ya obtenidos arriba; calcular energía necesaria
     const batteryCapacity = vehicle.batteryCapacity;
     const chargeLevel = current;
     const targetLevel = target;
@@ -309,11 +319,22 @@ async function recommendByTime(q) {
     // Tiempo total realmente disponible en ms (tope por lo que envio el frontend)
     const availableMs = limit.getTime() - now.getTime();
 
+    // Obtener vehículo antes de buscar cargadores
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (!vehicle) throw { status: 404, message: 'Vehículo no encontrado' };
+    /* Filtro cargador
+    const vehicleChargerType = vehicle.chargerType;
+    if (!vehicleChargerType) throw { status: 400, message: 'Tipo de conector del vehículo desconocido' };
+    */
+
     // PASO 3: Búsqueda geoespacial de cargadores cercanos
     const userLat = parseFloat(latitude);
     const userLng = parseFloat(longitude);
     const chargers = await Charger.find({
         status: 'available',
+        /* Filtro cargador
+        chargerType: vehicleChargerType,
+        */
         location: {
             $near: {
                 $geometry: { type: 'Point', coordinates: [userLng, userLat] },
@@ -322,9 +343,7 @@ async function recommendByTime(q) {
         }
     });
 
-    // PASO 4: Obtener datos del vehículo
-    const vehicle = await Vehicle.findById(vehicleId);
-    if (!vehicle) throw { status: 404, message: 'Vehículo no encontrado' };
+    // PASO 4: Datos del vehículo ya obtenidos arriba
     const batteryCapacity = vehicle.batteryCapacity;
     const energyNeeded = batteryCapacity * ((100 - current) / 100);
 
