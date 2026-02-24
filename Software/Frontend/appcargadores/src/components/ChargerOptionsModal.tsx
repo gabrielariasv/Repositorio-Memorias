@@ -201,7 +201,9 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
         chargeTimeHours: tCargaMinutes / 60,
         cost: costVal,
         unitCost: unitCostVal,
-        expectedChargePercent
+        expectedChargePercent,
+        // ETA (minutos) provisto por el backend en el campo travelMinutes o travelSec
+        travelMinutes: best?.travelMinutes ?? (best?.travelSec ? Math.round(best.travelSec / 60) : undefined)
       });
       setShowConfirm(true);
       
@@ -380,7 +382,8 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
         chargeTimeHours: tCargaMinutes / 60,
         cost: costVal,
         unitCost: unitCostVal,
-        expectedChargePercent: expectedChargePercentNext
+        expectedChargePercent: expectedChargePercentNext,
+        travelMinutes: next?.travelMinutes ?? (next?.travelSec ? Math.round(next.travelSec / 60) : undefined)
       });
       setShowConfirm(true);
       // Centrar el mapa en la estación propuesta (si se proporcionó la función)
@@ -441,7 +444,8 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           chargeTimeHours: tCargaMinutes / 60,
           cost: costVal,
           unitCost: unitCostVal,
-          expectedChargePercent: expectedChargePercentFirst
+          expectedChargePercent: expectedChargePercentFirst,
+          travelMinutes: first?.travelMinutes ?? (first?.travelSec ? Math.round(first.travelSec / 60) : undefined)
         });
         setShowConfirm(true);
         const loc2 = getChargerLatLng(charger);
@@ -668,6 +672,7 @@ const ChargerOptionsModal: React.FC<ChargerOptionsModalProps> = ({ onClose, user
           <div><b>Inicio:</b> {proposal.startTime.toLocaleString()}</div>
           <div><b>Fin:</b> {proposal.endTime.toLocaleString()}</div>
           <div><b>Tiempo estimado de carga:</b> {Math.round(proposal.chargeTimeHours * 60)} minutos</div>
+          <div><b>Tiempo estimado de llegada (ETA):</b> {proposal.travelMinutes !== undefined ? `${Math.round(proposal.travelMinutes)} minutos` : 'N/A'}</div>
           <div><b>Estación:</b> {proposal.charger.name}</div>
           <div><b>Potencia:</b> {Math.floor(proposal.power * 100)/100} kW</div>
           <div>

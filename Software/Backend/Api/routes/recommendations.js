@@ -20,6 +20,7 @@ const Reservation = require('../models/Reservation');
 const Charger = require('../models/Charger');
 const Vehicle = require('../models/Vehicle');
 const calcularDistancia = require('../utils/calcularDistancia');
+const { OSRM_URL, getTravelInfo } = require('../utils/OSRM');
 
 /**
  * FUNCIÓN HELPER: recommendByCharge
@@ -51,12 +52,12 @@ const calcularDistancia = require('../utils/calcularDistancia');
  */
 async function recommendByCharge(q) {
     const { latitude, longitude, vehicleId, distancia, costo, tiempoCarga, demora, currentChargeLevel, targetChargeLevel } = q;
-    
+
     // VALIDACIÓN: Parámetros obligatorios
     if (!latitude || !longitude || !vehicleId || currentChargeLevel === undefined || targetChargeLevel === undefined) {
         throw { status: 400, message: 'Faltan parámetros obligatorios (latitude, longitude, vehicleId, currentChargeLevel, targetChargeLevel)' };
     }
-    
+
     // VALIDACIÓN: Pesos configurables
     if (
         distancia === undefined || costo === undefined || tiempoCarga === undefined || demora === undefined ||
@@ -78,12 +79,12 @@ async function recommendByCharge(q) {
     // Obtener vehículo antes de buscar cargadores
     const vehicle = await Vehicle.findById(vehicleId);
     if (!vehicle) throw { status: 404, message: 'Vehículo no encontrado' };
-    
+
     /*  Filtro cargador
     const vehicleChargerType = vehicle.chargerType;
     if (!vehicleChargerType) throw { status: 400, message: 'Tipo de conector del vehículo desconocido' };
     */
-    
+
     // PASO 1: Búsqueda geoespacial de cargadores cercanos (radio 30km)
     const MAX_DISTANCE_METERS = 30000;
     const userLat = parseFloat(latitude);
@@ -102,6 +103,9 @@ async function recommendByCharge(q) {
         }
     }).populate('reservations');
 
+    // Intentar obtener tiempos y distancias desde OSRM (usuario -> cada cargador)
+    const osrmInfoCharge = await getTravelInfo(userLat, userLng, chargers);
+
     // PASO 2: Datos del vehículo ya obtenidos arriba; calcular energía necesaria
     const batteryCapacity = vehicle.batteryCapacity;
     const chargeLevel = current;
@@ -116,7 +120,7 @@ async function recommendByCharge(q) {
     const now = new Date();
     const results = [];
     const daysThreshold = 2 * 24 * 60 * 60 * 1000; // Ventana de 2 días para buscar disponibilidad
-    
+
     // PASO 4: Obtener reservas del vehículo (para detectar conflictos)
     const vehicleReservations = await Reservation.find({
         vehicleId: vehicleId,
@@ -125,19 +129,38 @@ async function recommendByCharge(q) {
     }, 'startTime calculatedEndTime').sort({ startTime: 1 });
 
     // PASO 5: Evaluar cada cargador
-    for (const charger of chargers) {
-        // PASO 5.1: Calcular distancia usando fórmula Haversine
-        const dist = calcularDistancia(
+    for (let idx = 0; idx < chargers.length; idx++) {
+        const charger = chargers[idx];
+        // PASO 5.1: Calcular distancia usando fórmula Haversine (km)
+        let dist = calcularDistancia(
             parseFloat(latitude),
             parseFloat(longitude),
             charger.location.coordinates[1],
             charger.location.coordinates[0]
         );
-        
+
+        // Si OSRM nos entrega una distancia real (metros), la usamos en lugar del Haversine
+        const osrmDistMeters = (osrmInfoCharge && osrmInfoCharge.distances && osrmInfoCharge.distances.length > 0) ? osrmInfoCharge.distances[idx] : null;
+        if (osrmDistMeters !== null && osrmDistMeters !== undefined) {
+            // Convertir a kilómetros
+            dist = Number(osrmDistMeters) / 1000;
+        }
+
+        // Obtener tiempo de viaje estimado (minutos) desde OSRM o fallback por distancia
+        const travelSec = (osrmInfoCharge && osrmInfoCharge.durations && osrmInfoCharge.durations.length > 0) ? osrmInfoCharge.durations[idx] : null;
+        let travelMinutes;
+        if (travelSec === null || travelSec === undefined) {
+            // Fallback: estimar por distancia asumiendo velocidad media 40 km/h
+            const speedKmh = 40;
+            travelMinutes = (dist / speedKmh) * 60;
+        } else {
+            travelMinutes = Number(travelSec) / 60;
+        }
+
         // PASO 5.2: Calcular costo total de la carga
         const unitCost = charger.energy_cost || 1;
         const totalCost = unitCost * energyNeeded;
-        
+
         // PASO 5.3: Calcular tiempo de carga necesario (minutos)
         const tCarga = charger.powerOutput ? (energyNeeded / charger.powerOutput) * 60 : null;
         if (!tCarga) continue; // Skip si no hay powerOutput
@@ -165,7 +188,7 @@ async function recommendByCharge(q) {
 
         // PASO 5.6: Ordenar intervalos por tiempo de inicio
         intervals.sort((a, b) => a.start - b.start);
-        
+
         // PASO 5.7: Fusionar intervalos solapados (merge overlapping intervals)
         const merged = [];
         for (const iv of intervals) {
@@ -186,7 +209,8 @@ async function recommendByCharge(q) {
         // PASO 5.8: BÚSQUEDA DE GAP - Encontrar primer hueco disponible suficientemente grande
         const tCargaMs = tCarga * 60 * 1000; // Convertir minutos a milisegundos
         const limit = new Date(now.getTime() + daysThreshold); // Límite de búsqueda (2 días)
-        let gapStart = new Date(now);
+        // El gap debe empezar cuando el usuario pueda llegar: ahora + travel time
+        let gapStart = new Date(now.getTime() + Math.round(travelMinutes * 60 * 1000));
         let found = false;
 
         if (merged.length === 0) {
@@ -200,14 +224,15 @@ async function recommendByCharge(q) {
             for (let i = 0; i <= merged.length; i++) {
                 const gapEnd = merged[i] ? merged[i].start : limit;
                 const gapDurationMs = gapEnd - gapStart;
-                
+
                 // Si el gap es suficientemente grande para la carga
                 if (gapDurationMs >= tCargaMs) {
+                    // tDemora incluye tiempo de viaje + tiempo de espera hasta inicio de carga
                     tDemora = (gapStart - now) / (60 * 1000); // Convertir ms a minutos
                     found = true;
                     break;
                 }
-                
+
                 // Avanzar al siguiente gap
                 if (merged[i]) {
                     gapStart = merged[i].end;
@@ -226,12 +251,22 @@ async function recommendByCharge(q) {
         maxDemora = Math.max(maxDemora, tDemora);
 
         // Agregar resultado con todos los factores calculados
-        results.push({ charger, dist, cost: totalCost, unitCost, tCarga, tDemora });
+        results.push({
+            charger,
+            dist,
+            cost: totalCost,
+            unitCost,
+            tCarga,
+            tDemora,
+            travelMinutes,
+            travelSec,
+            usedOsrmDistance: (osrmDistMeters !== null && osrmDistMeters !== undefined)
+        });
     }
 
     // CASO ESPECIAL: No hay cargadores disponibles
     if (results.length === 0) return { best: null, ranking: [] };
-    
+
     // PASO 6: PERFORMANCE SCORING - Calcular puntuación normalizada
     // Fórmula: Σ(peso_i / Σpesos) * (valor_i / max_i)
     // Menor puntuación = mejor opción
@@ -243,6 +278,7 @@ async function recommendByCharge(q) {
             (Number(tiempoCarga) / sumaPesos) * (r.tCarga / (maxTime || 1)) +
             (Number(demora) / sumaPesos) * (r.tDemora / (maxDemora || 1));
     });
+
 
     // PASO 7: Ordenar por performance (ascendente: mejor primero)
     results.sort((a, b) => a.performance - b.performance);
@@ -294,7 +330,7 @@ async function recommendByTime(q) {
     const weightWindow = Number(q.tiempoCarga ?? 0.20);
     const weightCarga = Number(q.carga ?? q.chargeWeight ?? 0.20);
     const weightDemora = Number(q.demora ?? 0.20);
-    
+
     // VALIDACIÓN: Pesos válidos
     if ([weightDist, weightCost, weightWindow, weightCarga, weightDemora].every(w => w === 0)) {
         throw { status: 400, message: 'Pesos inválidos' };
@@ -343,6 +379,9 @@ async function recommendByTime(q) {
         }
     });
 
+    // Intentar obtener tiempos y distancias desde OSRM (usuario -> cada cargador)
+    const osrmInfoTime = await getTravelInfo(userLat, userLng, chargers);
+
     // PASO 4: Datos del vehículo ya obtenidos arriba
     const batteryCapacity = vehicle.batteryCapacity;
     const energyNeeded = batteryCapacity * ((100 - current) / 100);
@@ -359,21 +398,45 @@ async function recommendByTime(q) {
     let maxDist = 0, maxCost = 0, maxWindow = 0, maxEnergy = 0, maxDemora = 0;
 
     // PASO 7: Evaluar cada cargador
-    for (const charger of chargers) {
-        // PASO 7.1: Calcular distancia
-        const dist = calcularDistancia(userLat, userLng, charger.location.coordinates[1], charger.location.coordinates[0]);
+    for (let idx = 0; idx < chargers.length; idx++) {
+        const charger = chargers[idx];
+        // PASO 7.1: Calcular distancia (Haversine en km) y sobrescribir con OSRM si está disponible
+        let dist = calcularDistancia(userLat, userLng, charger.location.coordinates[1], charger.location.coordinates[0]);
+        const osrmDistMeters = (osrmInfoTime && osrmInfoTime.distances && osrmInfoTime.distances.length > 0) ? osrmInfoTime.distances[idx] : null;
+        if (osrmDistMeters !== null && osrmDistMeters !== undefined) {
+            dist = Number(osrmDistMeters) / 1000; // convertir a km
+        }
         const unitCost = charger.energy_cost || 1;
-        
+
         // VALIDACIÓN: Verificar que el cargador tenga potencia
         if (charger.powerOutput <= 0) continue;
-        
+
+        // Obtener tiempo de viaje estimado (minutos) desde OSRM o fallback por distancia
+        const travelSec = (osrmInfoTime && osrmInfoTime.durations && osrmInfoTime.durations.length > 0) ? osrmInfoTime.durations[idx] : null;
+        let travelMinutes;
+        if (travelSec === null || travelSec === undefined) {
+            const speedKmh = 40;
+            travelMinutes = (dist / speedKmh) * 60;
+        } else {
+            travelMinutes = Number(travelSec) / 60;
+        }
+
         // PASO 7.2: Calcular tiempo necesario para carga completa
         const time_needed_hours = ((100 - current) / 100) * (batteryCapacity / charger.powerOutput);
         const time_needed_minutes = time_needed_hours * 60;
         const time_needed_ms = time_needed_minutes * 60 * 1000;
-        
-        // PASO 7.3: Determinar ventana deseada (menor entre tiempo necesario y tiempo disponible)
-        const desiredMs = Math.min(time_needed_ms, availableMs);
+
+        // PASO 7.3: Determinar ventana deseada (la parte de tiempo disponible dedicada a carga)
+        // La ventana total que el usuario ingresa debe cubrir tiempo de llegada + tiempo de carga.
+        const travelMinutesMs = Math.round(travelMinutes * 60 * 1000);
+        // Si el usuario no tiene tiempo ni para llegar, descartar
+        if (availableMs <= travelMinutesMs) continue;
+    // Requisito adicional: el tiempo de llegada debe ser como máximo la mitad
+    // del tiempo total disponible; si no, prácticamente no quedará tiempo para cargar.
+    if (travelMinutesMs > (availableMs / 2)) continue;
+        // Tiempo disponible para carga = tiempo total disponible - tiempo de viaje
+        const availableForChargeMs = Math.max(0, availableMs - travelMinutesMs);
+        const desiredMs = Math.min(time_needed_ms, availableForChargeMs);
 
         // PASO 7.4: Obtener reservas del cargador
         const chargerReservations = await Reservation.find({
@@ -393,7 +456,7 @@ async function recommendByTime(q) {
         chargerReservations.forEach(pushInterval);
         vehicleReservations.forEach(pushInterval);
         intervals.sort((a, b) => a.start - b.start);
-        
+
         // Fusionar intervalos solapados
         const merged = [];
         for (const iv of intervals) {
@@ -406,7 +469,8 @@ async function recommendByTime(q) {
 
         // PASO 7.6: BÚSQUEDA DEL GAP MÁS GRANDE
         // Objetivo: Encontrar el intervalo libre más largo dentro del tiempo disponible
-        let gapStart = new Date(now);
+        // El usuario solo puede empezar a cargar tras llegar al cargador
+        let gapStart = new Date(now.getTime() + Math.round(travelMinutes * 60 * 1000));
         let largestGapMs = 0;
         let largestGapStart = null;
 
@@ -423,20 +487,20 @@ async function recommendByTime(q) {
             for (let i = 0; i <= merged.length; i++) {
                 const gapEnd = merged[i] ? merged[i].start : limit;
                 const gapMs = gapEnd - gapStart;
-                
+
                 // PASO 7.6.2: Si el hueco es >= tiempo necesario, usarlo (limitado a desiredMs)
                 if (gapMs >= desiredMs) {
                     largestGapMs = desiredMs;
                     largestGapStart = new Date(gapStart);
                     break; // Encontramos un gap perfecto, no seguir buscando
                 }
-                
+
                 // PASO 7.6.3: Registrar el gap más grande encontrado hasta ahora
-                if (gapMs > largestGapMs) { 
-                    largestGapMs = gapMs; 
-                    largestGapStart = new Date(gapStart); 
+                if (gapMs > largestGapMs) {
+                    largestGapMs = gapMs;
+                    largestGapStart = new Date(gapStart);
                 }
-                
+
                 // Avanzar al siguiente gap
                 if (merged[i]) gapStart = merged[i].end;
                 if (gapStart > limit) break; // Excede límite de tiempo
@@ -450,11 +514,11 @@ async function recommendByTime(q) {
         const windowMinutes = largestGapMs / (60 * 1000);
         const tDemora = Math.max(0, (largestGapStart.getTime() - now.getTime()) / (60 * 1000));
         const hoursAvailable = windowMinutes / 60;
-        
+
         // PASO 7.8: Calcular energía que puede entregar en la ventana disponible
         const energyCapKwh = charger.powerOutput * hoursAvailable;
         const energyGiven = Math.min(energyNeeded, energyCapKwh); // No exceder lo necesario
-        
+
         // VALIDACIÓN: Descartar si no puede entregar energía
         if (energyGiven <= 0) continue;
 
@@ -476,7 +540,10 @@ async function recommendByTime(q) {
             unitCost,
             windowMinutes,
             energyGiven,
-            tDemora
+            tDemora,
+            travelMinutes,
+            travelSec,
+            usedOsrmDistance: (osrmDistMeters !== null && osrmDistMeters !== undefined)
         });
     }
 
@@ -492,7 +559,7 @@ async function recommendByTime(q) {
         const wNorm = (r.windowMinutes / (maxWindow || 1));
         const chNorm = (r.energyGiven / (maxEnergy || 1));
         const demNorm = (r.tDemora / (maxDemora || 1));
-        
+
         // Fórmula: suma ponderada - energía (más energía reduce el score = mejor)
         r.performance =
             (weightDist / sumaPesos) * dNorm +
@@ -568,7 +635,7 @@ router.get('/time', async (req, res) => {
 router.get('/recommend', async (req, res) => {
     try {
         const mode = (req.query.mode || 'charge').toString().toLowerCase();
-        
+
         // PASO 1: Determinar modo de recomendación
         if (mode === 'charge') {
             const data = await recommendByCharge(req.query);
