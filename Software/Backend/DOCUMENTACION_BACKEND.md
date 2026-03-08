@@ -1699,7 +1699,4 @@ Controlador que gestiona múltiples instancias del simulador.
 
 ---
 
-## 📝 Comentarios en el Código
-
-Ahora voy a agregar comentarios detallados a las funciones principales del backend...
 
